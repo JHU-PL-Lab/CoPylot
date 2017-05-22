@@ -1,0 +1,8 @@
+# OASIS temp files
+/_build
+/*.byte
+/*.native
+/setup.*
+
+# Custom build configuration files
+/.local_*

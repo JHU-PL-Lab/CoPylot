@@ -1,0 +1,38 @@
+# OASIS_START
+# DO NOT EDIT (digest: e7eaf749d37f5664b8c233b7302d222e)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+true: annot, bin_annot
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library co-pylot
+"src/co-pylot.cmxs": use_co-pylot
+<src/*.ml{,i,y}>: pkg_threads
+# Executable test
+"test/test.native": pkg_batteries
+"test/test.native": pkg_jhupllib
+"test/test.native": pkg_oUnit
+"test/test.native": pkg_ocaml-monadic
+"test/test.native": pkg_pds-reachability
+"test/test.native": pkg_ppx_deriving.std
+"test/test.native": pkg_threads
+<test/*.ml{,i,y}>: pkg_batteries
+<test/*.ml{,i,y}>: pkg_jhupllib
+<test/*.ml{,i,y}>: pkg_oUnit
+<test/*.ml{,i,y}>: pkg_ocaml-monadic
+<test/*.ml{,i,y}>: pkg_pds-reachability
+<test/*.ml{,i,y}>: pkg_ppx_deriving.std
+<test/*.ml{,i,y}>: pkg_threads
+# OASIS_STOP
+
+true: explain
+true: warn(@A-4-39-44-45)

@@ -1,0 +1,40 @@
+Name: CoPylot
+Version: 0.1
+Synopsis: A demand-driven program analysis for a subset of Python.
+Authors: Zachary Palmer, Tianlu Chen, Devon Loehr
+License: Apache
+
+Description: A demand-driven program analysis for a subset of Python.
+Homepage: http://github.com/JHU-PL-Lab/CoPylot
+
+OASISFormat: 0.4
+BuildTools: ocamlbuild
+Plugins: META (0.4)
+AlphaFeatures: ocamlbuild_more_args
+XOCamlbuildExtraArgs: -use-menhir -use-ocamlfind
+BuildDepends: threads
+
+# The following allows individual developers to customize their environments
+# (e.g. reposition the _build directory via a symlink) on build.
+PreBuildCommand: ./.execute_if_exists ./.local_prebuild
+PreCleanCommand: ./.execute_if_exists ./.local_preclean
+
+Library "CoPylot"
+  Path: src
+  Modules:
+    Copylot
+
+Executable "test"
+  Path: test/
+  MainIs: test.ml
+  CompiledObject: native
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ocaml-monadic,
+    oUnit,
+    pds-reachability,
+    ppx_deriving.std
+
+Test test
+  Command: $test
