@@ -3,6 +3,7 @@ open OUnit2;;
 let all_tests =
   "tests" >:::
   [
+    Test_parser.tests
   ]
 ;;
 

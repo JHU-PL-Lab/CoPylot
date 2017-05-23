@@ -24,6 +24,22 @@ Library "CoPylot"
   Modules:
     Copylot
 
+Library "parser"
+  FindlibParent: CoPylot
+  Path: src/parser
+  Modules:
+    Python2_ast,
+    Python2_generated_lexer_state,
+    Python2_generated_lexer,
+    Python2_generated_parser,
+    Python2_parser,
+    Python2_parser_utils,
+    Python2_pretty
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std
+
 Executable "test"
   Path: test/
   MainIs: test.ml
@@ -34,7 +50,8 @@ Executable "test"
     ocaml-monadic,
     oUnit,
     pds-reachability,
-    ppx_deriving.std
+    ppx_deriving.std,
+    CoPylot.parser
 
 Test test
   Command: $test
