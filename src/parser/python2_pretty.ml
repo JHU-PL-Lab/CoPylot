@@ -40,12 +40,12 @@ let rec pp_block pp fmt = function
 
 let rec pp_mod fmt = function
   | Module (body, _)
-  | Interactive (body, _)
-  | Suite (body, _) ->
+  (*| Interactive (body, _) *)
+  (* | Suite (body, _)*) ->
       pp_block pp_stmt fmt body
 
-  | Expression (expr, _) ->
-      pp_expr fmt expr
+  (* | Expression (expr, _) ->
+      pp_expr fmt expr *)
 
 and pp_stmt fmt = function
   | FunctionDef (name, args, body, decorator_list, _) ->
@@ -325,15 +325,15 @@ and pp_paren_expr_list fmt = pp_paren pp_expr_list fmt
 and pp_decorator fmt = fprintf fmt "@<0>@[<4>@@%a@]@\n" pp_expr
 
 and pp_slice fmt = function
-  | Ellipsis ->
-      pp_string fmt "..."
+  (* | Ellipsis ->
+      pp_string fmt "..." *)
   | Slice (lower, upper, step) ->
       pp_opt pp_expr fmt lower;
       pp_char fmt ':';
       pp_opt pp_expr fmt upper;
       pp_opt (fun fmt -> fprintf fmt ":%a" pp_expr) fmt step
-  | ExtSlice dims ->
-      pp_list pp_slice fmt dims
+  (* | ExtSlice dims ->
+      pp_list pp_slice fmt dims *)
   | Index expr ->
       pp_expr fmt expr
 

@@ -136,7 +136,7 @@ keywords, but as names. We are intentionally deviating from this here.*)
 /*%token <Lexing.position> RBRACE    */     /* } */
 %token <Lexing.position> COLON          /* : */
 %token <Lexing.position> SEMICOL        /* ; */
-%token <Lexing.position> DOT            /* . */
+/*%token <Lexing.position> DOT*/            /* . */
 %token <Lexing.position> COMMA          /* , */
 /*%token <Lexing.position> BACKQUOTE  */    /* ` */
 /*%token <Lexing.position> AT       */      /* @ */
@@ -602,7 +602,8 @@ atom_trailer:
       { match $3 with
           (* TODO test* => Index (Tuple (elts)) *)
         | [s] -> Subscript ($1, s, Load, annot $2)
-        | l -> Subscript ($1, ExtSlice (l), Load, annot $2) }
+        | _ -> failwith "ExtSlice not supported"
+        (*| l -> Subscript ($1, ExtSlice (l), Load, annot $2) *) }
   (*
   | atom_trailer DOT NAME { Attribute ($1, fst $3, Load, annot (snd $3)) }*)
 
@@ -673,7 +674,7 @@ subscriptlist:
   | subscript COMMA subscriptlist { $1::$3 }
 
 subscript:
-  | DOT DOT DOT { Ellipsis }
+  (*| DOT DOT DOT { Ellipsis }*)
   | test { Index ($1) }
   | test_opt COLON test_opt { Slice ($1, $3, None) }
   | test_opt COLON test_opt COLON test_opt { Slice ($1, $3, $5) }

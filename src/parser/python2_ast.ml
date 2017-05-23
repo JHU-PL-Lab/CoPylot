@@ -8,10 +8,10 @@ type identifier = string
 
 and 'a modl =
   | Module of 'a stmt list (* body *) * 'a
-  | Interactive of 'a stmt list (* body *) * 'a
-  | Expression of 'a expr (* body *) * 'a
+  (* | Interactive of 'a stmt list (* body *) * 'a *)
+  (* | Expression of 'a expr (* body *) * 'a *)
 
-  | Suite of 'a stmt list (* body *) * 'a
+  (* | Suite of 'a stmt list (* body *) * 'a *)
 [@@deriving eq, ord, show]
 
 and 'a stmt =
@@ -78,9 +78,9 @@ and expr_context = Load | Store | Del | AugLoad | AugStore | Param
 [@@deriving eq, ord, show]
 
 and 'a slice =
-  | Ellipsis
+  (* | Ellipsis *)
   | Slice of 'a expr option (* lower *) * 'a expr option (* upper *) * 'a expr option (* step *)
-  | ExtSlice of 'a slice list (* dims *)
+  (* | ExtSlice of 'a slice list (* dims *) *)
   | Index of 'a expr (* value *)
 [@@deriving eq, ord, show]
 
@@ -109,8 +109,8 @@ and 'a arguments = 'a expr list (* args *) * identifier option (* varargs *) * i
 and 'a keyword = identifier (* arg *) * 'a expr (* value *)
 [@@deriving eq, ord, show]
 
-and alias = identifier (* name *) * identifier option (* asname *)
-[@@deriving eq, ord, show]
+(* and alias = identifier (* name *) * identifier option (* asname *)
+[@@deriving eq, ord, show] *)
 
 and number =
   | Int of int
@@ -122,9 +122,9 @@ and number =
 
 let name_of_mod = function
   | Module _      -> "Module"
-  | Interactive _ -> "Interactive"
-  | Expression _  -> "Expression"
-  | Suite _       -> "Suite"
+  (* | Interactive _ -> "Interactive" *)
+  (* | Expression _  -> "Expression" *)
+  (* | Suite _       -> "Suite" *)
 
 and name_of_stmt = function
   | FunctionDef _ -> "FunctionDef"
@@ -182,9 +182,9 @@ and name_of_expr_context = function
   | Param       -> "Param"
 
 and name_of_slice = function
-  | Ellipsis    -> "Ellipsis"
+  (* | Ellipsis    -> "Ellipsis" *)
   | Slice _     -> "Slice"
-  | ExtSlice _  -> "ExtSlice"
+  (* | ExtSlice _  -> "ExtSlice" *)
   | Index _     -> "Index"
 
 and name_of_boolop = function
@@ -234,9 +234,9 @@ and name_of_number = function
 
 let annot_of_mod = function
   | Module (_, a)
-  | Interactive (_, a)
-  | Expression (_, a)
-  | Suite (_, a)
+  (* | Interactive (_, a) *)
+  (* | Expression (_, a) *)
+  (* | Suite (_, a) *)
     -> a
 
 and annot_of_stmt = function

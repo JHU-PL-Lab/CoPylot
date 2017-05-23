@@ -501,17 +501,15 @@ let list_tests =
        (Index(Num(Int(0),annot))));
     (gen_slice_test "slice_test2" "[5-2]"
        (Index(BinOp(Num(Int(5),annot), Sub, Num(Int(2), annot), annot))));
-    (gen_slice_test "slice_test3" "[...]"
-       Ellipsis);
-    (gen_slice_test "slice_test4" "[2:]"
+    (gen_slice_test "slice_test3" "[2:]"
        (Slice(Some(Num(Int(2), annot)), None, None)));
-    (gen_slice_test "slice_test5" "[:4]"
+    (gen_slice_test "slice_test4" "[:4]"
        (Slice(None, Some(Num(Int(4), annot)), None)));
-    (gen_slice_test "slice_test6" "[::3]"
+    (gen_slice_test "slice_test5" "[::3]"
        (Slice(None, None, Some(Num(Int(3), annot)))));
-    (gen_slice_test "slice_test7" "[2:4]"
+    (gen_slice_test "slice_test6" "[2:4]"
        (Slice(Some(Num(Int(2), annot)), Some(Num(Int(4), annot)), None)));
-    (gen_slice_test "slice_test8" "[2:4:-1]"
+    (gen_slice_test "slice_test7" "[2:4:-1]"
        (Slice(Some(Num(Int(2), annot)),
               Some(Num(Int(4), annot)),
               Some(Num(Int(-1), annot)))));
