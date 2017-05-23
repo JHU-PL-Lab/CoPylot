@@ -72,7 +72,7 @@ let boolop_and_test = gen_stmt_test "boolop_and_test"
         And,
         [
           Name("x", Load, annot);
-          Bool(false, annot);
+          Bool(true, annot);
           Num(Int(5), annot);
         ],
         annot

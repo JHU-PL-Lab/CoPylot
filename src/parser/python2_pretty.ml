@@ -55,22 +55,22 @@ and pp_stmt fmt = function
         pp_args args
         pp_suite body
 
-  | ClassDef (name, bases, body, decorator_list, _) ->
+  (* | ClassDef (name, bases, body, decorator_list, _) ->
       fprintf fmt "%a@[<4>class %s%a:@\n%a@]"
         (pp_block pp_decorator) decorator_list
         name
         (if bases <> []
          then pp_paren_expr_list
          else pp_empty) bases
-        pp_suite body
+        pp_suite body *)
 
   | Return (None, _) ->
       fprintf fmt "return"
   | Return (Some value, _) ->
       fprintf fmt "return %a" pp_expr value
 
-  | Delete (targets, _) ->
-      fprintf fmt "del %a" pp_expr_list targets
+  (* | Delete (targets, _) ->
+      fprintf fmt "del %a" pp_expr_list targets *)
 
   | Assign (targets, value, _) ->
       fprintf fmt "%a = %a"
@@ -117,7 +117,7 @@ and pp_stmt fmt = function
         pp_suite body
         pp_if_orelse orelse
 
-  | With (context_expr, None, body, _) ->
+  (* | With (context_expr, None, body, _) ->
       fprintf fmt "@[<4>with %a:@\n%a@]"
         pp_expr context_expr
         pp_suite body
@@ -125,9 +125,9 @@ and pp_stmt fmt = function
       fprintf fmt "@[<4>with %a as %a:@\n%a@]"
         pp_expr context_expr
         pp_expr optional_vars
-        pp_suite body
+        pp_suite body *)
 
-  | Raise (None, _, _, _) ->
+  (* | Raise (None, _, _, _) ->
       fprintf fmt "raise"
   | Raise (Some typ, None, _, _) ->
       fprintf fmt "raise %a" pp_expr typ
@@ -152,14 +152,14 @@ and pp_stmt fmt = function
   | TryFinally (body, finalbody, _) ->
       fprintf fmt "@[<4>try:@\n%a@]@\n@[<4>finally:@\n%a@]"
         pp_suite body
-        pp_suite finalbody
+        pp_suite finalbody *)
 
-  | Assert (test, None, _) ->
+  (* | Assert (test, None, _) ->
       fprintf fmt "assert %a" pp_expr test
   | Assert (test, Some msg, _) ->
-      fprintf fmt "assert %a, %a" pp_expr test pp_expr msg
+      fprintf fmt "assert %a, %a" pp_expr test pp_expr msg *)
 
-  | Import (names, _) ->
+  (* | Import (names, _) ->
       fprintf fmt "import %a" pp_alias_list names
 
   | ImportFrom (modl, names, level, _) ->
@@ -170,9 +170,9 @@ and pp_stmt fmt = function
             | Some n -> n)
            ' ')
         modl
-        pp_alias_list names
+        pp_alias_list names *)
 
-  | Exec (body, None, _, _) ->
+  (* | Exec (body, None, _, _) ->
       fprintf fmt "exec %a" pp_expr body
   | Exec (body, Some globals, None, _) ->
       fprintf fmt "exec %a in %a" pp_expr body pp_expr globals
@@ -180,10 +180,10 @@ and pp_stmt fmt = function
       fprintf fmt "exec %a in %a, %a"
         pp_expr body
         pp_expr globals
-        pp_expr locals
+        pp_expr locals *)
 
-  | Global (names, _) ->
-      fprintf fmt "global %a" (pp_list pp_string) names
+  (* | Global (names, _) ->
+      fprintf fmt "global %a" (pp_list pp_string) names *)
 
   | Expr (value, _) ->
       pp_expr fmt value
@@ -223,14 +223,14 @@ and pp_expr fmt = function
   | UnaryOp (op, operand, _) ->
       pp_string fmt
         (match op with
-         | Invert -> "~"
+         (* | Invert -> "~" *)
          | Not    -> "not "
          | UAdd   -> "+"
          | USub   -> "-");
       pp_expr fmt operand
 
-  | Lambda (args, body, _) ->
-      fprintf fmt "lambda %a: %a" pp_args args pp_expr body
+  (* | Lambda (args, body, _) ->
+      fprintf fmt "lambda %a: %a" pp_args args pp_expr body *)
 
   | IfExp (test, body, orelse, _) ->
       fprintf fmt "%a if %a else %a"
@@ -238,27 +238,27 @@ and pp_expr fmt = function
         pp_expr body
         pp_expr orelse
 
-  | Dict (keys, values, _) ->
+  (* | Dict (keys, values, _) ->
       fprintf fmt "{@[@ ";
       List.iter2
         (fun k v -> fprintf fmt "%a: %a,@ " pp_expr k pp_expr v)
         keys values;
-      fprintf fmt "@]}"
+      fprintf fmt "@]}" *)
 
-  | ListComp (elt, generators, _) ->
+  (* | ListComp (elt, generators, _) ->
       fprintf fmt "[@[%a %a@]]"
         pp_expr elt
-        (pp_list ~sep:" " pp_comp) generators
+        (pp_list ~sep:" " pp_comp) generators *)
 
-  | GeneratorExp (elt, generators, _) ->
+  (* | GeneratorExp (elt, generators, _) ->
       fprintf fmt "(@[%a %a@])"
         pp_expr elt
-        (pp_list ~sep:" " pp_comp) generators
+        (pp_list ~sep:" " pp_comp) generators *)
 
-  | Yield (None, _) ->
+  (* | Yield (None, _) ->
       fprintf fmt "yield"
   | Yield (Some value, _) ->
-      fprintf fmt "yield %a" pp_expr value
+      fprintf fmt "yield %a" pp_expr value *)
 
   | Compare (left, ops, comparators, _) ->
       pp_expr fmt left;
@@ -273,7 +273,7 @@ and pp_expr fmt = function
       let comma = mk_sep ", " in
       let paren =
         match func with
-        | Name _ | Call _ | Attribute _ | Subscript _ -> false
+        | Name _ | Call _ (*| Attribute _*) | Subscript _ -> false
         | _ -> true in
         if paren then fprintf fmt "(%a)(" pp_expr func else fprintf fmt "%a(" pp_expr func;
         List.iter (fprintf fmt "%t%a" comma pp_expr) args;
@@ -285,8 +285,8 @@ and pp_expr fmt = function
         pp_opt (fun fmt -> fprintf fmt "%t**%a" comma pp_expr) fmt kwargs;
         pp_char fmt ')'
 
-  | Repr (value, _) ->
-      fprintf fmt "repr(%a)" pp_expr value
+  (* | Repr (value, _) ->
+      fprintf fmt "repr(%a)" pp_expr value *)
 
   | Num (Int i, _)
   | Num (LongInt i, _) ->
@@ -301,8 +301,8 @@ and pp_expr fmt = function
       fprintf fmt "\"%s\"" (String.escaped s)
   | Bool (b, _) ->
     (pp_bool fmt b)
-  | Attribute (value, attr, _, _) ->
-      fprintf fmt "%a.%s" pp_expr value attr
+  (* | Attribute (value, attr, _, _) ->
+      fprintf fmt "%a.%s" pp_expr value attr *)
 
   | Subscript (expr, slice, _, _) ->
       fprintf fmt "%a[@[%a@]]" pp_expr expr pp_slice slice
@@ -341,7 +341,7 @@ and pp_comp fmt (expr, iter, ifs) =
   fprintf fmt "for %a in %a" pp_expr expr pp_expr iter;
   List.iter (fprintf fmt " if %a" pp_expr) ifs
 
-and pp_excepthandler fmt = function
+(* and pp_excepthandler fmt = function
   | ExceptHandler (None, _, body, _) ->
       fprintf fmt "@[<4>except:@\n%a@]" pp_suite body
   | ExceptHandler (Some typ, None, body, _) ->
@@ -352,7 +352,7 @@ and pp_excepthandler fmt = function
       fprintf fmt "@[<4>except %a as %a:@\n%a@]"
         pp_expr typ
         pp_expr name
-        pp_suite body
+        pp_suite body *)
 
 and pp_args fmt (args, varargs, kwargs, defaults) =
   let arg_len = List.length args in

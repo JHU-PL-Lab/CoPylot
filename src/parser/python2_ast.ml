@@ -16,10 +16,10 @@ and 'a modl =
 
 and 'a stmt =
   | FunctionDef of identifier (* name *) * 'a arguments (* args *) * 'a stmt list (* body *) * 'a expr list (* decorator_list *) * 'a
-  | ClassDef of identifier (* name *) * 'a expr list (* bases *) * 'a stmt list (* body *) * 'a expr list (* decorator_list *) * 'a
+  (* | ClassDef of identifier (* name *) * 'a expr list (* bases *) * 'a stmt list (* body *) * 'a expr list (* decorator_list *) * 'a *)
   | Return of 'a expr option (* value *) * 'a
 
-  | Delete of 'a expr list (* targets *) * 'a
+  (* | Delete of 'a expr list (* targets *) * 'a *)
   | Assign of 'a expr list (* targets *) * 'a expr (* value *) * 'a
   | AugAssign of 'a expr (* target *) * operator (* op *) * 'a expr (* value *) * 'a
 
@@ -28,19 +28,19 @@ and 'a stmt =
   | For of 'a expr (* target *) * 'a expr (* iter *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
   | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
-  | With of 'a expr (* context_expr *) * 'a expr option (* optional_vars *) * 'a stmt list (* body *) * 'a
+  (* | With of 'a expr (* context_expr *) * 'a expr option (* optional_vars *) * 'a stmt list (* body *) * 'a *)
 
-  | Raise of 'a expr option (* type *) * 'a expr option (* inst *) * 'a expr option (* tback *) * 'a
-  | TryExcept of 'a stmt list (* body *) * 'a excepthandler list (* handlers *) * 'a stmt list (* orelse *) * 'a
-  | TryFinally of 'a stmt list (* body *) * 'a stmt list (* finalbody *) * 'a
-  | Assert of 'a expr (* test *) * 'a expr option (* msg *) * 'a
+  (* | Raise of 'a expr option (* type *) * 'a expr option (* inst *) * 'a expr option (* tback *) * 'a *)
+  (* | TryExcept of 'a stmt list (* body *) * 'a excepthandler list (* handlers *) * 'a stmt list (* orelse *) * 'a *)
+  (* | TryFinally of 'a stmt list (* body *) * 'a stmt list (* finalbody *) * 'a *)
+  (* | Assert of 'a expr (* test *) * 'a expr option (* msg *) * 'a *)
 
-  | Import of alias list (* names *) * 'a
-  | ImportFrom of identifier (* module *) * alias list (* names *) * int option (* level *) * 'a
+  (* | Import of alias list (* names *) * 'a *)
+  (* | ImportFrom of identifier (* module *) * alias list (* names *) * int option (* level *) * 'a *)
 
-  | Exec of 'a expr (* body *) * 'a expr option (* globals *) * 'a expr option (* locals *) * 'a
+  (* | Exec of 'a expr (* body *) * 'a expr option (* globals *) * 'a expr option (* locals *) * 'a *)
 
-  | Global of identifier list (* names *) * 'a
+  (* | Global of identifier list (* names *) * 'a *)
   | Expr of 'a expr (* value *) * 'a
   | Pass of 'a
   | Break of 'a
@@ -51,22 +51,22 @@ and 'a expr =
   | BoolOp of boolop (* op *) * 'a expr list (* values *) * 'a
   | BinOp of 'a expr (* left *) * operator (* op *) * 'a expr (* right *) * 'a
   | UnaryOp of unaryop (* op *) * 'a expr (* operand *) * 'a
-  | Lambda of 'a arguments (* args *) * 'a expr (* body *) * 'a
+  (* | Lambda of 'a arguments (* args *) * 'a expr (* body *) * 'a *)
   | IfExp of 'a expr (* test *) * 'a expr (* body *) * 'a expr (* orelse *) * 'a
-  | Dict of 'a expr list (* keys *) * 'a expr list (* values *) * 'a
-  | ListComp of 'a expr (* elt *) * 'a comprehension list (* generators *) * 'a
-  | GeneratorExp of 'a expr (* elt *) * 'a comprehension list (* generators *) * 'a
-  | Yield of 'a expr option (* value *) * 'a
+  (* | Dict of 'a expr list (* keys *) * 'a expr list (* values *) * 'a *)
+  (* | ListComp of 'a expr (* elt *) * 'a comprehension list (* generators *) * 'a *)
+  (* | GeneratorExp of 'a expr (* elt *) * 'a comprehension list (* generators *) * 'a *)
+  (* | Yield of 'a expr option (* value *) * 'a *)
   | Compare of 'a expr (* left *) * cmpop list (* ops *) * 'a expr list (* comparators *) * 'a
   | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a keyword list (* keywords *) * 'a expr option (* starargs *) * 'a expr option (* kwargs *) * 'a
-  | Repr of 'a expr (* value *) * 'a
+  (* | Repr of 'a expr (* value *) * 'a *)
   | Num of number (* n *) * 'a
   | Str of string (* s *) * 'a
   | Bool of bool * 'a (* N.B. The Python formal specification does not treat Bools
                          as a type of expression. We are intentionally deviating
                          from this behavior here *)
 
-  | Attribute of 'a expr (* value *) * identifier (* attr *) * expr_context (* ctx *) * 'a
+  (* | Attribute of 'a expr (* value *) * identifier (* attr *) * expr_context (* ctx *) * 'a *)
   | Subscript of 'a expr (* value *) * 'a slice (* slice *) * expr_context (* ctx *) * 'a
   | Name of identifier (* id *) * expr_context (* ctx *) * 'a
   | List of 'a expr list (* elts *) * expr_context (* ctx *) * 'a
@@ -87,21 +87,21 @@ and 'a slice =
 and boolop = And | Or
 [@@deriving eq, ord, show]
 
-and operator = Add | Sub | Mult | Div | Mod | Pow | LShift
-               | RShift | BitOr | BitXor | BitAnd | FloorDiv
+and operator = Add | Sub | Mult | Div | Mod | Pow
+               (* | LShift | RShift | BitOr | BitXor | BitAnd | FloorDiv *)
 [@@deriving eq, ord, show]
 
-and unaryop = Invert | Not | UAdd | USub
+and unaryop = (*Invert |*) Not | UAdd | USub
 [@@deriving eq, ord, show]
 
-and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
+and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE (*| Is | IsNot*) | In | NotIn
 [@@deriving eq, ord, show]
 
-and 'a comprehension = 'a expr (* target *) * 'a expr (* iter *) * 'a expr list (* ifs *)
-[@@deriving eq, ord, show]
+(* and 'a comprehension = 'a expr (* target *) * 'a expr (* iter *) * 'a expr list (* ifs *) *)
+(* [@@deriving eq, ord, show] *)
 
-and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * 'a expr option (* name *) * 'a stmt list (* body *) * 'a
-[@@deriving eq, ord, show]
+(* and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * 'a expr option (* name *) * 'a stmt list (* body *) * 'a *)
+(* [@@deriving eq, ord, show] *)
 
 and 'a arguments = 'a expr list (* args *) * identifier option (* varargs *) * identifier option (* kwargs *) * 'a expr list (* defaults *)
 [@@deriving eq, ord, show]
@@ -128,24 +128,24 @@ let name_of_mod = function
 
 and name_of_stmt = function
   | FunctionDef _ -> "FunctionDef"
-  | ClassDef _    -> "ClassDef"
+  (* | ClassDef _    -> "ClassDef" *)
   | Return _      -> "Return"
-  | Delete _      -> "Delete"
+  (* | Delete _      -> "Delete" *)
   | Assign _      -> "Assign"
   | AugAssign _   -> "AugAssign"
   | Print _       -> "Print"
   | For _         -> "For"
   | While _       -> "While"
   | If _          -> "If"
-  | With _        -> "With"
-  | Raise _       -> "Raise"
-  | TryExcept _   -> "TryExcept"
-  | TryFinally _  -> "TryFinally"
-  | Assert _      -> "Assert"
-  | Import _      -> "Import"
-  | ImportFrom _  -> "ImportFrom"
-  | Exec _        -> "Exec"
-  | Global _      -> "Global"
+  (* | With _        -> "With" *)
+  (* | Raise _       -> "Raise" *)
+  (* | TryExcept _   -> "TryExcept" *)
+  (* | TryFinally _  -> "TryFinally" *)
+  (* | Assert _      -> "Assert" *)
+  (* | Import _      -> "Import" *)
+  (* | ImportFrom _  -> "ImportFrom" *)
+  (* | Exec _        -> "Exec" *)
+  (* | Global _      -> "Global" *)
   | Expr _        -> "Expr"
   | Pass _        -> "Pass"
   | Break _       -> "Break"
@@ -155,19 +155,19 @@ and name_of_expr = function
   | BoolOp _       -> "BoolOp"
   | BinOp _        -> "BinOp"
   | UnaryOp _      -> "UnaryOp"
-  | Lambda _       -> "Lambda"
+  (* | Lambda _       -> "Lambda" *)
   | IfExp _        -> "IfExp"
-  | Dict _         -> "Dict"
-  | ListComp _     -> "ListComp"
-  | GeneratorExp _ -> "GeneratorExp"
-  | Yield _        -> "Yield"
+  (* | Dict _         -> "Dict" *)
+  (* | ListComp _     -> "ListComp" *)
+  (* | GeneratorExp _ -> "GeneratorExp" *)
+  (* | Yield _        -> "Yield" *)
   | Compare _      -> "Compare"
   | Call _         -> "Call"
-  | Repr _         -> "Repr"
+  (* | Repr _         -> "Repr" *)
   | Num _          -> "Num"
   | Str _          -> "Str"
   | Bool _         -> "Bool"
-  | Attribute _    -> "Attribute"
+  (* | Attribute _    -> "Attribute" *)
   | Subscript _    -> "Subscript"
   | Name _         -> "Name"
   | List _         -> "List"
@@ -198,15 +198,15 @@ and name_of_operator = function
   | Div         -> "Div"
   | Mod         -> "Mod"
   | Pow         -> "Pow"
-  | LShift      -> "LShift"
-  | RShift      -> "RShift"
-  | BitOr       -> "BitOr"
-  | BitXor      -> "BitXor"
-  | BitAnd      -> "BitAnd"
-  | FloorDiv    -> "FloorDiv"
+  (* | LShift      -> "LShift" *)
+  (* | RShift      -> "RShift" *)
+  (* | BitOr       -> "BitOr" *)
+  (* | BitXor      -> "BitXor" *)
+  (* | BitAnd      -> "BitAnd" *)
+  (* | FloorDiv    -> "FloorDiv" *)
 
 and name_of_unaryop = function
-  | Invert      -> "Insert"
+  (* | Invert      -> "Insert" *)
   | Not         -> "Not"
   | UAdd        -> "UAdd"
   | USub        -> "USub"
@@ -218,13 +218,13 @@ and name_of_cmpop = function
   | LtE         -> "LtE"
   | Gt          -> "Gt"
   | GtE         -> "GtE"
-  | Is          -> "Is"
-  | IsNot       -> "IsNot"
+  (* | Is          -> "Is" *)
+  (* | IsNot       -> "IsNot" *)
   | In          -> "In"
   | NotIn       -> "NotIn"
 
-and name_of_excepthandler = function
-  | ExceptHandler _ -> "ExceptHandler"
+(* and name_of_excepthandler = function *)
+  (* | ExceptHandler _ -> "ExceptHandler" *)
 
 and name_of_number = function
   | Int _       -> "Int"
@@ -241,24 +241,24 @@ let annot_of_mod = function
 
 and annot_of_stmt = function
   | FunctionDef (_, _, _, _, a)
-  | ClassDef (_, _, _, _, a)
+  (* | ClassDef (_, _, _, _, a) *)
   | Return (_, a)
-  | Delete (_, a)
+  (* | Delete (_, a) *)
   | Assign (_, _, a)
   | AugAssign (_, _, _, a)
   | Print (_, _, _, a)
   | For (_, _, _, _, a)
   | While (_, _, _, a)
   | If (_, _, _, a)
-  | With (_, _, _, a)
-  | Raise (_, _, _, a)
-  | TryExcept (_, _, _, a)
-  | TryFinally (_, _, a)
-  | Assert (_, _, a)
-  | Import (_, a)
-  | ImportFrom (_, _, _, a)
-  | Exec (_, _, _, a)
-  | Global (_, a)
+  (* | With (_, _, _, a) *)
+  (* | Raise (_, _, _, a) *)
+  (* | TryExcept (_, _, _, a) *)
+  (* | TryFinally (_, _, a) *)
+  (* | Assert (_, _, a) *)
+  (* | Import (_, a) *)
+  (* | ImportFrom (_, _, _, a) *)
+  (* | Exec (_, _, _, a) *)
+  (* | Global (_, a) *)
   | Expr (_, a)
   | Pass (a)
   | Break (a)
@@ -269,30 +269,30 @@ and annot_of_expr = function
   | BoolOp (_, _, a)
   | BinOp (_, _, _, a)
   | UnaryOp (_, _, a)
-  | Lambda (_, _, a)
+  (* | Lambda (_, _, a) *)
   | IfExp (_, _, _, a)
-  | Dict (_, _, a)
-  | ListComp (_, _, a)
-  | GeneratorExp (_, _, a)
-  | Yield (_, a)
+  (* | Dict (_, _, a) *)
+  (* | ListComp (_, _, a) *)
+  (* | GeneratorExp (_, _, a) *)
+  (* | Yield (_, a) *)
   | Compare (_, _, _, a)
   | Call (_, _, _, _, _, a)
-  | Repr (_, a)
+  (* | Repr (_, a) *)
   | Num (_, a)
   | Str (_, a)
   | Bool (_, a)
-  | Attribute (_, _, _, a)
+  (* | Attribute (_, _, _, a) *)
   | Subscript (_, _, _, a)
   | Name (_, _, a)
   | List (_, _, a)
   | Tuple (_, _, a)
     -> a
 
-and annot_of_excepthandler = function
-  | ExceptHandler (_, _, _, a) -> a
+(* and annot_of_excepthandler = function *)
+  (* | ExceptHandler (_, _, _, a) -> a *)
 
 let context_of_expr = function
-  | Attribute (_, _, ctx, _) -> Some ctx
+  (* | Attribute (_, _, ctx, _) -> Some ctx *)
   | Subscript (_, _, ctx, _) -> Some ctx
   | Name (_, ctx, _)         -> Some ctx
   | List (_, ctx, _)         -> Some ctx
@@ -310,15 +310,15 @@ let string_of_operator = function
   | Div         -> "/"
   | Mod         -> "%"
   | Pow         -> "**"
-  | LShift      -> "<<"
-  | RShift      -> ">>"
-  | BitOr       -> "|"
-  | BitXor      -> "^"
-  | BitAnd      -> "&"
-  | FloorDiv    -> "//"
+  (* | LShift      -> "<<" *)
+  (* | RShift      -> ">>" *)
+  (* | BitOr       -> "|" *)
+  (* | BitXor      -> "^" *)
+  (* | BitAnd      -> "&" *)
+  (* | FloorDiv    -> "//" *)
 
 let string_of_unaryop = function
-  | Invert -> "~"
+  (* | Invert -> "~" *)
   | Not    -> "not"
   | UAdd   -> "+"
   | USub   -> "-"
@@ -330,8 +330,8 @@ let string_of_cmpop = function
   | LtE   -> "<="
   | Gt    -> ">"
   | GtE   -> ">="
-  | Is    -> "is"
-  | IsNot -> "is not"
+  (* | Is    -> "is" *)
+  (* | IsNot -> "is not" *)
   | In    -> "in"
   | NotIn -> "not in"
 

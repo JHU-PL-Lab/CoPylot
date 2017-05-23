@@ -18,8 +18,9 @@
       | Right l -> l
 
     let rec set_expr_ctx ctx = function
+      (*
       | Attribute (value, attr, _, a) ->
-          Attribute (value, attr, ctx, a)
+          Attribute (value, attr, ctx, a)*)
       | Subscript (value, slice, _, a) ->
           Subscript (value, slice, ctx, a)
       | Name (id, _, a) ->
@@ -98,7 +99,7 @@ keywords, but as names. We are intentionally deviating from this here.*)
 %token <Lexing.position> DIV            /* / */
 %token <Lexing.position> MOD            /* % */
 %token <Lexing.position> POW            /* ** */
-%token <Lexing.position> FDIV           /* // */
+/*%token <Lexing.position> FDIV*/           /* // */
 /*%token <Lexing.position> BITOR*/          /* | */
 /*%token <Lexing.position> BITAND */        /* & */
 /*%token <Lexing.position> BITXOR   */      /* ^ */
@@ -113,12 +114,12 @@ keywords, but as names. We are intentionally deviating from this here.*)
 %token <Lexing.position> DIVEQ          /* /= */
 %token <Lexing.position> MODEQ          /* %= */
 %token <Lexing.position> POWEQ          /* **= */
-%token <Lexing.position> FDIVEQ         /* //= */
-%token <Lexing.position> ANDEQ          /* &= */
-%token <Lexing.position> OREQ           /* |= */
-%token <Lexing.position> XOREQ          /* ^= */
-%token <Lexing.position> LSHEQ          /* <<= */
-%token <Lexing.position> RSHEQ          /* >>= */
+/*%token <Lexing.position> FDIVEQ*/         /* //= */
+/*%token <Lexing.position> ANDEQ*/          /* &= */
+/*%token <Lexing.position> OREQ   */        /* |= */
+/*%token <Lexing.position> XOREQ    */      /* ^= */
+/*%token <Lexing.position> LSHEQ      */    /* <<= */
+/*%token <Lexing.position> RSHEQ        */  /* >>= */
 
 %token <Lexing.position> EQUAL          /* == */
 %token <Lexing.position> NOTEQ          /* !=, <> */
@@ -249,7 +250,7 @@ small_stmt:
   (*
   | del_stmt    { $1 }*)
   | pass_stmt   { $1 }
-  | flow_stmt   { $1 }
+  | flow_stmt   { $1 } (* Break, continue, return *)
   (*
   | import_stmt { $1 }*)
   (*
@@ -283,12 +284,13 @@ augassign:
   | DIVEQ   { Div, $1 }
   | POWEQ   { Pow, $1 }
   | MODEQ   { Mod, $1 }
+  (*
   | LSHEQ   { LShift, $1 }
   | RSHEQ   { RShift, $1 }
   | OREQ    { BitOr, $1 }
   | XOREQ   { BitXor, $1 }
   | ANDEQ   { BitAnd, $1 }
-  | FDIVEQ  { FloorDiv, $1 }
+  | FDIVEQ  { FloorDiv, $1 }*)
 
 print_stmt:
   | PRINT
@@ -533,7 +535,7 @@ comp_op:
   | NOT IN  { NotIn, $1 }
 
 expr:
-  | arith_expr { $1 } (* Added by Devon *)
+  | arith_expr { $1 } (* Added to short-circuit the chain of *_exprs below*)
   (*
   | xor_expr { $1 }
   | expr BITOR xor_expr{ BinOp ($1, BitOr, $3, annot $2) }
@@ -564,7 +566,7 @@ term_op:
   | MULT    { Mult, $1 }
   | DIV     { Div, $1 }
   | MOD     { Mod, $1 }
-  | FDIV    { FloorDiv, $1 }
+  /*| FDIV    { FloorDiv, $1 }*/
 
 factor:
   | ADD factor { UnaryOp (UAdd, $2, annot $1) }

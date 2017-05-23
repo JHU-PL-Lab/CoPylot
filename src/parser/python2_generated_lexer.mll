@@ -158,12 +158,13 @@ and _token state = parse
   | "/="    { DIVEQ (curr_pos lexbuf) }
   | "%="    { MODEQ (curr_pos lexbuf) }
   | "**="   { POWEQ (curr_pos lexbuf) }
+  (*
   | "//="   { FDIVEQ (curr_pos lexbuf) }
   | "&="    { ANDEQ (curr_pos lexbuf) }
   | "|="    { OREQ (curr_pos lexbuf) }
   | "^="    { XOREQ (curr_pos lexbuf) }
   | "<<="   { LSHEQ (curr_pos lexbuf) }
-  | ">>="   { RSHEQ (curr_pos lexbuf) }
+  | ">>="   { RSHEQ (curr_pos lexbuf) }*)
 
   | "=="    { EQUAL (curr_pos lexbuf) }
   | "!="    { NOTEQ (curr_pos lexbuf) }
@@ -176,7 +177,7 @@ and _token state = parse
   | '='     { EQ (curr_pos lexbuf) }
 
   | "**"    { POW (curr_pos lexbuf) }
-  | "//"    { FDIV (curr_pos lexbuf) }
+  (* | "//"    { FDIV (curr_pos lexbuf) } *)
   | '+'     { ADD (curr_pos lexbuf) }
   | '-'     { SUB (curr_pos lexbuf) }
   | '*'     { MULT (curr_pos lexbuf) }
