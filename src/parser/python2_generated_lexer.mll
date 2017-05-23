@@ -115,7 +115,7 @@ and _token state = parse
         | "and"      -> AND (curr_pos lexbuf)
         (* | "as"       -> AS (curr_pos lexbuf) *)
         (* | "assert"   -> ASSERT (curr_pos lexbuf) *)
-        (* | "break"    -> BREAK (curr_pos lexbuf) *)
+        | "break"    -> BREAK (curr_pos lexbuf)
         (* | "class"    -> CLASS (curr_pos lexbuf) *)
         | "continue" -> CONTINUE (curr_pos lexbuf)
         | "def"      -> DEF (curr_pos lexbuf)

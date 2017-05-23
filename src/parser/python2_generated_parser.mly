@@ -420,7 +420,8 @@ elif_stmt_list:
 
 while_stmt:
   | WHILE test COLON suite { While ($2, $4, [], annot $1) }
-  | WHILE test COLON suite ELSE COLON suite { While ($2, $4, $7, annot $1) }
+  (*
+  | WHILE test COLON suite ELSE COLON suite { While ($2, $4, $7, annot $1) }*)
 
 for_stmt:
   | FOR exprlist IN testlist COLON suite
@@ -593,7 +594,8 @@ atom_trailer:
           (* TODO test* => Index (Tuple (elts)) *)
         | [s] -> Subscript ($1, s, Load, annot $2)
         | l -> Subscript ($1, ExtSlice (l), Load, annot $2) }
-  | atom_trailer DOT NAME { Attribute ($1, fst $3, Load, annot (snd $3)) }
+  (*
+  | atom_trailer DOT NAME { Attribute ($1, fst $3, Load, annot (snd $3)) }*)
 
 atom:
   | atom_tuple  { $1 }

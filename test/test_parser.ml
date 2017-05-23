@@ -35,11 +35,12 @@ let parse_from_string_safe str =
 
 (* Functions to hide testing boilerplate *)
 
-let gen_module_test (name : string) (prog : string) (expected : 'a modl) =
+let gen_module_test (name : string) (prog : string) (expected : 'a stmt list) =
   name>::
   ( fun _ ->
-      let actual = parse_from_string_safe prog in
-      assert_equal ~printer:string_of_modl ~cmp:equivalent_modl expected actual
+      let actual = parse_from_string_safe (prog ^ "\n") in
+      assert_equal ~printer:string_of_modl ~cmp:equivalent_modl
+        (Module(expected, annot)) actual
   )
 
 let gen_stmt_test (name : string) (prog : string) (expected : 'a expr) =
@@ -93,130 +94,264 @@ let boolop_or_test = gen_stmt_test "boolop_or_test"
     )
 ;;
 
-let var_assign_test = gen_module_test "var_assign_test"
-    "x = 5\n"
-    (Module(
+let boolop_all_test = gen_stmt_test "boolop_all_test"
+    "a and b and not c or d and not c or not a and not b"
+    ( (* Expected order of operations is not, then and, then or *)
+      BoolOp(
+        Or,
         [
-          Assign(
-            [ Name("x", Store, annot) ],
-            Num(Int(5), annot),
-            annot
-          )
+          BoolOp(And,
+                 [
+                   Name("a", Load, annot);
+                   Name("b", Load, annot);
+                   UnaryOp(Not, Name("c", Load, annot), annot);
+                 ],
+                 annot);
+          BoolOp(And,
+                 [
+                   Name("d", Load, annot);
+                   UnaryOp(Not, Name("c", Load, annot), annot);
+                 ],
+                 annot);
+          BoolOp(And,
+                 [
+                   UnaryOp(Not, Name("a", Load, annot), annot);
+                   UnaryOp(Not, Name("b", Load, annot), annot);
+                 ],
+                 annot);
         ],
         annot
       )
     )
 ;;
 
-let var_aug_assign_test = gen_module_test "var_aug_assign_test"
-    "x *= 5\n"
-    (Module(
-        [
-          AugAssign(
-            Name("x", Store, annot),
-            Mult,
-            Num(Int(5), annot),
-            annot
-          )
-        ],
+let var_assign_test = gen_module_test "var_assign_test"
+    "x = 5"
+    [
+      Assign(
+        [ Name("x", Store, annot) ],
+        Num(Int(5), annot),
         annot
-      ))
+      )
+    ]
+;;
+
+let var_aug_assign_test = gen_module_test "var_aug_assign_test"
+    "x *= 5"
+    [
+      AugAssign(
+        Name("x", Store, annot),
+        Mult,
+        Num(Int(5), annot),
+        annot
+      )
+    ]
 ;;
 
 let var_cmp_test = gen_module_test "var_cmp_test"
-    "x <= 42\n"
-    (Module(
-        [
-          Expr(
-            Compare(
-              Name("x", Load, annot),
-              [LtE],
-              [Num(Int(42), annot)],
-              annot
-            ),
-            annot
-          )
-        ],
+    "x <= 42"
+    [
+      Expr(
+        Compare(
+          Name("x", Load, annot),
+          [LtE],
+          [Num(Int(42), annot)],
+          annot
+        ),
         annot
-      ))
+      )
+    ]
 ;;
 
 let funcdef_test = gen_module_test "funcdef_test"
-    "def test_function(arg1,arg2):\n\treturn arg1\n"
-    (Module(
+    "def test_function(arg1,arg2):\n\treturn arg1"
+    [
+      FunctionDef("test_function",
+                  ( (* Args *)
+                    [
+                      Name("arg1",
+                           Param,
+                           annot);
+                      Name("arg2",
+                           Param,
+                           annot)
+                    ],
+                    None,
+                    None,
+                    []
+                    (* End Args *)),
+
+                  [ (* Body *)
+                    Return(Some(Name("arg1",
+                                     Load,
+                                     annot)),
+                           annot)
+                  ],
+
+                  [
+                    (* Decorator list *)
+                  ],
+                  annot)
+    ]
+;;
+
+let call_test = gen_stmt_test "call_test"
+    "func(1,x,'foo')"
+    (Call(
+        Name("func", Load, annot),
         [
-          FunctionDef("test_function",
-                      ( (* Args *)
-                        [
-                          Name("arg1",
-                               Param,
-                               annot);
-                          Name("arg2",
-                               Param,
-                               annot)
-                        ],
-                        None,
-                        None,
-                        []
-                        (* End Args *)),
-
-                      [ (* Body *)
-                        Return(Some(Name("arg1",
-                                         Load,
-                                         annot)),
-                               annot)
-                      ],
-
-                      [
-                        (* Decorator list *)
-                      ],
-                      annot)
+          Num(Int(1), annot);
+          Name("x", Load, annot);
+          Str("foo", annot);
         ],
-        annot
-      ))
+        [],  (* Keywords *)
+        None, (* Starargs *)
+        None, (* Kwargs *)
+        annot))
 ;;
 
 let if_test = gen_module_test "if_test"
-    "if x > 2:\n\tx = 3\nelif x < 0: x *= -1\nelse: pass\n"
-    (Module(
+    "if x > 2:\n\tx = 3\nelif x < 0: x *= -1\nelse: pass"
+    [
+      If(
+        Compare(Name("x", Load, annot),
+                [Gt],
+                [Num(Int(2), annot)],
+                annot),
+        [
+          Assign(
+            [
+              Name("x", Store, annot)
+            ],
+            Num(Int(3), annot),
+            annot
+          )
+        ],
         [
           If(
             Compare(Name("x", Load, annot),
-                    [Gt],
-                    [Num(Int(2), annot)],
+                    [Lt],
+                    [Num(Int(0), annot)],
                     annot),
             [
-              Assign(
-                [
-                  Name("x", Store, annot)
-                ],
-                Num(Int(3), annot),
+              AugAssign(
+                Name("x", Store, annot),
+                Mult,
+                Num(Int(-1), annot),
                 annot
               )
             ],
-            [
-              If(
-                Compare(Name("x", Load, annot),
-                        [Lt],
-                        [Num(Int(0), annot)],
-                        annot),
-                [
-                  AugAssign(
-                    Name("x", Store, annot),
-                    Mult,
-                    Num(Int(-1), annot),
-                    annot
-                  )
-                ],
-                [Pass(annot)],
-                annot
-              )
-            ],
+            [Pass(annot)],
             annot
           )
         ],
         annot
+      )
+    ]
+;;
+
+let print_test = gen_module_test "print_test"
+    "print 1,x,'foo'"
+    [
+      Print(None,
+            [
+              Num(Int(1), annot);
+              Name("x", Load, annot);
+              Str("foo", annot);
+            ],
+            true,
+            annot)
+    ]
+;;
+
+let tuple_test = gen_stmt_test "tuple_test"
+    "(1,2,3,4)"
+    (Tuple (
+        [
+          Num(Int(1), annot);
+          Num(Int(2), annot);
+          Num(Int(3), annot);
+          Num(Int(4), annot);
+        ],
+        Load,
+        annot
       ))
+;;
+
+let while_test = gen_module_test "while_test"
+    "while x < 9001:\n\tx = x+1"
+    [
+      While(
+        Compare(
+          Name("x", Load, annot),
+          [Lt],
+          [Num(Int(9001), annot)],
+          annot),
+        [
+          Assign(
+            [Name("x", Store, annot)],
+            BinOp(Name("x", Load, annot), Add, Num(Int(1), annot), annot),
+            annot
+          )
+        ],
+        [],
+        annot
+      )
+    ]
+;;
+
+let for_test = gen_module_test "for_test"
+    "for i in list:\n\ti+=1"
+    [
+      For(
+        Name("i", Store, annot),
+        Name("list", Load, annot),
+        [
+          AugAssign(
+            Name("i", Store, annot),
+            Add,
+            Num(Int(1), annot),
+            annot)
+        ],
+        [],
+        annot);
+    ]
+;;
+
+let break_test = gen_module_test "break_test"
+    "while x < 9001:\n\tbreak"
+    [
+      While(
+        Compare(
+          Name("x", Load, annot),
+          [Lt],
+          [Num(Int(9001), annot)],
+          annot),
+        [
+          Break(annot)
+        ],
+        [],
+        annot
+      )
+    ]
+;;
+
+let continue_test = gen_module_test "continue_test"
+    "while x < 9001:\n\tcontinue"
+    [
+      While(
+        Compare(
+          Name("x", Load, annot),
+          [Lt],
+          [Num(Int(9001), annot)],
+          annot),
+        [
+          Continue(annot)
+        ],
+        [],
+        annot
+      )
+    ]
 ;;
 
 (* Tests of lists and slicing *)
@@ -249,7 +384,7 @@ let list_in_test = gen_stmt_test "lst_in_test"
         annot
       )
     )
-
+;;
 
 let gen_slice_test (name : string) (slice : string) (expected_slice: 'a slice) =
   gen_stmt_test
@@ -339,11 +474,19 @@ let tests =
     unop_not_test;
     boolop_and_test;
     boolop_or_test;
+    boolop_all_test;
     var_assign_test;
     var_aug_assign_test;
     var_cmp_test;
     if_test;
     funcdef_test;
+    call_test;
+    tuple_test;
+    print_test;
+    while_test;
+    for_test;
+    break_test;
+    continue_test;
   ]
   @ binop_tests
   @ list_tests
