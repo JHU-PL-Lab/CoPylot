@@ -354,6 +354,106 @@ let continue_test = gen_module_test "continue_test"
     ]
 ;;
 
+let triangle_def =
+  "def triangle(n):" ^
+  "\n\tcount = 0" ^
+  "\n\ti=0" ^
+  "\n\twhile count < n:" ^
+  "\n\t\ti += count" ^
+  "\n\t\tcount = count + 1" ^
+  "\n\treturn i" ^
+  "\n"
+;;
+
+let triangle_ast =
+  (FunctionDef(
+      "triangle",
+      ( (* Args *)
+        [Name("n", Param, annot)],
+        None,
+        None,
+        []
+      ),
+      [ (* Body *)
+        Assign(
+          [
+            Name("count", Store, annot)
+          ],
+          Num(Int(0), annot),
+          annot
+        );
+        Assign(
+          [
+            Name("i", Store, annot)
+          ],
+          Num(Int(0), annot),
+          annot
+        );
+        While(
+          Compare(
+            Name("count", Load, annot),
+            [Lt],
+            [Name("n", Load, annot)],
+            annot
+          ),
+          [
+            AugAssign(
+              Name("i", Store, annot),
+              Add,
+              Name("count", Load, annot),
+              annot
+            );
+            Assign(
+              [Name("count", Store, annot)],
+              BinOp(Name("count", Load, annot), Add, Num(Int(1), annot), annot),
+              annot
+            )
+          ],
+          [],
+          annot
+        );
+        Return(Some(Name("i", Load, annot)), annot);
+      ],
+      [], (* Decorator list *)
+      annot
+    )
+  )
+;;
+
+let big_test = gen_module_test "big_test"
+    (triangle_def ^ "\n[triangle(1),triangle(7)]")
+    [
+      triangle_ast;
+      Expr(List(
+          [
+            Call(
+              Name("triangle", Load, annot),
+              [
+                Num(Int(1), annot)
+              ],
+              [],
+              None,
+              None,
+              annot
+            );
+            Call(
+              Name("triangle", Load, annot),
+              [
+                Num(Int(7), annot)
+              ],
+              [],
+              None,
+              None,
+              annot
+            );
+          ],
+          Load,
+          annot
+        ),
+           annot)
+    ]
+;;
+
 (* Tests of lists and slicing *)
 let list_str = "[1,2,3,'four','five',2+4]";;
 let list_expr = (
@@ -487,6 +587,7 @@ let tests =
     for_test;
     break_test;
     continue_test;
+    big_test;
   ]
   @ binop_tests
   @ list_tests
