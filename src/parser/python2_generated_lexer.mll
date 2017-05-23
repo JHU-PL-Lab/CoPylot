@@ -67,7 +67,8 @@ let pointfloat = intpart? fraction | intpart '.'
 let exponent = ['e' 'E'] ['+' '-']? digit+
 let exponentfloat = (intpart | pointfloat) exponent
 let floatnumber = pointfloat | exponentfloat
-let imagnumber = (floatnumber | intpart) ['j' 'J']
+(*
+let imagnumber = (floatnumber | intpart) ['j' 'J']*)
 
 let stringprefix = ('u' | 'U')? ('r' | 'R')?
 let escapeseq = '\\' _
@@ -110,6 +111,9 @@ and _token state = parse
       { _token state lexbuf }
 
   (* keywords *)
+  (*
+  NOTE: The Python formal specification does not treat 'True' and 'False'
+     as keywords. We are intentionally deviating from this behavior here.*)
   | identifier as id
       { match id with
         | "and"      -> AND (curr_pos lexbuf)
@@ -124,6 +128,7 @@ and _token state = parse
         | "else"     -> ELSE (curr_pos lexbuf)
         (* | "except"   -> EXCEPT (curr_pos lexbuf) *)
         (* | "exec"     -> EXEC (curr_pos lexbuf) *)
+        | "False"    -> FALSE (curr_pos lexbuf) (* See note above *)
         (* | "finally"  -> FINALLY (curr_pos lexbuf) *)
         | "for"      -> FOR (curr_pos lexbuf)
         (* | "from"     -> FROM (curr_pos lexbuf) *)
@@ -139,6 +144,7 @@ and _token state = parse
         | "print"    -> PRINT (curr_pos lexbuf)
         (* | "raise"    -> RAISE (curr_pos lexbuf) *)
         | "return"   -> RETURN (curr_pos lexbuf)
+        | "True"     -> TRUE (curr_pos lexbuf) (* See note above *)
         (* | "try"      -> TRY (curr_pos lexbuf) *)
         | "while"    -> WHILE (curr_pos lexbuf)
         (* | "with"     -> WITH (curr_pos lexbuf) *)
@@ -211,8 +217,9 @@ and _token state = parse
       { INT (int_of_string n, curr_pos lexbuf) }
   | floatnumber as n
       { FLOAT (float_of_string n, curr_pos lexbuf) }
+  (*
   | imagnumber as n
-      { IMAG (n, curr_pos lexbuf) }
+      { IMAG (n, curr_pos lexbuf) }*)
   | '0' longintpostfix
       { LONGINT (0, curr_pos lexbuf) }
   | '0'

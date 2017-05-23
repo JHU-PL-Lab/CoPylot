@@ -72,7 +72,7 @@ let boolop_and_test = gen_stmt_test "boolop_and_test"
         And,
         [
           Name("x", Load, annot);
-          Name("True", Load, annot);
+          Bool(false, annot);
           Num(Int(5), annot);
         ],
         annot
@@ -81,12 +81,12 @@ let boolop_and_test = gen_stmt_test "boolop_and_test"
 ;;
 
 let boolop_or_test = gen_stmt_test "boolop_or_test"
-    "x or True or 5"
+    "x or False or 5"
     (BoolOp(
         Or,
         [
           Name("x", Load, annot);
-          Name("True", Load, annot);
+          Bool(false, annot);
           Num(Int(5), annot);
         ],
         annot

@@ -14,6 +14,7 @@ let pp_char = pp_print_char
 let pp_string = pp_print_string
 let pp_int = pp_print_int
 let pp_float = pp_print_float
+let pp_bool = pp_print_bool
 
 let pp_empty _ _ = ()
 
@@ -292,13 +293,14 @@ and pp_expr fmt = function
       pp_int fmt i
   | Num (Float f, _) ->
       pp_float fmt f
-  | Num (Imag im, _) ->
-      pp_string fmt im
+(*| Num (Imag im, _) ->
+      pp_string fmt im*)
 
   | Str (s, _) ->
       (* TODO *)
       fprintf fmt "\"%s\"" (String.escaped s)
-
+  | Bool (b, _) ->
+    (pp_bool fmt b)
   | Attribute (value, attr, _, _) ->
       fprintf fmt "%a.%s" pp_expr value attr
 

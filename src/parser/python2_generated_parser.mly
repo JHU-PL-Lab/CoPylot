@@ -45,7 +45,8 @@
 %token <int * Lexing.position>      INT
 %token <int * Lexing.position>      LONGINT
 %token <float * Lexing.position>    FLOAT
-%token <string * Lexing.position>   IMAG
+(*
+%token <string * Lexing.position>   IMAG*)
 %token <string * Lexing.position>   STR
 
 /* layout */
@@ -54,6 +55,8 @@
 %token NEWLINE
 
 /* keywords */
+(* NOTE The Python formal specification does not treat True and False as
+keywords, but as names. We are intentionally deviating from this here.*)
 %token <Lexing.position> AND
 /*%token <Lexing.position> AS*/
 /*%token <Lexing.position> ASSERT*/
@@ -66,6 +69,7 @@
 %token <Lexing.position> ELSE
 /*%token <Lexing.position> EXCEPT*/
 /*%token <Lexing.position> EXEC*/
+%token <Lexing.position> FALSE (* See note above *)
 /*%token <Lexing.position> FINALLY*/
 %token <Lexing.position> FOR
 /*%token <Lexing.position> FROM*/
@@ -81,6 +85,7 @@
 %token <Lexing.position> PRINT
 /*%token <Lexing.position> RAISE*/
 %token <Lexing.position> RETURN
+%token <Lexing.position> TRUE (* See note above *)
 /*%token <Lexing.position> TRY*/
 %token <Lexing.position> WHILE
 /*%token <Lexing.position> WITH*/
@@ -573,7 +578,8 @@ factor:
         | Num (Int (n), a)        -> Num (Int (-n), a)
         | Num (LongInt (n), a)    -> Num (LongInt (-n), a)
         | Num (Float (n), a)      -> Num (Float (-.n), a)
-        | Num (Imag (n), a)       -> Num (Imag ("-" ^ n), a)
+        (*
+        | Num (Imag (n), a)       -> Num (Imag ("-" ^ n), a) *)
         | _                       -> UnaryOp (USub, $2, annot $1) }
   (*
   | BITNOT factor { UnaryOp (Invert, $2, annot $1) }*)
@@ -605,12 +611,20 @@ atom:
   | atom_dict   { $1 } *)
   (*
   | atom_repr   { $1 }*)
+  | atom_bool { $1 }
   | atom_name   { $1 }
   | INT         { Num (Int (fst $1), annot (snd $1)) }
   | LONGINT     { Num (LongInt (fst $1), annot (snd $1)) }
   | FLOAT       { Num (Float (fst $1), annot (snd $1)) }
-  | IMAG        { Num (Imag (fst $1), annot (snd $1)) }
+  (*
+  | IMAG        { Num (Imag (fst $1), annot (snd $1)) }*)
   | string_list { Str (String.concat "" (fst $1), annot (snd $1)) }
+
+(* NOTE The Python formal specification does not treat bools as a separate atom
+type, but as an atom_name. We are intentionally deviating from this behavior. *)
+atom_bool:
+  | TRUE { Bool (true, annot $1) }
+  | FALSE { Bool (false, annot $1) }
 
 atom_tuple:
   | LPAREN RPAREN { Tuple ([], Load, annot $1) }

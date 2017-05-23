@@ -62,6 +62,9 @@ and 'a expr =
   | Repr of 'a expr (* value *) * 'a
   | Num of number (* n *) * 'a
   | Str of string (* s *) * 'a
+  | Bool of bool * 'a (* N.B. The Python formal specification does not treat Bools
+                         as a type of expression. We are intentionally deviating
+                         from this behavior here *)
 
   | Attribute of 'a expr (* value *) * identifier (* attr *) * expr_context (* ctx *) * 'a
   | Subscript of 'a expr (* value *) * 'a slice (* slice *) * expr_context (* ctx *) * 'a
@@ -163,6 +166,7 @@ and name_of_expr = function
   | Repr _         -> "Repr"
   | Num _          -> "Num"
   | Str _          -> "Str"
+  | Bool _         -> "Bool"
   | Attribute _    -> "Attribute"
   | Subscript _    -> "Subscript"
   | Name _         -> "Name"
@@ -226,7 +230,7 @@ and name_of_number = function
   | Int _       -> "Int"
   | LongInt _   -> "LongInt"
   | Float _     -> "Float"
-  | Imag _      -> "Imag"
+(*| Imag _      -> "Imag"*)
 
 let annot_of_mod = function
   | Module (_, a)
@@ -276,6 +280,7 @@ and annot_of_expr = function
   | Repr (_, a)
   | Num (_, a)
   | Str (_, a)
+  | Bool (_, a)
   | Attribute (_, _, _, a)
   | Subscript (_, _, _, a)
   | Name (_, _, a)
@@ -334,7 +339,7 @@ let string_of_number = function
   | Int (n)      -> string_of_int n
   | LongInt (n)  -> (string_of_int n) ^ "L"
   | Float (n)    -> (string_of_float n)
-  | Imag (n)     -> n
+(*| Imag (n)     -> n*)
 
 module type Annot = sig
   type t
