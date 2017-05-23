@@ -426,8 +426,9 @@ while_stmt:
 for_stmt:
   | FOR exprlist IN testlist COLON suite
       { For (tuple_expr_store $2, tuple_expr $4, $6, [], annot $1) }
+  (*
   | FOR exprlist IN testlist COLON suite ELSE COLON suite
-      { For (tuple_expr_store $2, tuple_expr $4, $6, $9, annot $1) }
+     { For (tuple_expr_store $2, tuple_expr $4, $6, $9, annot $1) }*)
 
 (*
 try_stmt:

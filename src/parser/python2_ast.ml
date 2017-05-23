@@ -113,7 +113,8 @@ and number =
   | Int of int
   | LongInt of int
   | Float of float
-  | Imag of string
+  (*
+  | Imag of string*)
 [@@deriving eq, ord, show]
 
 let name_of_mod = function
