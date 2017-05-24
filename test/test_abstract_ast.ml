@@ -1,6 +1,6 @@
 open OUnit2
 open Batteries
-(*open Jhupllib*) (* TODO: Reopen when we start printing again*)
+open Jhupllib
 open Python2_parser
 module Concrete = Python2_ast
 open Lexing
@@ -9,14 +9,12 @@ module Convert = Python2_analysis_conversion
 
 let annot = Concrete.Pos.of_pos Lexing.dummy_pos;;
 
-(* TODO: Pretty printer for the abstract ast? *)
-let string_of_stmt _  = "PRINTING UNIMPLEMENTED FOR ABSTRACT AST" (*Pp_utils.pp_to_string
-                                                          (Pp_utils.pp_list (Python2_ast.pp_stmt (fun _ _ -> ()))) e*);;
+let string_of_stmt e  = Pp_utils.pp_to_string
+    (Pp_utils.pp_list (Python2_abstract_ast.pp_stmt (fun _ _ -> ()))) e;;
 let equivalent_stmt e1 e2 = List.eq (equal_stmt ( fun _ _ -> true)) e1 e2;;
 
-(* TODO: Pretty printer for the abstract ast? *)
-let string_of_modl _ = "PRINTING UNIMPLEMENTED FOR ABSTRACT AST"(*Pp_utils.pp_to_string
-                           (Python2_ast.pp_modl (fun _ _ -> ())) m*);;
+let string_of_modl m = Pp_utils.pp_to_string
+    (Python2_abstract_ast.pp_modl (fun _ _ -> ())) m;;
 let equivalent_modl m1 m2 = equal_modl ( fun _ _ -> true) m1 m2;;
 
 let parse_stmt_from_string_safe str =
