@@ -11,20 +11,19 @@ and modl =
 
 and stmt =
     | Assign of simple_expr (* target *) * compound_expr (* value *) * uid
-  | AugAssign of simple_expr (* target *) * operator (* op *) * compound_expr (* value *) * uid
   | FunctionDef of identifier (* name *) * arguments (* args *) * stmt list (* body *) * simple_expr list (* decorator_list *) * uid
   | Return of simple_expr option (* value *) * uid
 
   | Print of simple_expr option (* dest *) * simple_expr list (* values *) * bool (* nl *) * uid
   | If of simple_expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid
-  (*
-  | Pass of TODO: Figure this out *)
+  | Pass of uid (*
+    TODO: Figure this out *)
   | Goto of uid
   | SimpleExprStmt of simple_expr (* value *) * uid
 [@@deriving eq, ord, show]
 
 and compound_expr =
-    | BoolOp of boolop (* op *) * simple_expr list (* values *) * uid
+    | BoolOp of simple_expr (* left *) * boolop (* op *) * simple_expr (* right *) * uid
   | BinOp of simple_expr (* left *) * operator (* op *) * simple_expr (* right *) * uid
   | UnaryOp of unaryop (* op *) * simple_expr (* operand *) * uid
   (*
@@ -83,7 +82,7 @@ let uid_of_simple_expr = function
     -> u
 
 and uid_of_compound_expr = function
-  | BoolOp (_,_,u)
+  | BoolOp (_,_,_,u)
   | BinOp (_,_,_,u)
   | UnaryOp (_,_,u)
   | Compare (_,_,_,u)
