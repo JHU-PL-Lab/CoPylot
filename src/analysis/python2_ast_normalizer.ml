@@ -6,12 +6,14 @@ let uid_of_annot _ = 0;;
 let gen_unique_name _ = "";;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
-  List.concat (List.map func lst);;
+  List.concat (List.map func lst)
+;;
 
 let normalize_option func o =
   match o with
   | None -> None
   | Some(x) -> Some(func x)
+;;
 
 (* Given a uid and a compound_expr, assigns that expr to a new, unique name.
    Returns the assignment statement (in a list) and the name used *)
@@ -20,6 +22,22 @@ let gen_normalized_assignment u e =
   let name = Normalized.Name(gen_unique_name u, u) in
   let assignment = Normalized.Assign(name, e, u) in
   [assignment], name
+;;
+
+(* Most normalize fuctions return a list of statements and the name of the
+   variable the last statement bound to. This means that apply List.map to them
+   gives a list of tuples; this extracts them into two separate lists. *)
+let normalize_list normalize_func lst =
+    let normalized_list = List.map normalize_func lst in
+    let extract
+        (tup1 : 'a list * 'b )
+        (tup2 : 'a list * 'b list)
+      : 'a list * 'b list =
+      (fst tup1 @ fst tup2, (snd tup1)::(snd tup2)) in
+    let bindings, results =
+      List.fold_right extract normalized_list ([], []) in
+    bindings, results
+;;
 
 let rec normalize_modl m : Normalized.modl =
   match m with
@@ -242,13 +260,24 @@ and normalize_expr
     in
     stmts, result
 
-  | Abstract.Call (_,_,_,_,_,_) -> [], Normalized.Name("TODO", 0) (* TODO *)
+  | Abstract.Call (func, args, _, _, _, annot) ->
+    let func_bindings, func_name = normalize_expr func in
+    let arg_bindings, arg_names = normalize_expr_list args in
+    let u = uid_of_annot annot in
+    let assignment, name = gen_normalized_assignment u
+        (Normalized.Call(func_name, arg_names, u)) in
+    let bindings = func_bindings @ arg_bindings @ assignment in
+    bindings, name
+
   | Abstract.Num (n, annot) ->
     ([], Normalized.Num(normalize_number n, uid_of_annot annot))
+
   | Abstract.Str (annot) ->
     ([], Normalized.Str(uid_of_annot annot))
+
   | Abstract.Bool (b, annot) ->
     ([], Normalized.Bool(b, uid_of_annot annot))
+
   | Abstract.Subscript (value, slice, _, annot) ->
     let value_bindings, value_result = normalize_expr value in
     let slice_bindings, slice_result = normalize_slice slice in
@@ -262,12 +291,14 @@ and normalize_expr
 
   | Abstract.Name (id, _, annot) -> (* Throw out context *)
     ([], Normalized.Name(id, uid_of_annot annot))
+
   | Abstract.List (elts, _, annot) ->
     let bindings, results = normalize_expr_list elts in
     let u = uid_of_annot annot in
     let assignment, name =
       gen_normalized_assignment u (Normalized.List(results, u)) in
     bindings @ assignment, name
+
   | Abstract.Tuple (elts, _, annot) ->
     let bindings, results = normalize_expr_list elts in
     let u = uid_of_annot annot in
@@ -277,18 +308,7 @@ and normalize_expr
 
 (* Given a list of exprs, returns a list containing all of their
    bindings and a list containing all of the relevant variable names *)
-and normalize_expr_list
-    (lst : 'a Abstract.expr list)
-  : Normalized.stmt list * Normalized.simple_expr list =
-  let normalized_list = List.map normalize_expr lst in
-  let extract
-      (tup1 : 'a list * 'b )
-      (tup2 : 'a list * 'b list)
-    : 'a list * 'b list =
-    (fst tup1 @ fst tup2, (snd tup1)::(snd tup2)) in
-  let bindings, results =
-    List.fold_right extract normalized_list ([], []) in
-  bindings, results
+and normalize_expr_list lst = normalize_list normalize_expr lst
 
 and normalize_expr_option
     (o : 'a Abstract.expr option)

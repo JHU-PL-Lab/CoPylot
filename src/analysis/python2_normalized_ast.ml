@@ -29,7 +29,7 @@ and compound_expr =
 
   | IfExp of simple_expr (* test *) * simple_expr (* body *) * simple_expr (* orelse *) * uid
   | Compare of simple_expr (* left *) * cmpop (* ops *) * simple_expr (* comparators *) * uid
-  | Call of simple_expr (* func *) * simple_expr list (* args *) * keyword list (* keywords *) * simple_expr option (* starargs *) * simple_expr option (* kwargs *) * uid
+  | Call of simple_expr (* func *) * simple_expr list (* args *) *  uid
   | Subscript of simple_expr (* value *) * slice (* slice *)  * uid
   | List of simple_expr list (* elts *)  * uid
   | Tuple of simple_expr list (* elts *)  * uid
@@ -87,7 +87,7 @@ and uid_of_compound_expr = function
   | UnaryOp (_,_,u)
   | IfExp (_,_,_,u)
   | Compare (_,_,_,u)
-  | Call (_,_,_,_,_,u)
+  | Call (_,_,u)
   | Subscript (_,_,u)
   | List (_,u)
   | Tuple (_,u)
