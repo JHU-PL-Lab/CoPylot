@@ -89,28 +89,47 @@ and normalize_expr
   : Normalized.stmt list * Normalized.simple_expr =
   match e with
   | Abstract.BoolOp (op, values, annot) ->
-    let value_bindings, value_results = normalize_expr_list values in
+    (* TODO: Throw a useful error if values is empty. Not sure if that's
+       possible given how we generate these trees, but best to be safe. *)
+    let first_arg = List.hd values in
+    let remaining_args = List.tl values in
     let norm_op = normalize_boolop op in
     let u = uid_of_annot annot in
-    (* Now value_results is a list of simple exprs, which we're operating on.
-       Iterate through that list, replacing each pair with an assignment
-       to a new value, which we then use as the first element of the next
-       pair, etc. *)
+    (* Turn "a && b" into
+       "x = a;
+       if x then y = b else y = false;
+       z = x && y;" *)
     let combine
         (prev : Normalized.stmt list * Normalized.simple_expr)
-        (next : Normalized.simple_expr)
+        (next : 'a Abstract.expr)
       : Normalized.stmt list * Normalized.simple_expr =
-      let assignment, name =
-        gen_normalized_assignment
-          u
-          (Normalized.BoolOp(snd prev, norm_op, next, u)) in
-      (fst prev) @ assignment, name
-    in
+      let bindings, name = normalize_expr next in
+      let body, orelse =
+        match op with
+        | Abstract.And ->
+          bindings,
+          [Normalized.Assign(
+              name,
+              Normalized.SimpleExpr(Normalized.Bool(false, u), u),
+              u)]
+        | Abstract.Or ->
+          [Normalized.Assign(
+              name,
+              Normalized.SimpleExpr(Normalized.Bool(true, u), u),
+              u)],
+          bindings
+      in
+      let big_if = Normalized.If(snd prev, body, orelse, u) in
+      let assignment, name2 =
+        gen_normalized_assignment u
+          (Normalized.BoolOp(snd prev, norm_op, name, u)) in
+      let bindings = (fst prev) @ [big_if] @ assignment in
+      bindings, name2
+    in (* End combine *)
+    let first_arg_bindings, first_arg_result = normalize_expr first_arg in
     List.fold_left combine
-      (* TODO: Throw a useful error if value_results is empty. Not sure if
-         that's possible given how we generate these trees, but best to be safe. *)
-      (value_bindings, (List.hd value_results))
-      (List.tl value_results)
+      (first_arg_bindings, first_arg_result)
+      remaining_args
 
   | Abstract.BinOp (left, op, right, annot) ->
     let left_bindings, left_result = normalize_expr left in
@@ -131,6 +150,50 @@ and normalize_expr
     let assignment, name = gen_normalized_assignment u
         (Normalized.UnaryOp(normalize_unaryop op, result, u)) in
     bindings @ assignment, name
+  | Abstract.Compare (left, ops, comparators, annot) ->
+    (* "x < y < z" is equivalent to "x < y and y < z", except y is only
+       evaluated once. *)
+    let left_bindings, left_result = normalize_expr left in
+    let normed_ops = List.map normalize_cmpop ops in
+    let u = uid_of_annot annot in
+    let combine
+        (prev : Normalized.stmt list (* Previous operations *) *
+                Normalized.simple_expr (* Name of result of previous op *) *
+                Normalized.simple_expr (* Name of previous expr *))
+        (next_op : Normalized.cmpop)
+        (next_expr : 'a Abstract.expr) =
+      let prev_stmts, prev_result, prev_expr = prev in
+      let bindings, curr_expr = normalize_expr next_expr in
+      let interior_assignment, curr_result = gen_normalized_assignment u
+          (Normalized.Compare(prev_expr, next_op, curr_expr, u)) in
+      let big_if =
+        Normalized.If(prev_result,
+                      bindings @ interior_assignment,
+                      [Normalized.Assign(
+                          curr_result,
+                          Normalized.SimpleExpr(Normalized.Bool(false, u), u),
+                          u)
+                      ],
+                      u) in
+      let exterior_assignment, next_result = gen_normalized_assignment u
+          (Normalized.BoolOp(prev_result, Normalized.And, curr_result, u)) in
+      prev_stmts @ [big_if] @ exterior_assignment,
+      next_result,
+      curr_expr
+    in (* End definition of combine *)
+    let stmts, _, result = List.fold_left2 combine
+        (left_bindings, Normalized.Bool(true, u), left_result)
+        normed_ops
+        comparators
+in stmts, result
+
+  (* If previously false, set nextvar to false *)
+  (* Turn x<y<z<... into x<y and y<z<... *)
+  (* Assume that x is snd (snd prev) so it's only evaluated once *)
+  (* Evaluate and bind y *)
+  (* Compare x and y, storing the result in some name n *)
+  (* Return fst prev @ all of those instruction, y, n *)
+
   | Abstract.Call (_,_,_,_,_,_) -> [], Normalized.Name("TODO", 0) (* TODO *)
   | Abstract.Num (n, annot) ->
     ([], Normalized.Num(normalize_number n, uid_of_annot annot))

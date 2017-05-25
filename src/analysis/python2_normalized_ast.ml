@@ -26,9 +26,10 @@ and compound_expr =
     | BoolOp of simple_expr (* left *) * boolop (* op *) * simple_expr (* right *) * uid
   | BinOp of simple_expr (* left *) * operator (* op *) * simple_expr (* right *) * uid
   | UnaryOp of unaryop (* op *) * simple_expr (* operand *) * uid
-  (*
-| IfExp of expr (* test *) * expr (* body *) * expr (* orelse *) * 'a*)
-  | Compare of simple_expr (* left *) * cmpop list (* ops *) * simple_expr list (* comparators *) * uid
+
+                 (* TODO: Should we have IfExps? *)
+  | IfExp of simple_expr (* test *) * simple_expr (* body *) * simple_expr (* orelse *) * uid
+  | Compare of simple_expr (* left *) * cmpop (* ops *) * simple_expr (* comparators *) * uid
   | Call of simple_expr (* func *) * simple_expr list (* args *) * keyword list (* keywords *) * simple_expr option (* starargs *) * simple_expr option (* kwargs *) * uid
   | Subscript of simple_expr (* value *) * slice (* slice *)  * uid
   | List of simple_expr list (* elts *)  * uid
@@ -85,10 +86,11 @@ and uid_of_compound_expr = function
   | BoolOp (_,_,_,u)
   | BinOp (_,_,_,u)
   | UnaryOp (_,_,u)
+  | IfExp (_,_,_,u)
   | Compare (_,_,_,u)
   | Call (_,_,_,_,_,u)
   | Subscript (_,_,u)
   | List (_,u)
   | Tuple (_,u)
   | SimpleExpr (_,u)
--> u
+    -> u
