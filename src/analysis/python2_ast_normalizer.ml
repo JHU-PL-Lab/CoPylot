@@ -1,7 +1,7 @@
 module Abstract = Python2_abstract_ast
 module Normalized = Python2_normalized_ast
 
-let uid_of_annot _ = 0;;
+let get_next_uid _ = 0;;
 
 let gen_unique_name _ = "";;
 
@@ -17,10 +17,10 @@ let normalize_option func o =
 
 (* Given a uid and a compound_expr, assigns that expr to a new, unique name.
    Returns the assignment statement (in a list) and the name used *)
-let gen_normalized_assignment u e =
-  (* TODO: Should we be generating more uids? *)
+let gen_normalized_assignment annot e =
+  let u = get_next_uid annot in
   let name = Normalized.Name(gen_unique_name u, u) in
-  let assignment = Normalized.Assign(name, e, u) in
+  let assignment = Normalized.Assign(name, e, get_next_uid annot) in
   [assignment], name
 ;;
 
@@ -42,25 +42,36 @@ let normalize_list normalize_func lst =
 let rec normalize_modl m : Normalized.modl =
   match m with
   | Abstract.Module (body, annot) ->
-    Normalized.Module(map_and_concat normalize_stmt body, uid_of_annot annot)
+    Normalized.Module(map_and_concat normalize_stmt body, get_next_uid annot)
 
-and normalize_stmt s : Normalized.stmt list =
+(* We need some additional arguments when we're inside a loop,
+   so that Break and Continue know what to do. These are only neded in that
+   special case, though, so it's convenient to hide them in other cases. *)
+and normalize_stmt s = normalize_stmt_full None None s
+
+and normalize_stmt_full
+    loop_start_uid
+    loop_end_uid
+    (s : 'a Abstract.stmt)
+  : Normalized.stmt list =
   match s with
   | Abstract.FunctionDef (func_name, args, body, _, annot)->
     (* Hopefully the args are just names so this won't do anything *)
     let arg_bindings, normalized_args = normalize_arguments args in
     let normalized_body = map_and_concat normalize_stmt body in
-    let u = uid_of_annot annot in
     arg_bindings @
-    [Normalized.FunctionDef(func_name, normalized_args, normalized_body, u)]
+    [Normalized.FunctionDef(func_name,
+                            normalized_args,
+                            normalized_body,
+                            get_next_uid annot)]
 
   | Abstract.Return (value, annot) ->
     begin
       match value with
-      | None -> [Normalized.Return(None, uid_of_annot annot)]
+      | None -> [Normalized.Return(None, get_next_uid annot)]
       | Some(x) ->
         let bindings, result = normalize_expr x in
-        bindings @ [Normalized.Return(Some(result), uid_of_annot annot)]
+        bindings @ [Normalized.Return(Some(result), get_next_uid annot)]
     end
 
   | Abstract.Assign (targets, value, annot) ->
@@ -73,7 +84,7 @@ and normalize_stmt s : Normalized.stmt list =
            let e_uid = Normalized.uid_of_simple_expr e in
            Normalized.Assign(e,
                              Normalized.SimpleExpr(value_result, e_uid),
-                             uid_of_annot annot)
+                             get_next_uid annot)
         )
         target_results in
     bindings @ assignments
@@ -95,32 +106,68 @@ and normalize_stmt s : Normalized.stmt list =
   | Abstract.Print (dest, values, nl, annot) ->
     let dest_bindings, dest_result = normalize_expr_option dest in
     let value_bindings, value_results = normalize_expr_list values in
-    let u = uid_of_annot annot in
     let bindings = dest_bindings @ value_bindings in
-    bindings @ [Normalized.Print(dest_result, value_results, nl, u)]
+    bindings @ [Normalized.Print(dest_result,
+                                 value_results,
+                                 nl,
+                                 get_next_uid annot)]
 
   | Abstract.For (_,_,_,_,_) -> [] (* TODO *)
 
-  | Abstract.While (_,_,_,_) -> [] (* TODO *)
+  | Abstract.While (test, body, _, annot) ->
+    let test_bindings, test_name =
+      (* It's nicer to have "if !test then goto end" as opposed to
+         "if test then pass else goto end" *)
+      normalize_expr (Abstract.UnaryOp(Abstract.Not,
+                                       test,
+                                       get_next_uid annot)) in
+
+    let start_uid = get_next_uid annot in (* Start label *)
+    let end_uid = get_next_uid annot in (* End label *)
+    let test_at_beginning =
+      Normalized.If(test_name,
+                    [Normalized.Goto(end_uid, get_next_uid annot)],
+                    [],
+                    start_uid) in
+    let normalized_body =
+      (map_and_concat
+         (normalize_stmt_full
+            (Some(start_uid))
+            (Some(end_uid)))
+         body) in
+    let end_stmt = Normalized.Pass(end_uid) in
+    test_bindings @ [test_at_beginning] @ normalized_body @ [end_stmt]
 
   | Abstract.If (test, body, orelse, annot) ->
     let test_bindings, test_name = normalize_expr test in
     let normalized_body = map_and_concat normalize_stmt body in
     let normalized_orelse = map_and_concat normalize_stmt orelse in
-    let u = uid_of_annot annot in
     test_bindings @
-    [Normalized.If(test_name, normalized_body, normalized_orelse, u)]
+    [Normalized.If(test_name,
+                   normalized_body,
+                   normalized_orelse,
+                   get_next_uid annot)]
 
   | Abstract.Expr (e, annot) ->
     let bindings, result = normalize_expr e in
-    bindings @ [Normalized.SimpleExprStmt(result, uid_of_annot annot)]
+    bindings @ [Normalized.SimpleExprStmt(result, get_next_uid annot)]
 
   | Abstract.Pass (annot) ->
-    [Normalized.Pass (uid_of_annot annot)]
+    [Normalized.Pass (get_next_uid annot)]
 
-  | Abstract.Break (_) -> [] (* TODO *)
+  | Abstract.Break (annot) ->
+    begin
+      match loop_end_uid with
+      | None -> [] (* TODO: Throw error for break outside loop *)
+      | Some(u) -> [Normalized.Goto(u, get_next_uid annot)]
+    end
 
-  | Abstract.Continue (_) -> [] (* TODO *)
+  | Abstract.Continue (annot) ->
+    begin
+      match loop_start_uid with
+      | None -> [] (* TODO: Throw error for continue outside loop *)
+      | Some(u) -> [Normalized.Goto(u, get_next_uid annot)]
+    end
 
 (* Given an abstract expr, returns a list of statements, corresponding to
    the assignments necessary to compute it, and the name of the final
@@ -150,7 +197,6 @@ and normalize_expr
     let first_arg = List.hd values in
     let remaining_args = List.tl values in
     let norm_op = normalize_boolop op in
-    let u = uid_of_annot annot in
     (* Performs the single step of decomposition described above *)
     let combine
         (prev : Normalized.stmt list * Normalized.simple_expr)
@@ -163,19 +209,21 @@ and normalize_expr
           bindings,
           [Normalized.Assign(
               name,
-              Normalized.SimpleExpr(Normalized.Bool(false, u), u),
-              u)]
+              Normalized.SimpleExpr(Normalized.Bool(false, get_next_uid annot),
+                                    get_next_uid annot),
+              get_next_uid annot)]
         | Abstract.Or ->
           [Normalized.Assign(
               name,
-              Normalized.SimpleExpr(Normalized.Bool(true, u), u),
-              u)],
+              Normalized.SimpleExpr(Normalized.Bool(true, get_next_uid annot),
+                                    get_next_uid annot),
+              get_next_uid annot)],
           bindings
       in
-      let big_if = Normalized.If(snd prev, body, orelse, u) in
+      let big_if = Normalized.If(snd prev, body, orelse, get_next_uid annot) in
       let assignment, name2 =
-        gen_normalized_assignment u
-          (Normalized.BoolOp(snd prev, norm_op, name, u)) in
+        gen_normalized_assignment annot
+          (Normalized.BoolOp(snd prev, norm_op, name, get_next_uid annot)) in
       let bindings = (fst prev) @ [big_if] @ assignment in
       bindings, name2
     in (* End definition of combine *)
@@ -187,21 +235,19 @@ and normalize_expr
   | Abstract.BinOp (left, op, right, annot) ->
     let left_bindings, left_result = normalize_expr left in
     let right_bindings, right_result = normalize_expr right in
-    let u = uid_of_annot annot in
     let assignment, name =
       gen_normalized_assignment
-        u
+        annot
         (Normalized.BinOp(left_result,
                           normalize_operator op,
                           right_result,
-                          u)) in
+                          get_next_uid annot)) in
     let bindings = left_bindings @ right_bindings @ assignment in
     bindings, name
   | Abstract.UnaryOp (op, operand, annot) ->
     let bindings, result = normalize_expr operand in
-    let u = uid_of_annot annot in
-    let assignment, name = gen_normalized_assignment u
-        (Normalized.UnaryOp(normalize_unaryop op, result, u)) in
+    let assignment, name = gen_normalized_assignment annot
+        (Normalized.UnaryOp(normalize_unaryop op, result, get_next_uid annot)) in
     bindings @ assignment, name
   | Abstract.IfExp (test, body, orelse, annot) ->
     (* Python allows expressions like x = 1 if test else 0. Of course,
@@ -227,11 +273,12 @@ and normalize_expr
     let test_bindings, test_result = normalize_expr test in
     let body_bindings, body_result = normalize_expr body in
     let orelse_bindings, orelse_result = normalize_expr orelse in
-    let u = uid_of_annot annot in
     let big_if =
-      Normalized.If(test_result, body_bindings, orelse_bindings, u) in
-    let assignment, name = gen_normalized_assignment u
-        (Normalized.IfExp(test_result, body_result, orelse_result, u)) in
+      Normalized.If(test_result, body_bindings, orelse_bindings,
+                    get_next_uid annot) in
+    let assignment, name = gen_normalized_assignment annot
+        (Normalized.IfExp(test_result, body_result, orelse_result,
+                          get_next_uid annot)) in
     test_bindings @ [big_if] @ assignment, name
 
   | Abstract.Compare (left, ops, comparators, annot) ->
@@ -244,7 +291,6 @@ and normalize_expr
        compute y < z, which ensures that y is only evaluated once. *)
     let left_bindings, left_result = normalize_expr left in
     let normed_ops = List.map normalize_cmpop ops in
-    let u = uid_of_annot annot in
     let combine
         (prev : Normalized.stmt list (* Previous operations *) *
                 Normalized.simple_expr (* Result of previous op *) *
@@ -258,26 +304,38 @@ and normalize_expr
       let bindings, curr_expr = normalize_expr next_expr in
       (* Actually perform the comparison between the previous expression
          and the one we just normalized.*)
-      let interior_assignment, curr_result = gen_normalized_assignment u
-          (Normalized.Compare(prev_expr, next_op, curr_expr, u)) in
+      let interior_assignment, curr_result = gen_normalized_assignment annot
+          (Normalized.Compare(prev_expr,
+                              next_op,
+                              curr_expr,
+                              get_next_uid annot)) in
       let big_if =
         Normalized.If(prev_result,
                       bindings @ interior_assignment,
                       [Normalized.Assign(
                           curr_result,
-                          Normalized.SimpleExpr(Normalized.Bool(false, u), u),
-                          u)
+                          Normalized.SimpleExpr(
+                            Normalized.Bool(false, get_next_uid annot),
+                            get_next_uid annot),
+                          get_next_uid annot)
                       ],
-                      u) in
+                      get_next_uid annot) in
       (* Generate our next value of "prev_result" *)
-      let exterior_assignment, next_result = gen_normalized_assignment u
-          (Normalized.BoolOp(prev_result, Normalized.And, curr_result, u)) in
-      prev_stmts @ [big_if] @ exterior_assignment,
+      let exterior_assignment, next_result = gen_normalized_assignment annot
+          (Normalized.BoolOp(prev_result,
+                             Normalized.And,
+                             curr_result, get_next_uid annot)) in
+      (prev_stmts @ [big_if] @ exterior_assignment),
       next_result,
       curr_expr
     in (* End definition of combine *)
-    let stmts, result, _ = List.fold_left2 combine
-        (left_bindings, Normalized.Bool(true, u), left_result)
+    let stmts, result, _ =
+      List.fold_left2 combine
+        (
+          left_bindings,
+          Normalized.Bool(true, get_next_uid annot),
+          left_result
+        )
         normed_ops
         comparators
     in
@@ -286,47 +344,45 @@ and normalize_expr
   | Abstract.Call (func, args, _, _, _, annot) ->
     let func_bindings, func_name = normalize_expr func in
     let arg_bindings, arg_names = normalize_expr_list args in
-    let u = uid_of_annot annot in
-    let assignment, name = gen_normalized_assignment u
-        (Normalized.Call(func_name, arg_names, u)) in
+    let assignment, name = gen_normalized_assignment annot
+        (Normalized.Call(func_name, arg_names, get_next_uid annot)) in
     let bindings = func_bindings @ arg_bindings @ assignment in
     bindings, name
 
   | Abstract.Num (n, annot) ->
-    ([], Normalized.Num(normalize_number n, uid_of_annot annot))
+    ([], Normalized.Num(normalize_number n, get_next_uid annot))
 
   | Abstract.Str (annot) ->
-    ([], Normalized.Str(uid_of_annot annot))
+    ([], Normalized.Str(get_next_uid annot))
 
   | Abstract.Bool (b, annot) ->
-    ([], Normalized.Bool(b, uid_of_annot annot))
+    ([], Normalized.Bool(b, get_next_uid annot))
 
   | Abstract.Subscript (value, slice, _, annot) ->
     let value_bindings, value_result = normalize_expr value in
     let slice_bindings, slice_result = normalize_slice slice in
-    let u = uid_of_annot annot in
     let assignment, name =
-      gen_normalized_assignment u (Normalized.Subscript(value_result,
-                                                        slice_result,
-                                                        u)) in
+      gen_normalized_assignment annot (Normalized.Subscript(value_result,
+                                                            slice_result,
+                                                            get_next_uid annot)) in
     let bindings = value_bindings @ slice_bindings @ assignment in
     bindings, name
 
   | Abstract.Name (id, _, annot) -> (* Throw out context *)
-    ([], Normalized.Name(id, uid_of_annot annot))
+    ([], Normalized.Name(id, get_next_uid annot))
 
   | Abstract.List (elts, _, annot) ->
     let bindings, results = normalize_expr_list elts in
-    let u = uid_of_annot annot in
     let assignment, name =
-      gen_normalized_assignment u (Normalized.List(results, u)) in
+      gen_normalized_assignment annot
+        (Normalized.List(results, get_next_uid annot)) in
     bindings @ assignment, name
 
   | Abstract.Tuple (elts, _, annot) ->
     let bindings, results = normalize_expr_list elts in
-    let u = uid_of_annot annot in
     let assignment, name =
-      gen_normalized_assignment u (Normalized.Tuple(results, u)) in
+      gen_normalized_assignment annot
+        (Normalized.Tuple(results, get_next_uid annot)) in
     bindings @ assignment, name
 
 (* Given a list of exprs, returns a list containing all of their

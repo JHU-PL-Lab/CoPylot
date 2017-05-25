@@ -16,9 +16,8 @@ and stmt =
 
   | Print of simple_expr option (* dest *) * simple_expr list (* values *) * bool (* nl *) * uid
   | If of simple_expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid
-  | Pass of uid (*
-    TODO: Figure this out *)
-  | Goto of uid
+  | Pass of uid
+  | Goto of uid * uid
   | SimpleExprStmt of simple_expr (* value *) * uid
 [@@deriving eq, ord, show]
 
