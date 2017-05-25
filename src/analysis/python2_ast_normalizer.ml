@@ -47,6 +47,7 @@ let rec normalize_modl m : Normalized.modl =
 and normalize_stmt s : Normalized.stmt list =
   match s with
   | Abstract.FunctionDef (_,_,_,_,_)-> [] (* TODO *)
+
   | Abstract.Return (value, annot) ->
     begin
       match value with
@@ -55,6 +56,7 @@ and normalize_stmt s : Normalized.stmt list =
         let bindings, result = normalize_expr x in
         bindings @ [Normalized.Return(Some(result), uid_of_annot annot)]
     end
+
   | Abstract.Assign (targets, value, annot) ->
     let value_bindings, value_result = normalize_expr value in
     let target_bindings, target_results = normalize_expr_list targets in
@@ -69,6 +71,7 @@ and normalize_stmt s : Normalized.stmt list =
         )
         target_results in
     bindings @ assignments
+
   | Abstract.AugAssign (target, op, value, annot) ->
     (* Convert to a standard assignment, then normalize that *)
     let regAssign =
@@ -82,21 +85,35 @@ and normalize_stmt s : Normalized.stmt list =
         ),
         annot) in
     normalize_stmt regAssign
+
   | Abstract.Print (dest, values, nl, annot) ->
     let dest_bindings, dest_result = normalize_expr_option dest in
     let value_bindings, value_results = normalize_expr_list values in
     let u = uid_of_annot annot in
     let bindings = dest_bindings @ value_bindings in
     bindings @ [Normalized.Print(dest_result, value_results, nl, u)]
+
   | Abstract.For (_,_,_,_,_) -> [] (* TODO *)
+
   | Abstract.While (_,_,_,_) -> [] (* TODO *)
-  | Abstract.If (_,_,_,_) -> [] (* TODO *)
+
+  | Abstract.If (test, body, orelse, annot) ->
+    let test_bindings, test_name = normalize_expr test in
+    let normalized_body = map_and_concat normalize_stmt body in
+    let normalized_orelse = map_and_concat normalize_stmt orelse in
+    let u = uid_of_annot annot in
+    test_bindings @
+    [Normalized.If(test_name, normalized_body, normalized_orelse, u)]
+
   | Abstract.Expr (e, annot) ->
     let bindings, result = normalize_expr e in
     bindings @ [Normalized.SimpleExprStmt(result, uid_of_annot annot)]
+
   | Abstract.Pass (annot) ->
     [Normalized.Pass (uid_of_annot annot)]
+
   | Abstract.Break (_) -> [] (* TODO *)
+
   | Abstract.Continue (_) -> [] (* TODO *)
 
 (* Given an abstract expr, returns a list of statements, corresponding to
