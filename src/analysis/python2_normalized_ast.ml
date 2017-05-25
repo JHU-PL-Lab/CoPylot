@@ -27,7 +27,6 @@ and compound_expr =
   | BinOp of simple_expr (* left *) * operator (* op *) * simple_expr (* right *) * uid
   | UnaryOp of unaryop (* op *) * simple_expr (* operand *) * uid
 
-                 (* TODO: Should we have IfExps? *)
   | IfExp of simple_expr (* test *) * simple_expr (* body *) * simple_expr (* orelse *) * uid
   | Compare of simple_expr (* left *) * cmpop (* ops *) * simple_expr (* comparators *) * uid
   | Call of simple_expr (* func *) * simple_expr list (* args *) * keyword list (* keywords *) * simple_expr option (* starargs *) * simple_expr option (* kwargs *) * uid

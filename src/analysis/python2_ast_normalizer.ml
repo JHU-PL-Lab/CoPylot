@@ -162,6 +162,37 @@ and normalize_expr
     let assignment, name = gen_normalized_assignment u
         (Normalized.UnaryOp(normalize_unaryop op, result, u)) in
     bindings @ assignment, name
+  | Abstract.IfExp (test, body, orelse, annot) ->
+    (* Python allows expressions like x = 1 if test else 0. Of course,
+       only the relevant branch is executed, so we can't simply evaluate both
+       beforehand. But in order to be on the right-hand-side of an assignment,
+       the expression must be no more complicated than a compound_expr. In
+       particular, the expression can't be an assignment.
+
+       So to evaluate x = y if test else z, we first create an if _statement_
+       and then use the results of that.
+       if test:
+         # evaluate and bind test1 = y
+       else:
+         # evaluate and bind test2 = z
+       x = test1 if test else test2.
+
+       We need to use different variables for test1 and test2 to preserve
+       the guarantee that every variable is bound at most once. This means
+       that one branch of the if _expression_ will always result in an
+       unbound variable error. It is guaranteed that this is the branch we
+       do not run, but this still makes me sad.
+    *)
+    let test_bindings, test_result = normalize_expr test in
+    let body_bindings, body_result = normalize_expr body in
+    let orelse_bindings, orelse_result = normalize_expr orelse in
+    let u = uid_of_annot annot in
+    let big_if =
+      Normalized.If(test_result, body_bindings, orelse_bindings, u) in
+    let assignment, name = gen_normalized_assignment u
+        (Normalized.IfExp(test_result, body_result, orelse_result, u)) in
+    test_bindings @ [big_if] @ assignment, name
+
   | Abstract.Compare (left, ops, comparators, annot) ->
     (* "x < y < z" is equivalent to "x < y and y < z", except y is only
        evaluated once. We treat compare in almost exactly the same way
@@ -204,18 +235,12 @@ and normalize_expr
       next_result,
       curr_expr
     in (* End definition of combine *)
-    let stmts, _, result = List.fold_left2 combine
+    let stmts, result, _ = List.fold_left2 combine
         (left_bindings, Normalized.Bool(true, u), left_result)
         normed_ops
         comparators
-    in stmts, result
-
-  (* If previously false, set nextvar to false *)
-  (* Turn x<y<z<... into x<y and y<z<... *)
-  (* Assume that x is snd (snd prev) so it's only evaluated once *)
-  (* Evaluate and bind y *)
-  (* Compare x and y, storing the result in some name n *)
-  (* Return fst prev @ all of those instruction, y, n *)
+    in
+    stmts, result
 
   | Abstract.Call (_,_,_,_,_,_) -> [], Normalized.Name("TODO", 0) (* TODO *)
   | Abstract.Num (n, annot) ->
@@ -249,7 +274,6 @@ and normalize_expr
     let assignment, name =
       gen_normalized_assignment u (Normalized.Tuple(results, u)) in
     bindings @ assignment, name
-  | _ -> [], Normalized.Str(0)
 
 (* Given a list of exprs, returns a list containing all of their
    bindings and a list containing all of the relevant variable names *)
