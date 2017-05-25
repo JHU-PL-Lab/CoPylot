@@ -150,6 +150,41 @@ let var_assign_test = gen_module_test "var_assign_test"
     ]
 ;;
 
+let var_double_assign_test = gen_module_test "var_assign_test"
+    "x = y = 5"
+    [
+      Assign(
+        [ Name("x", Store, annot); Name("y", Store, annot) ],
+        Num(Int(Pos), annot),
+        annot
+      )
+    ]
+;;
+
+let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
+    "i, j = (-1,0)"
+    [
+      Assign(
+        [
+          Tuple(
+            [
+              Name("i", Store, annot);
+              Name("j", Store, annot);
+            ],
+            Store,
+            annot)
+        ],
+        Tuple(
+          [
+            Num(Int(Neg), annot);
+            Num(Int(Zero), annot);
+          ],
+          Load,
+          annot),
+        annot)
+    ]
+;;
+
 let var_aug_assign_test = gen_module_test "var_aug_assign_test"
     "x *= -5"
     [
@@ -589,6 +624,8 @@ let tests =
     boolop_or_test;
     boolop_all_test;
     var_assign_test;
+    var_double_assign_test;
+    var_assign_from_tuple_test;
     var_aug_assign_test;
     var_cmp_test;
     if_test;

@@ -8,11 +8,11 @@ open Lexing
 let annot = Pos.of_pos Lexing.dummy_pos;;
 
 let string_of_stmt e = Pp_utils.pp_to_string
-    (Pp_utils.pp_list (Python2_ast.pp_stmt (fun _ _ -> ()))) e;;
+    (Pp_utils.pp_list (pp_stmt (fun _ _ -> ()))) e;;
 let equivalent_stmt e1 e2 = List.eq (equal_stmt ( fun _ _ -> true)) e1 e2;;
 
 let string_of_modl m = Pp_utils.pp_to_string
-    (Python2_ast.pp_modl (fun _ _ -> ())) m;;
+    (pp_modl (fun _ _ -> ())) m;;
 let equivalent_modl m1 m2 = equal_modl ( fun _ _ -> true) m1 m2;;
 
 let parse_stmt_from_string_safe str =
@@ -133,6 +133,41 @@ let var_assign_test = gen_module_test "var_assign_test"
         Num(Int(5), annot),
         annot
       )
+    ]
+;;
+
+let var_double_assign_test = gen_module_test "var_assign_test"
+    "x = y = 5"
+    [
+      Assign(
+        [ Name("x", Store, annot); Name("y", Store, annot) ],
+        Num(Int(5), annot),
+        annot
+      )
+    ]
+;;
+
+let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
+    "(5,3) = (1,2)"
+    [
+      Assign(
+        [
+          Tuple(
+            [
+              Name("i", Store, annot);
+              Name("j", Store, annot);
+            ],
+            Store,
+            annot)
+        ],
+        Tuple(
+          [
+            Num(Int(1), annot);
+            Num(Int(2), annot);
+          ],
+          Load,
+          annot),
+        annot)
     ]
 ;;
 
@@ -574,6 +609,8 @@ let tests =
     boolop_or_test;
     boolop_all_test;
     var_assign_test;
+    var_double_assign_test;
+    var_assign_from_tuple_test;
     var_aug_assign_test;
     var_cmp_test;
     if_test;
