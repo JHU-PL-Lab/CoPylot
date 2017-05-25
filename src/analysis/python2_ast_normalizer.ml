@@ -28,15 +28,15 @@ let gen_normalized_assignment u e =
    variable the last statement bound to. This means that apply List.map to them
    gives a list of tuples; this extracts them into two separate lists. *)
 let normalize_list normalize_func lst =
-    let normalized_list = List.map normalize_func lst in
-    let extract
-        (tup1 : 'a list * 'b )
-        (tup2 : 'a list * 'b list)
-      : 'a list * 'b list =
-      (fst tup1 @ fst tup2, (snd tup1)::(snd tup2)) in
-    let bindings, results =
-      List.fold_right extract normalized_list ([], []) in
-    bindings, results
+  let normalized_list = List.map normalize_func lst in
+  let extract
+      (tup1 : 'a list * 'b )
+      (tup2 : 'a list * 'b list)
+    : 'a list * 'b list =
+    (fst tup1 @ fst tup2, (snd tup1)::(snd tup2)) in
+  let bindings, results =
+    List.fold_right extract normalized_list ([], []) in
+  bindings, results
 ;;
 
 let rec normalize_modl m : Normalized.modl =
@@ -46,7 +46,13 @@ let rec normalize_modl m : Normalized.modl =
 
 and normalize_stmt s : Normalized.stmt list =
   match s with
-  | Abstract.FunctionDef (_,_,_,_,_)-> [] (* TODO *)
+  | Abstract.FunctionDef (func_name, args, body, _, annot)->
+    (* Hopefully the args are just names so this won't do anything *)
+    let arg_bindings, normalized_args = normalize_arguments args in
+    let normalized_body = map_and_concat normalize_stmt body in
+    let u = uid_of_annot annot in
+    arg_bindings @
+    [Normalized.FunctionDef(func_name, normalized_args, normalized_body, u)]
 
   | Abstract.Return (value, annot) ->
     begin

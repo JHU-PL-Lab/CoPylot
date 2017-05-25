@@ -11,7 +11,7 @@ and modl =
 
 and stmt =
     | Assign of simple_expr (* target *) * compound_expr (* value *) * uid
-  | FunctionDef of identifier (* name *) * arguments (* args *) * stmt list (* body *) * simple_expr list (* decorator_list *) * uid
+  | FunctionDef of identifier (* name *) * arguments (* args *) * stmt list (* body *) * uid
   | Return of simple_expr option (* value *) * uid
 
   | Print of simple_expr option (* dest *) * simple_expr list (* values *) * bool (* nl *) * uid
