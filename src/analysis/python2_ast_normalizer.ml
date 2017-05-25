@@ -88,6 +88,21 @@ and normalize_expr
     (e : 'a Abstract.expr)
   : Normalized.stmt list * Normalized.simple_expr =
   match e with
+  (* BoolOps are a tricky case because of short-circuiting. We need to
+     make sure that when we evaluate "a and False and b", b is never
+     evaluated, etc.
+
+     We do this by iteratively breaking down the statements like so:
+     "a and b and c and ..." turns into
+     "test1 = a
+      if test1:
+        test2 = b
+     else
+       test2 = False
+     test3 = test1 and test2
+     test4 = test3 and c and ..."
+     We then apply the same process to break down the assignment to test4
+     and continue in this manner until we hit the end of the statement. *)
   | Abstract.BoolOp (op, values, annot) ->
     (* TODO: Throw a useful error if values is empty. Not sure if that's
        possible given how we generate these trees, but best to be safe. *)
@@ -95,10 +110,7 @@ and normalize_expr
     let remaining_args = List.tl values in
     let norm_op = normalize_boolop op in
     let u = uid_of_annot annot in
-    (* Turn "a && b" into
-       "x = a;
-       if x then y = b else y = false;
-       z = x && y;" *)
+    (* Performs the single step of decomposition described above *)
     let combine
         (prev : Normalized.stmt list * Normalized.simple_expr)
         (next : 'a Abstract.expr)
@@ -125,7 +137,7 @@ and normalize_expr
           (Normalized.BoolOp(snd prev, norm_op, name, u)) in
       let bindings = (fst prev) @ [big_if] @ assignment in
       bindings, name2
-    in (* End combine *)
+    in (* End definition of combine *)
     let first_arg_bindings, first_arg_result = normalize_expr first_arg in
     List.fold_left combine
       (first_arg_bindings, first_arg_result)
@@ -152,18 +164,28 @@ and normalize_expr
     bindings @ assignment, name
   | Abstract.Compare (left, ops, comparators, annot) ->
     (* "x < y < z" is equivalent to "x < y and y < z", except y is only
-       evaluated once. *)
+       evaluated once. We treat compare in almost exactly the same way
+       as we treat boolean operators (see above), but we also keep track
+       of the name we used to bind the last expression, rather than just the
+       result of the last comparison.
+       This lets us re-use the value of y we computed for x < y when we
+       compute y < z, which ensures that y is only evaluated once. *)
     let left_bindings, left_result = normalize_expr left in
     let normed_ops = List.map normalize_cmpop ops in
     let u = uid_of_annot annot in
     let combine
         (prev : Normalized.stmt list (* Previous operations *) *
-                Normalized.simple_expr (* Name of result of previous op *) *
+                Normalized.simple_expr (* Result of previous op *) *
                 Normalized.simple_expr (* Name of previous expr *))
         (next_op : Normalized.cmpop)
         (next_expr : 'a Abstract.expr) =
+      (* Unpack the input tuple *)
       let prev_stmts, prev_result, prev_expr = prev in
+      (* Normalize the next expression we might compare against. This
+         code will only be executed if the previous result is True.*)
       let bindings, curr_expr = normalize_expr next_expr in
+      (* Actually perform the comparison between the previous expression
+         and the one we just normalized.*)
       let interior_assignment, curr_result = gen_normalized_assignment u
           (Normalized.Compare(prev_expr, next_op, curr_expr, u)) in
       let big_if =
@@ -175,6 +197,7 @@ and normalize_expr
                           u)
                       ],
                       u) in
+      (* Generate our next value of "prev_result" *)
       let exterior_assignment, next_result = gen_normalized_assignment u
           (Normalized.BoolOp(prev_result, Normalized.And, curr_result, u)) in
       prev_stmts @ [big_if] @ exterior_assignment,
@@ -185,7 +208,7 @@ and normalize_expr
         (left_bindings, Normalized.Bool(true, u), left_result)
         normed_ops
         comparators
-in stmts, result
+    in stmts, result
 
   (* If previously false, set nextvar to false *)
   (* Turn x<y<z<... into x<y and y<z<... *)
