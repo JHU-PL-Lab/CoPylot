@@ -290,7 +290,7 @@ and annot_of_expr = function
 (* | ExceptHandler (_, _, _, a) -> a *)
 
 let context_of_expr = function
-  (* | Attribute (_, _, ctx, _) -> Some ctx *)
+  | Attribute (_, _, ctx, _) -> Some ctx
   | Subscript (_, _, ctx, _) -> Some ctx
   | Name (_, ctx, _)         -> Some ctx
   | List (_, ctx, _)         -> Some ctx

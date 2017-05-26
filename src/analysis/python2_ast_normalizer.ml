@@ -114,8 +114,73 @@ and normalize_stmt_full
                                  nl,
                                  get_next_uid annot)]
 
-  |Abstract.For _ -> []
+  | Abstract.For (target, seq, body, _, annot) ->
+    (* For loops are always over some iterable. According to the docs,
+       they loop until they are told to stop, or their iterator stops
+       returning objects.
 
+       The targets are assigned to at the beginning of the body, then the
+       body's code is executed. When there are no elements of the iterable
+       to assign, the loop terminates.
+       TODO: So far this assume we're only assigning to one target *)
+    let target_bindings, target_name = normalize_expr target in
+    (* e.g. Assign the sequence to a value seq_name *)
+    let seq_bindings, seq_name = normalize_expr seq in
+    (* We want to end up with a variable holding the next() method of
+       an iterable for seq. This involves a number of different expression
+       types, so we build the corresponding abstract expression and then
+       normalize that. Specifically, we build
+       <name> = seq_name.__iter__().next *)
+    let next_name = gen_unique_name annot in
+    let next_abstract_stmt =
+      Abstract.Assign(
+        [Abstract.Name(next_name, Abstract.Store, annot)],
+        Abstract.Attribute(
+          Abstract.Call(
+            Abstract.Attribute(
+              Abstract.Name(
+                begin
+                  match seq_name with
+                  | Normalized.Name (s,_) -> s
+                  | _ -> "BAD" (* TODO: Should be impossible *)
+                end,
+                Abstract.Load,
+                annot),
+              "__iter__",
+              Abstract.Load,
+              annot
+            ),
+            [],
+            [],
+            None,
+            None,
+            annot
+          ),
+          "next",
+          Abstract.Load,
+          annot
+        ),
+        annot
+      ) in
+    let next_bindings = normalize_stmt next_abstract_stmt in
+    (* So now we have the next() function bound to a variable called
+       next_name. The start of the loop will be a call to this function. *)
+    let next_call =
+      Normalized.Call(Normalized.Name(next_name, get_next_uid annot),
+                      [], get_next_uid annot) in
+    let start_uid = get_next_uid annot in (* Start label *)
+    let loop_start =
+      Normalized.Assign(target_name, next_call, start_uid) in
+    let end_uid = get_next_uid annot in (* End label *)
+    let normalized_body =
+      (map_and_concat
+         (normalize_stmt_full
+            (Some(start_uid))
+            (Some(end_uid)))
+         body) in
+    let loop_end = Normalized.Pass(end_uid) in
+    target_bindings @ seq_bindings @ next_bindings @ [loop_start] @
+    normalized_body @ [loop_end]
   | Abstract.While (test, body, _, annot) ->
     let test_bindings, test_name =
       (* It's nicer to have "if !test then goto end" as opposed to
