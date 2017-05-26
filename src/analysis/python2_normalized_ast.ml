@@ -18,6 +18,7 @@ and stmt =
   | If of simple_expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid
   | Pass of uid
   | Raise of simple_expr option (* type *) * simple_expr option (* value *) * uid
+  | TryExcept of stmt list (* body *) * excepthandler list (* handlers *) * uid
   | Goto of uid * uid
   | SimpleExprStmt of simple_expr (* value *) * uid
 [@@deriving eq, ord, show]
@@ -61,6 +62,9 @@ and unaryop = Not | UAdd | USub
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
 [@@deriving eq, ord, show]
 
+and excepthandler = ExceptHandler of simple_expr option (* type *) * simple_expr option (* name *) * stmt list (* body *) * uid
+[@@deriving eq, ord, show]
+
 and arguments = simple_expr list (* args *) * identifier option (* varargs *) * identifier option (* kwargs *) * simple_expr list (* defaults *)
 [@@deriving eq, ord, show]
 
@@ -85,6 +89,7 @@ and name_of_stmt = function
   | Print _           -> "Print"
   | If _              -> "If"
   | Raise _           -> "Raise"
+  | TryExcept _       -> "TryExcept"
   | SimpleExprStmt _  -> "Expr"
   | Pass _            -> "Pass"
   | Goto _            -> "Goto"
@@ -154,6 +159,7 @@ and uid_of_stmt = function
   | Print (_, _, _, u)
   | If (_, _, _, u)
   | Raise (_, _, u)
+  | TryExcept (_, _, u)
   | SimpleExprStmt (_, u)
   | Pass (u)
   | Goto (_, u)

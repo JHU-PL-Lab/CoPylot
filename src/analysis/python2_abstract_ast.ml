@@ -28,7 +28,7 @@ and 'a stmt =
   (* | With of 'a expr (* context_expr *) * 'a expr option (* optional_vars *) * 'a stmt list (* body *) * 'a *)
 
   | Raise of 'a expr option (* type *) * 'a expr option (* inst *) * 'a expr option (* tback *) * 'a
-  (* | TryExcept of 'a stmt list (* body *) * 'a excepthandler list (* handlers *) * 'a stmt list (* orelse *) * 'a *)
+  | TryExcept of 'a stmt list (* body *) * 'a excepthandler list (* handlers *) * 'a stmt list (* orelse *) * 'a
   (* | TryFinally of 'a stmt list (* body *) * 'a stmt list (* finalbody *) * 'a *)
   (* | Assert of 'a expr (* test *) * 'a expr option (* msg *) * 'a *)
 
@@ -97,8 +97,8 @@ and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE (*| Is | IsNot*) | In | NotIn
 (* and 'a comprehension = 'a expr (* target *) * 'a expr (* iter *) * 'a expr list (* ifs *) *)
 (* [@@deriving eq, ord, show] *)
 
-(* and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * 'a expr option (* name *) * 'a stmt list (* body *) * 'a *)
-(* [@@deriving eq, ord, show] *)
+and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * 'a expr option (* name *) * 'a stmt list (* body *) * 'a
+[@@deriving eq, ord, show]
 
 and 'a arguments = 'a expr list (* args *) * identifier option (* varargs *) * identifier option (* kwargs *) * 'a expr list (* defaults *)
 [@@deriving eq, ord, show]
@@ -138,7 +138,7 @@ and name_of_stmt = function
   | If _          -> "If"
   (* | With _        -> "With" *)
   | Raise _       -> "Raise"
-  (* | TryExcept _   -> "TryExcept" *)
+  | TryExcept _   -> "TryExcept"
   (* | TryFinally _  -> "TryFinally" *)
   (* | Assert _      -> "Assert" *)
   (* | Import _      -> "Import" *)
@@ -250,7 +250,7 @@ and annot_of_stmt = function
   | If (_, _, _, a)
   (* | With (_, _, _, a) *)
   | Raise (_, _, _, a)
-  (* | TryExcept (_, _, _, a) *)
+  | TryExcept (_, _, _, a)
   (* | TryFinally (_, _, a) *)
   (* | Assert (_, _, a) *)
   (* | Import (_, a) *)

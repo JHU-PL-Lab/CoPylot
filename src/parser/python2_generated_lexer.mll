@@ -117,7 +117,7 @@ and _token state = parse
   | identifier as id
       { match id with
         | "and"      -> AND (curr_pos lexbuf)
-        (* | "as"       -> AS (curr_pos lexbuf) *)
+        | "as"       -> AS (curr_pos lexbuf)
         (* | "assert"   -> ASSERT (curr_pos lexbuf) *)
         | "break"    -> BREAK (curr_pos lexbuf)
         (* | "class"    -> CLASS (curr_pos lexbuf) *)
@@ -126,7 +126,7 @@ and _token state = parse
         (* | "del"      -> DEL (curr_pos lexbuf) *)
         | "elif"     -> ELIF (curr_pos lexbuf)
         | "else"     -> ELSE (curr_pos lexbuf)
-        (* | "except"   -> EXCEPT (curr_pos lexbuf) *)
+        | "except"   -> EXCEPT (curr_pos lexbuf)
         (* | "exec"     -> EXEC (curr_pos lexbuf) *)
         | "False"    -> FALSE (curr_pos lexbuf) (* See note above *)
         (* | "finally"  -> FINALLY (curr_pos lexbuf) *)
@@ -145,7 +145,7 @@ and _token state = parse
         | "raise"    -> RAISE (curr_pos lexbuf)
         | "return"   -> RETURN (curr_pos lexbuf)
         | "True"     -> TRUE (curr_pos lexbuf) (* See note above *)
-        (* | "try"      -> TRY (curr_pos lexbuf) *)
+        | "try"      -> TRY (curr_pos lexbuf)
         | "while"    -> WHILE (curr_pos lexbuf)
         (* | "with"     -> WITH (curr_pos lexbuf) *)
         (* | "yield"    -> YIELD (curr_pos lexbuf) *)

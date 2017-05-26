@@ -59,7 +59,7 @@
 (* NOTE The Python formal specification does not treat True and False as
 keywords, but as names. We are intentionally deviating from this here.*)
 %token <Lexing.position> AND
-/*%token <Lexing.position> AS*/
+%token <Lexing.position> AS
 /*%token <Lexing.position> ASSERT*/
 %token <Lexing.position> BREAK
 /*%token <Lexing.position> CLASS*/
@@ -68,7 +68,7 @@ keywords, but as names. We are intentionally deviating from this here.*)
 /*%token <Lexing.position> DEL*/
 %token <Lexing.position> ELIF
 %token <Lexing.position> ELSE
-/*%token <Lexing.position> EXCEPT*/
+%token <Lexing.position> EXCEPT
 /*%token <Lexing.position> EXEC*/
 %token <Lexing.position> FALSE (* See note above *)
 /*%token <Lexing.position> FINALLY*/
@@ -87,7 +87,7 @@ keywords, but as names. We are intentionally deviating from this here.*)
 %token <Lexing.position> RAISE
 %token <Lexing.position> RETURN
 %token <Lexing.position> TRUE (* See note above *)
-/*%token <Lexing.position> TRY*/
+%token <Lexing.position> TRY
 %token <Lexing.position> WHILE
 /*%token <Lexing.position> WITH*/
 /*%token <Lexing.position> YIELD*/
@@ -340,7 +340,7 @@ raise_stmt:
   | RAISE test { Raise (Some $2, None, None, annot $1) }
   | RAISE test COMMA test { Raise (Some $2, Some $4, None, annot $1) }
   | RAISE test COMMA test COMMA test { Raise (Some $2, Some $4, Some $6, annot $1) }
-  
+
 
 (*
 import_stmt:
@@ -411,9 +411,8 @@ compound_stmt:
   | if_stmt     { $1 }
   | while_stmt  { $1 }
   | for_stmt    { $1 }
-  (*
   | try_stmt    { $1 }
-  | with_stmt   { $1 } *)
+  (* | with_stmt   { $1 } *)
   | funcdef     { $1 }
   (*
   | classdef    { $1 }*)
@@ -438,18 +437,19 @@ for_stmt:
   | FOR exprlist IN testlist COLON suite ELSE COLON suite
      { For (tuple_expr_store $2, tuple_expr $4, $6, $9, annot $1) }*)
 
-(*
 try_stmt:
   | TRY COLON suite excepthandler_list
       { TryExcept ($3, $4, [], annot $1) }
+  (*
   | TRY COLON suite excepthandler_list ELSE COLON suite
-      { TryExcept ($3, $4, $7, annot $1) }
+      { TryExcept ($3, $4, $7, annot $1) } *)
+  (*
   | TRY COLON suite excepthandler_list ELSE COLON suite FINALLY COLON suite
       { TryFinally ([TryExcept ($3, $4, $7, annot $1)], $10, annot $8) }
   | TRY COLON suite excepthandler_list FINALLY COLON suite
       { TryFinally ([TryExcept ($3, $4, [], annot $1)], $7, annot $5) }
   | TRY COLON suite FINALLY COLON suite
-      { TryFinally ($3, $6, annot $1) }
+      { TryFinally ($3, $6, annot $1) } *)
 
 excepthandler:
   | EXCEPT COLON suite { ExceptHandler (None, None, $3, annot $1) }
@@ -459,7 +459,7 @@ excepthandler:
 
 excepthandler_list:
   | excepthandler { [$1] }
-  | excepthandler excepthandler_list { $1::$2 }*)
+  | excepthandler excepthandler_list { $1::$2 }
 
 (*
 with_stmt:

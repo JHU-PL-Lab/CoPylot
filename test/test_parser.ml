@@ -446,6 +446,41 @@ let raise_test_three_args = gen_module_test "raise_test_no_args"
         annot)]
 ;;
 
+let try_block =
+  "try:" ^
+  "\n\tx = 5" ^
+  "\nexcept ValueError:" ^
+  "\n\tprint 'Error'" ^
+  "\nexcept StopIteration as e:" ^
+  "\n\tprint 'Other Error'" ^
+  "\n"
+;;
+
+let try_test = gen_module_test "try_test"
+    try_block
+    [(TryExcept (
+         [(Assign ([(Name ("x", Store, annot))],
+                               (Num ((Int 5), annot)), annot))
+         ],
+         [(ExceptHandler (
+              (Some (Name ("ValueError", Load, annot))),
+              None,
+              [(Print (None, [(Str ("Error", annot))], true,
+                                  annot))
+              ],
+            annot));
+          (ExceptHandler (
+              (Some (Name ("StopIteration", Load, annot))),
+              (Some (Name ("e", Load, annot))),
+              [(Print (None, [(Str ("Other Error", annot))],
+                                   true, annot))
+              ],
+            annot))
+         ],
+         [], annot))
+    ]
+;;
+
 let triangle_def =
   "def triangle(n):" ^
   "\n\tcount = 0" ^
@@ -685,6 +720,7 @@ let tests =
     raise_test_one_arg;
     raise_test_two_args;
     raise_test_three_args;
+    try_test;
     big_test;
   ]
   @ binop_tests

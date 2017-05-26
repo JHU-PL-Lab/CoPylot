@@ -139,13 +139,13 @@ and pp_stmt fmt = function
       pp_expr inst
       pp_expr tback
 
-  (* | TryExcept (body, handlers, orelse, _) ->
-     fprintf fmt "@[<4>try:@\n%a@]@\n%a%a"
-     pp_suite body
-     (pp_block pp_excepthandler) handlers
-     pp_orelse orelse
+  | TryExcept (body, handlers, orelse, _) ->
+    fprintf fmt "@[<4>try:@\n%a@]@\n%a%a"
+      pp_suite body
+      (pp_block pp_excepthandler) handlers
+      pp_orelse orelse
 
-     | TryFinally ([TryExcept _ as try_except], finalbody, _) ->
+  (* | TryFinally ([TryExcept _ as try_except], finalbody, _) ->
      fprintf fmt "%a@[<4>finally:@\n%a@]"
      pp_stmt try_except
      pp_suite finalbody
@@ -341,7 +341,7 @@ and pp_comp fmt (expr, iter, ifs) =
   fprintf fmt "for %a in %a" pp_expr expr pp_expr iter;
   List.iter (fprintf fmt " if %a" pp_expr) ifs
 
-(* and pp_excepthandler fmt = function
+and pp_excepthandler fmt = function
    | ExceptHandler (None, _, body, _) ->
       fprintf fmt "@[<4>except:@\n%a@]" pp_suite body
    | ExceptHandler (Some typ, None, body, _) ->
@@ -352,7 +352,7 @@ and pp_comp fmt (expr, iter, ifs) =
       fprintf fmt "@[<4>except %a as %a:@\n%a@]"
         pp_expr typ
         pp_expr name
-        pp_suite body *)
+        pp_suite body
 
 and pp_args fmt (args, varargs, kwargs, defaults) =
   let arg_len = List.length args in
