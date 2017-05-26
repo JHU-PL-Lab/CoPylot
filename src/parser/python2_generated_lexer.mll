@@ -142,7 +142,7 @@ and _token state = parse
         | "or"       -> OR (curr_pos lexbuf)
         | "pass"     -> PASS (curr_pos lexbuf)
         | "print"    -> PRINT (curr_pos lexbuf)
-        (* | "raise"    -> RAISE (curr_pos lexbuf) *)
+        | "raise"    -> RAISE (curr_pos lexbuf)
         | "return"   -> RETURN (curr_pos lexbuf)
         | "True"     -> TRUE (curr_pos lexbuf) (* See note above *)
         (* | "try"      -> TRY (curr_pos lexbuf) *)

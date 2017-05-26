@@ -17,6 +17,7 @@ and stmt =
   | Print of simple_expr option (* dest *) * simple_expr list (* values *) * bool (* nl *) * uid
   | If of simple_expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid
   | Pass of uid
+  | Raise of simple_expr option (* type *) * simple_expr option (* value *) * uid
   | Goto of uid * uid
   | SimpleExprStmt of simple_expr (* value *) * uid
 [@@deriving eq, ord, show]
@@ -74,23 +75,144 @@ and number =
   | Float of sign
 [@@deriving eq, ord, show]
 
-let uid_of_simple_expr = function
+let name_of_mod = function
+  | Module _      -> "Module"
+
+and name_of_stmt = function
+  | FunctionDef _     -> "FunctionDef"
+  | Return _          -> "Return"
+  | Assign _          -> "Assign"
+  | Print _           -> "Print"
+  | If _              -> "If"
+  | Raise _           -> "Raise"
+  | SimpleExprStmt _  -> "Expr"
+  | Pass _            -> "Pass"
+  | Goto _            -> "Goto"
+
+and name_of_cmpound_expr = function
+  | BoolOp _       -> "BoolOp"
+  | BinOp _        -> "BinOp"
+  | UnaryOp _      -> "UnaryOp"
+  | IfExp _        -> "IfExp"
+  | Compare _      -> "Compare"
+  | Call _         -> "Call"
+  | Attribute _    -> "Attribute"
+  | Subscript _    -> "Subscript"
+  | List _         -> "List"
+  | Tuple _        -> "Tuple"
+  | SimpleExpr _   -> "SimpleExpr"
+
+and name_of_simple_expr = function
+  | Num _          -> "Num"
+  | Str _          -> "Str"
+  | Bool _         -> "Bool"
+  | Name _         -> "Name"
+
+and name_of_slice = function
+  | Slice _     -> "Slice"
+  | Index _     -> "Index"
+
+and name_of_boolop = function
+  | And -> "And"
+  | Or  -> "Or"
+
+and name_of_operator = function
+  | Add         -> "Add"
+  | Sub         -> "Sub"
+  | Mult        -> "Mult"
+  | Div         -> "Div"
+  | Mod         -> "Mod"
+  | Pow         -> "Pow"
+
+and name_of_unaryop = function
+  | Not         -> "Not"
+  | UAdd        -> "UAdd"
+  | USub        -> "USub"
+
+and name_of_cmpop = function
+  | Eq          -> "Eq"
+  | NotEq       -> "NotEq"
+  | Lt          -> "Lt"
+  | LtE         -> "LtE"
+  | Gt          -> "Gt"
+  | GtE         -> "GtE"
+  | In          -> "In"
+  | NotIn       -> "NotIn"
+
+and name_of_number = function
+  | Int _       -> "Int"
+  | Float _     -> "Float"
+
+let uid_of_mod = function
+  | Module (_, u)
+    -> u
+
+and uid_of_stmt = function
+  | FunctionDef (_, _, _, u)
+  | Return (_, u)
+  | Assign (_, _, u)
+  | Print (_, _, _, u)
+  | If (_, _, _, u)
+  | Raise (_, _, u)
+  | SimpleExprStmt (_, u)
+  | Pass (u)
+  | Goto (_, u)
+    -> u
+
+and uid_of_compound_expr = function
+  | BoolOp (_, _, _, u)
+  | BinOp (_, _, _, u)
+  | UnaryOp (_, _, u)
+  | IfExp (_, _, _, u)
+  | Compare (_, _, _, u)
+  | Call (_, _, u)
+  | Attribute (_, _, u)
+  | Subscript (_, _, u)
+  | List (_, u)
+  | Tuple (_, u)
+  | SimpleExpr (_, u)
+    -> u
+
+and uid_of_simple_expr = function
   | Num (_, u)
   | Str (u)
   | Bool (_, u)
   | Name (_, u)
     -> u
 
-and uid_of_compound_expr = function
-  | BoolOp (_,_,_,u)
-  | BinOp (_,_,_,u)
-  | UnaryOp (_,_,u)
-  | IfExp (_,_,_,u)
-  | Compare (_,_,_,u)
-  | Call (_,_,u)
-  | Subscript (_,_,u)
-  | Attribute (_,_,u)
-  | List (_,u)
-  | Tuple (_,u)
-  | SimpleExpr (_,u)
-    -> u
+let string_of_boolop = function
+  | And -> "and"
+  | Or  -> "or"
+
+let string_of_operator = function
+  | Add         -> "+"
+  | Sub         -> "-"
+  | Mult        -> "*"
+  | Div         -> "/"
+  | Mod         -> "%"
+  | Pow         -> "**"
+
+let string_of_unaryop = function
+  | Not    -> "not"
+  | UAdd   -> "+"
+  | USub   -> "-"
+
+let string_of_cmpop = function
+  | Eq    -> "=="
+  | NotEq -> "!="
+  | Lt    -> "<"
+  | LtE   -> "<="
+  | Gt    -> ">"
+  | GtE   -> ">="
+  | In    -> "in"
+  | NotIn -> "not in"
+
+let string_of_sign = function
+  | Pos -> "Pos"
+  | Neg -> "Neg"
+  | Zero -> "Zero"
+
+let string_of_number = function
+  | Int (sgn)
+  | Float (sgn) ->
+    string_of_sign sgn

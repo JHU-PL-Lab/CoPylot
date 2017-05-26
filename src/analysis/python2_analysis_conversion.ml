@@ -32,6 +32,8 @@ and lift_stmt s =
     Abstract.While (lift_expr arg1, List.map lift_stmt arg2, List.map lift_stmt arg3, annot)
   | Concrete.If (arg1, arg2, arg3, annot) ->
     Abstract.If (lift_expr arg1, List.map lift_stmt arg2, List.map lift_stmt arg3, annot)
+  | Concrete.Raise(arg1, arg2, arg3, annot) ->
+    Abstract.Raise(lift_option lift_expr arg1, lift_option lift_expr arg2, lift_option lift_expr arg3, annot)
   | Concrete.Expr (arg1, annot) ->
     Abstract.Expr (lift_expr arg1, annot)
   | Concrete.Pass (annot) ->

@@ -84,7 +84,7 @@ keywords, but as names. We are intentionally deviating from this here.*)
 %token <Lexing.position> OR
 %token <Lexing.position> PASS
 %token <Lexing.position> PRINT
-/*%token <Lexing.position> RAISE*/
+%token <Lexing.position> RAISE
 %token <Lexing.position> RETURN
 %token <Lexing.position> TRUE (* See note above *)
 /*%token <Lexing.position> TRY*/
@@ -317,8 +317,8 @@ flow_stmt:
   | break_stmt    { $1 }
   | continue_stmt { $1 }
   | return_stmt   { $1 }
-  (*
   | raise_stmt    { $1 }
+  (*
   | yield_stmt    { $1 } *)
 
 break_stmt:
@@ -333,13 +333,14 @@ return_stmt:
 
 (*
 yield_stmt:
-  | yield_expr { Expr ($1, annot_of_expr $1) }
+  | yield_expr { Expr ($1, annot_of_expr $1) } *)
 
 raise_stmt:
   | RAISE { Raise (None, None, None, annot $1) }
   | RAISE test { Raise (Some $2, None, None, annot $1) }
   | RAISE test COMMA test { Raise (Some $2, Some $4, None, annot $1) }
-  | RAISE test COMMA test COMMA test { Raise (Some $2, Some $4, Some $6, annot $1) }*)
+  | RAISE test COMMA test COMMA test { Raise (Some $2, Some $4, Some $6, annot $1) }
+  
 
 (*
 import_stmt:

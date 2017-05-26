@@ -214,7 +214,11 @@ and normalize_stmt_full
                    normalized_body,
                    normalized_orelse,
                    get_next_uid annot)]
-
+  | Abstract.Raise (typ, value, _, annot) ->
+    let type_binding, type_result = normalize_expr_option typ in
+    let value_binding, value_result = normalize_expr_option value in
+    type_binding @ value_binding @
+    [Normalized.Raise(type_result, value_result, get_next_uid annot)]
   | Abstract.Expr (e, annot) ->
     let bindings, result = normalize_expr e in
     bindings @ [Normalized.SimpleExprStmt(result, get_next_uid annot)]

@@ -30,7 +30,7 @@ and 'a stmt =
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
   (* | With of 'a expr (* context_expr *) * 'a expr option (* optional_vars *) * 'a stmt list (* body *) * 'a *)
 
-  (* | Raise of 'a expr option (* type *) * 'a expr option (* inst *) * 'a expr option (* tback *) * 'a *)
+  | Raise of 'a expr option (* type *) * 'a expr option (* inst *) * 'a expr option (* tback *) * 'a
   (* | TryExcept of 'a stmt list (* body *) * 'a excepthandler list (* handlers *) * 'a stmt list (* orelse *) * 'a *)
   (* | TryFinally of 'a stmt list (* body *) * 'a stmt list (* finalbody *) * 'a *)
   (* | Assert of 'a expr (* test *) * 'a expr option (* msg *) * 'a *)
@@ -138,7 +138,7 @@ and name_of_stmt = function
   | While _       -> "While"
   | If _          -> "If"
   (* | With _        -> "With" *)
-  (* | Raise _       -> "Raise" *)
+  | Raise _       -> "Raise"
   (* | TryExcept _   -> "TryExcept" *)
   (* | TryFinally _  -> "TryFinally" *)
   (* | Assert _      -> "Assert" *)
@@ -251,7 +251,7 @@ and annot_of_stmt = function
   | While (_, _, _, a)
   | If (_, _, _, a)
   (* | With (_, _, _, a) *)
-  (* | Raise (_, _, _, a) *)
+  | Raise (_, _, _, a)
   (* | TryExcept (_, _, _, a) *)
   (* | TryFinally (_, _, a) *)
   (* | Assert (_, _, a) *)

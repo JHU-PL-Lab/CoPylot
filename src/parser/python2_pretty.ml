@@ -127,32 +127,32 @@ and pp_stmt fmt = function
         pp_expr optional_vars
         pp_suite body *)
 
-  (* | Raise (None, _, _, _) ->
-      fprintf fmt "raise"
-     | Raise (Some typ, None, _, _) ->
-      fprintf fmt "raise %a" pp_expr typ
-     | Raise (Some typ, Some inst, None, _) ->
-      fprintf fmt "raise %a, %a" pp_expr typ pp_expr inst
-     | Raise (Some typ, Some inst, Some tback, _) ->
-      fprintf fmt "raise %a, %a, %a"
-        pp_expr typ
-        pp_expr inst
-        pp_expr tback
+  | Raise (None, _, _, _) ->
+    fprintf fmt "raise"
+  | Raise (Some typ, None, _, _) ->
+    fprintf fmt "raise %a" pp_expr typ
+  | Raise (Some typ, Some inst, None, _) ->
+    fprintf fmt "raise %a, %a" pp_expr typ pp_expr inst
+  | Raise (Some typ, Some inst, Some tback, _) ->
+    fprintf fmt "raise %a, %a, %a"
+      pp_expr typ
+      pp_expr inst
+      pp_expr tback
 
-     | TryExcept (body, handlers, orelse, _) ->
-      fprintf fmt "@[<4>try:@\n%a@]@\n%a%a"
-        pp_suite body
-        (pp_block pp_excepthandler) handlers
-        pp_orelse orelse
+  (* | TryExcept (body, handlers, orelse, _) ->
+     fprintf fmt "@[<4>try:@\n%a@]@\n%a%a"
+     pp_suite body
+     (pp_block pp_excepthandler) handlers
+     pp_orelse orelse
 
      | TryFinally ([TryExcept _ as try_except], finalbody, _) ->
-      fprintf fmt "%a@[<4>finally:@\n%a@]"
-        pp_stmt try_except
-        pp_suite finalbody
+     fprintf fmt "%a@[<4>finally:@\n%a@]"
+     pp_stmt try_except
+     pp_suite finalbody
      | TryFinally (body, finalbody, _) ->
-      fprintf fmt "@[<4>try:@\n%a@]@\n@[<4>finally:@\n%a@]"
-        pp_suite body
-        pp_suite finalbody *)
+     fprintf fmt "@[<4>try:@\n%a@]@\n@[<4>finally:@\n%a@]"
+     pp_suite body
+     pp_suite finalbody *)
 
   (* | Assert (test, None, _) ->
       fprintf fmt "assert %a" pp_expr test
@@ -302,7 +302,7 @@ and pp_expr fmt = function
   | Bool (b, _) ->
     (pp_bool fmt b)
   | Attribute (value, attr, _, _) ->
-    fprintf fmt "%a.%s" pp_expr value attr 
+    fprintf fmt "%a.%s" pp_expr value attr
 
   | Subscript (expr, slice, _, _) ->
     fprintf fmt "%a[@[%a@]]" pp_expr expr pp_slice slice
