@@ -360,7 +360,11 @@ and normalize_expr
   | Abstract.Bool (b, annot) ->
     ([], Normalized.Bool(b, get_next_uid annot))
 
-  | Abstract.Attribute _ -> [], Normalized.Str(0) (* TODO *)
+  | Abstract.Attribute (obj, attr, _, annot) ->
+    let obj_bindings, obj_result = normalize_expr obj in
+    let assignment, result = gen_normalized_assignment annot
+        (Normalized.Attribute(obj_result, attr, get_next_uid annot)) in
+    obj_bindings @ assignment, result
 
   | Abstract.Subscript (value, slice, _, annot) ->
     let value_bindings, value_result = normalize_expr value in
