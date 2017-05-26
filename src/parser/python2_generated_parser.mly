@@ -136,7 +136,7 @@ keywords, but as names. We are intentionally deviating from this here.*)
 /*%token <Lexing.position> RBRACE    */     /* } */
 %token <Lexing.position> COLON          /* : */
 %token <Lexing.position> SEMICOL        /* ; */
-/*%token <Lexing.position> DOT*/            /* . */
+%token <Lexing.position> DOT            /* . */
 %token <Lexing.position> COMMA          /* , */
 /*%token <Lexing.position> BACKQUOTE  */    /* ` */
 /*%token <Lexing.position> AT       */      /* @ */
@@ -604,8 +604,7 @@ atom_trailer:
         | [s] -> Subscript ($1, s, Load, annot $2)
         | _ -> failwith "ExtSlice not supported"
         (*| l -> Subscript ($1, ExtSlice (l), Load, annot $2) *) }
-  (*
-  | atom_trailer DOT NAME { Attribute ($1, fst $3, Load, annot (snd $3)) }*)
+  | atom_trailer DOT NAME { Attribute ($1, fst $3, Load, annot (snd $3)) }
 
 atom:
   | atom_tuple  { $1 }

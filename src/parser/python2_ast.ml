@@ -66,7 +66,7 @@ and 'a expr =
                          as a type of expression. We are intentionally deviating
                          from this behavior here *)
 
-  (* | Attribute of 'a expr (* value *) * identifier (* attr *) * expr_context (* ctx *) * 'a *)
+  | Attribute of 'a expr (* value *) * identifier (* attr *) * expr_context (* ctx *) * 'a
   | Subscript of 'a expr (* value *) * 'a slice (* slice *) * expr_context (* ctx *) * 'a
   | Name of identifier (* id *) * expr_context (* ctx *) * 'a
   | List of 'a expr list (* elts *) * expr_context (* ctx *) * 'a
@@ -167,7 +167,7 @@ and name_of_expr = function
   | Num _          -> "Num"
   | Str _          -> "Str"
   | Bool _         -> "Bool"
-  (* | Attribute _    -> "Attribute" *)
+  | Attribute _    -> "Attribute"
   | Subscript _    -> "Subscript"
   | Name _         -> "Name"
   | List _         -> "List"
@@ -281,7 +281,7 @@ and annot_of_expr = function
   | Num (_, a)
   | Str (_, a)
   | Bool (_, a)
-  (* | Attribute (_, _, _, a) *)
+  | Attribute (_, _, _, a)
   | Subscript (_, _, _, a)
   | Name (_, _, a)
   | List (_, _, a)

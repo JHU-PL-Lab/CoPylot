@@ -198,7 +198,7 @@ and _token state = parse
   (* | '}'     { aware_nl state; RBRACE (curr_pos lexbuf) } *)
   | ':'     { COLON (curr_pos lexbuf) }
   | ';'     { SEMICOL (curr_pos lexbuf) }
-  (* | '.'     { DOT (curr_pos lexbuf) } *)
+  | '.'     { DOT (curr_pos lexbuf) }
   | ','     { COMMA (curr_pos lexbuf) }
   (* | '`'     { BACKQUOTE (curr_pos lexbuf) } *)
   (* | '@'     { AT (curr_pos lexbuf) } *)

@@ -63,6 +63,8 @@ and lift_expr e =
     Abstract.Str (annot)
   | Concrete.Bool (arg1, annot) ->
     Abstract.Bool (arg1, annot)
+  | Concrete.Attribute (arg1, arg2, arg3, annot) ->
+    Abstract.Attribute (lift_expr arg1, arg2, lift_expr_context arg3, annot)
   | Concrete.Subscript (arg1, arg2, arg3, annot) ->
     Abstract.Subscript (lift_expr arg1, lift_slice arg2, lift_expr_context arg3, annot)
   | Concrete.Name (arg1, arg2, annot) ->

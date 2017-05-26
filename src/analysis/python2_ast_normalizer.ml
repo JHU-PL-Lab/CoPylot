@@ -74,8 +74,10 @@ and normalize_stmt_full
         bindings @ [Normalized.Return(Some(result), get_next_uid annot)]
     end
 
+  (* TODO: What if we're assigning from a tuple? *)
   | Abstract.Assign (targets, value, annot) ->
     let value_bindings, value_result = normalize_expr value in
+    (* TODO: Go through and unpack tuples in an appropriate way, I guess *)
     let target_bindings, target_results = normalize_expr_list targets in
     let bindings = value_bindings @ target_bindings in
     let assignments =
@@ -112,7 +114,7 @@ and normalize_stmt_full
                                  nl,
                                  get_next_uid annot)]
 
-  | Abstract.For (_,_,_,_,_) -> [] (* TODO *)
+  |Abstract.For _ -> []
 
   | Abstract.While (test, body, _, annot) ->
     let test_bindings, test_name =
@@ -357,6 +359,8 @@ and normalize_expr
 
   | Abstract.Bool (b, annot) ->
     ([], Normalized.Bool(b, get_next_uid annot))
+
+  | Abstract.Attribute _ -> [], Normalized.Str(0) (* TODO *)
 
   | Abstract.Subscript (value, slice, _, annot) ->
     let value_bindings, value_result = normalize_expr value in

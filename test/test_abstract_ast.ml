@@ -259,6 +259,31 @@ let call_test = gen_stmt_test "call_test"
         annot))
 ;;
 
+let attribute_test = gen_stmt_test "attribute_test"
+    "obj.member_var"
+    (Attribute(
+        Name("obj", Load, annot),
+        "member_var",
+        Load,
+        annot))
+;;
+
+let attribute_call_test = gen_stmt_test "attribute_test"
+    "obj.member_func()"
+    (Call(
+        Attribute(
+          Name("obj", Load, annot),
+          "member_func",
+          Load,
+          annot),
+        [],
+        [],
+        None,
+        None,
+        annot
+      ))
+;;
+
 let if_test = gen_module_test "if_test"
     "if x > 2:\n\tx = 3\nelif x < 0: x *= -1\nelse: pass"
     [
@@ -631,6 +656,8 @@ let tests =
     if_test;
     funcdef_test;
     call_test;
+    attribute_test;
+    attribute_call_test;
     tuple_test;
     print_test;
     while_test;

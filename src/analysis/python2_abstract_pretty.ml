@@ -273,7 +273,7 @@ and pp_expr fmt = function
     let comma = mk_sep ", " in
     let paren =
       match func with
-      | Name _ | Call _ (*| Attribute _*) | Subscript _ -> false
+      | Name _ | Call _ | Attribute _ | Subscript _ -> false
       | _ -> true in
     if paren then fprintf fmt "(%a)(" pp_expr func else fprintf fmt "%a(" pp_expr func;
     List.iter (fprintf fmt "%t%a" comma pp_expr) args;
