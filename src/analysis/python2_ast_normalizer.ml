@@ -424,8 +424,8 @@ and normalize_expr
   | Abstract.Num (n, annot) ->
     ([], Normalized.Num(normalize_number n, get_next_uid annot))
 
-  | Abstract.Str (annot) ->
-    ([], Normalized.Str(get_next_uid annot))
+  | Abstract.Str (s, annot) ->
+    ([], Normalized.Str(simplify_str s, get_next_uid annot))
 
   | Abstract.Bool (b, annot) ->
     ([], Normalized.Bool(b, get_next_uid annot))
@@ -554,3 +554,8 @@ and normalize_number n =
   match n with
   | Abstract.Int sgn -> Normalized.Int(normalize_sign sgn)
   | Abstract.Float sgn -> Normalized.Float(normalize_sign sgn)
+
+and simplify_str s =
+  match s with
+  | Abstract.StringAbstract -> Normalized.StringAbstract
+  | Abstract.StringLiteral (s) -> Normalized.StringLiteral (s)

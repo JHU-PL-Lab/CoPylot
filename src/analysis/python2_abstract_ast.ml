@@ -58,7 +58,7 @@ and 'a expr =
   | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a keyword list (* keywords *) * 'a expr option (* starargs *) * 'a expr option (* kwargs *) * 'a
   (* | Repr of 'a expr (* value *) * 'a *)
   | Num of number (* n *) * 'a
-  | Str of 'a
+  | Str of str * 'a
   | Bool of bool * 'a (* N.B. The Python formal specification does not treat Bools
                          as a type of expression. We are intentionally deviating
                          from this behavior here *)
@@ -117,6 +117,11 @@ and number =
   | Float of sign
   (*
   | Imag of string*)
+[@@deriving eq, ord, show]
+
+and str =
+  | StringAbstract
+  | StringLiteral of string
 [@@deriving eq, ord, show]
 
 let name_of_mod = function
@@ -230,6 +235,10 @@ and name_of_number = function
   | Float _     -> "Float"
 (*| Imag _      -> "Imag"*)
 
+and name_of_str = function
+  | StringAbstract -> "StringAbstract"
+  | StringLiteral _ -> "StringLiteral"
+
 let annot_of_mod = function
   | Module (_, a)
     (* | Interactive (_, a) *)
@@ -277,7 +286,7 @@ and annot_of_expr = function
   | Call (_, _, _, _, _, a)
   (* | Repr (_, a) *)
   | Num (_, a)
-  | Str (a)
+  | Str (_, a)
   | Bool (_, a)
   | Attribute (_, _, _, a)
   | Subscript (_, _, _, a)
@@ -343,6 +352,10 @@ let string_of_number = function
   | Float (sgn) ->
     string_of_sign sgn
 (*| Imag (n)     -> n*)
+
+let string_of_str = function
+  | StringAbstract -> "StringAbstract"
+  | StringLiteral (s) -> s
 
 module type Annot = sig
   type t

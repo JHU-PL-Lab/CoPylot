@@ -251,7 +251,7 @@ let call_test = gen_stmt_test "call_test"
         [
           Num(Int(Pos), annot);
           Name("x", Load, annot);
-          Str(annot);
+          Str(StringLiteral("foo"), annot);
         ],
         [],  (* Keywords *)
         None, (* Starargs *)
@@ -331,7 +331,7 @@ let print_test = gen_module_test "print_test"
             [
               Num(Int(Pos), annot);
               Name("x", Load, annot);
-              Str(annot);
+              Str(StringLiteral("foo"),annot);
             ],
             true,
             annot)
@@ -479,14 +479,14 @@ let try_test = gen_module_test "try_test"
          [(ExceptHandler (
               (Some (Name ("ValueError", Load, annot))),
               None,
-              [(Print (None, [(Str (annot))], true,
+              [(Print (None, [(Str (StringLiteral("Error"),annot))], true,
                                   annot))
               ],
             annot));
           (ExceptHandler (
               (Some (Name ("StopIteration", Load, annot))),
               (Some (Name ("e", Load, annot))),
-              [(Print (None, [(Str (annot))],
+              [(Print (None, [(Str (StringLiteral("Other Error"),annot))],
                                    true, annot))
               ],
             annot))
@@ -603,8 +603,8 @@ let list_expr = (
       Num(Int(Pos),annot);
       Num(Int(Pos),annot);
       Num(Int(Pos),annot);
-      Str(annot);
-      Str(annot);
+      Str(StringLiteral("four"), annot);
+      Str(StringLiteral("five"), annot);
       BinOp(Num(Int(Pos),annot), Add, Num(Int(Pos),annot), annot);
     ],
     Load,
@@ -671,9 +671,9 @@ let binop_tests =
        (Num(Int(Pos), annot)) (Num(Float(Neg), annot)) Add);
 
     (gen_binop_test "add_str_test" "'foo' + 'bar'"
-       (Str(annot)) (Str(annot)) Add);
+       (Str(StringLiteral("foo"), annot)) (Str(StringLiteral("bar"), annot)) Add);
     (gen_binop_test "add_int_str_test" "42 + 'foo'"
-       (Num(Int(Pos), annot)) (Str(annot)) Add);
+       (Num(Int(Pos), annot)) (Str(StringLiteral("foo"), annot)) Add);
 
     (gen_binop_test "sub_int_test" "42 - 9001"
        (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) Sub);

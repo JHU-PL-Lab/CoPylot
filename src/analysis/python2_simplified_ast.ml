@@ -31,7 +31,7 @@ and 'a expr =
   | List of 'a expr list (* elts *)  * 'a
   | Tuple of 'a expr list (* elts *)  * 'a
   | Num of number (* n *) * 'a
-  | Str of 'a
+  | Str of str * 'a
   | Bool of bool * 'a
   | Name of identifier (* id *) * 'a
 [@@deriving eq, ord, show]
@@ -57,6 +57,11 @@ and sign = Pos | Neg | Zero
 and number =
     | Int of sign
   | Float of sign
+[@@deriving eq, ord, show]
+
+and str =
+    | StringAbstract
+  | StringLiteral of string
 [@@deriving eq, ord, show]
 
 let name_of_mod = function
@@ -122,6 +127,10 @@ and name_of_number = function
   | Int _       -> "Int"
   | Float _     -> "Float"
 
+and name_of_str = function
+  | StringAbstract -> "StringAbstract"
+  | StringLiteral _ -> "StringLiteral"
+
 let annot_of_mod = function
   | Module (_, a)
     -> a
@@ -152,7 +161,7 @@ and annot_of_expr = function
   | List (_, a)
   | Tuple (_, a)
   | Num (_, a)
-  | Str (a)
+  | Str (_, a)
   | Bool (_, a)
   | Name (_, a)
     -> a
@@ -193,3 +202,7 @@ let string_of_number = function
   | Int (sgn)
   | Float (sgn) ->
     string_of_sign sgn
+
+let string_of_str = function
+  | StringAbstract -> "StringAbstract"
+  | StringLiteral (s) -> s

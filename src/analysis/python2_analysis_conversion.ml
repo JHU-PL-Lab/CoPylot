@@ -65,8 +65,8 @@ and lift_expr e =
                    lift_option lift_expr arg4, lift_option lift_expr arg5, annot)
   | Concrete.Num (arg1, annot) ->
     Abstract.Num (lift_number arg1, annot)
-  | Concrete.Str (_, annot) ->
-    Abstract.Str (annot)
+  | Concrete.Str (str, annot) ->
+    Abstract.Str (Abstract.StringLiteral(str), annot)
   | Concrete.Bool (arg1, annot) ->
     Abstract.Bool (arg1, annot)
   | Concrete.Attribute (arg1, arg2, arg3, annot) ->

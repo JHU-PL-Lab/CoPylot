@@ -140,7 +140,9 @@ and simplify_stmt
                  while_loop;
                  Simplified.Expr(Simplified.Call(next_val, [], annot), annot);
                  Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
-                                  Some(Simplified.Str(annot)),
+                                  Some(Simplified.Str(
+                                      Simplified.StringLiteral("too many values to unpack"),
+                                      annot)),
                                   None);
                ],
                [Simplified.ExceptHandler(
@@ -150,7 +152,7 @@ and simplify_stmt
                      Simplified.If(
                        Simplified.Compare(counter, [Simplified.Lt], [n], annot),
                        [Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
-                                         Some(Simplified.Str(annot)),
+                                         Some(Simplified.Str(Simplified.StringAbstract, annot)),
                                          None)],
                        [],
                        annot)
@@ -377,8 +379,8 @@ and simplify_expr
   | Abstract.Num (n, annot) ->
     Simplified.Num(simplify_number n, annot)
 
-  | Abstract.Str (annot) ->
-    Simplified.Str(annot)
+  | Abstract.Str (typ, annot) ->
+    Simplified.Str(simplify_str typ, annot)
 
   | Abstract.Bool (b, annot) ->
     Simplified.Bool(b, annot)
@@ -487,3 +489,8 @@ and simplify_number n =
   match n with
   | Abstract.Int sgn -> Simplified.Int(simplify_sign sgn)
   | Abstract.Float sgn -> Simplified.Float(simplify_sign sgn)
+
+and simplify_str s =
+  match s with
+  | Abstract.StringAbstract -> Simplified.StringAbstract
+  | Abstract.StringLiteral (s) -> Simplified.StringLiteral (s)

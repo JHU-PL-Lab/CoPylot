@@ -40,7 +40,7 @@ and compound_expr =
 
 and simple_expr =
     | Num of number (* n *) * uid
-  | Str of uid
+  | Str of str * uid
   | Bool of bool * uid
   | Name of identifier (* id *) * uid
 [@@deriving eq, ord, show]
@@ -77,6 +77,11 @@ and sign = Pos | Neg | Zero
 and number =
     | Int of sign
   | Float of sign
+[@@deriving eq, ord, show]
+
+and str =
+    | StringAbstract
+  | StringLiteral of string
 [@@deriving eq, ord, show]
 
 let name_of_mod = function
@@ -148,6 +153,10 @@ and name_of_number = function
   | Int _       -> "Int"
   | Float _     -> "Float"
 
+and name_of_str = function
+  | StringAbstract -> "StringAbstract"
+  | StringLiteral _ -> "StringLiteral"
+
 let uid_of_mod = function
   | Module (_, u)
     -> u
@@ -181,7 +190,7 @@ and uid_of_compound_expr = function
 
 and uid_of_simple_expr = function
   | Num (_, u)
-  | Str (u)
+  | Str (_, u)
   | Bool (_, u)
   | Name (_, u)
     -> u
@@ -222,3 +231,7 @@ let string_of_number = function
   | Int (sgn)
   | Float (sgn) ->
     string_of_sign sgn
+
+let string_of_str = function
+  | StringAbstract -> "StringAbstract"
+  | StringLiteral (s) -> s
