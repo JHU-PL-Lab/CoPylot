@@ -1,42 +1,39 @@
-type uid = int
-[@@deriving eq, ord, show]
-;;
-
 type identifier = string
 [@@deriving eq, ord, show]
 
-and modl =
-    | Module of stmt list (* body *) * uid
+and 'a modl =
+    | Module of 'a stmt list (* body *) * 'a
 [@@deriving eq, ord, show]
 
-and stmt =
-    | Assign of expr (* target *) * expr (* value *) * uid
-  | FunctionDef of identifier (* name *) * expr list (* args *) * stmt list (* body *) * uid
-  | Return of expr option (* value *) * uid
-
-  | Print of expr option (* dest *) * expr list (* values *) * bool (* nl *) * uid
-  | If of expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid
-  | Pass of uid
-  | Raise of expr option (* type *) * expr option (* value *) * uid
-  | TryExcept of stmt list (* body *) * excepthandler list (* handlers *) * uid
-  | Goto of uid * uid
-  | Expr of expr (* value *) * uid
+and 'a stmt =
+    | Assign of 'a expr (* target *) * 'a expr (* value *) * 'a
+  | FunctionDef of identifier (* name *) * 'a expr list (* args *) * 'a stmt list (* body *) * 'a
+  | Return of 'a expr option (* value *) * 'a
+  | Print of 'a expr option (* dest *) * 'a expr list (* values *) * bool (* nl *) * 'a
+  | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a
+  | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
+  | Raise of 'a expr option (* type *) * 'a expr option (* value *) * 'a
+  | TryExcept of 'a stmt list (* body *) * 'a excepthandler list (* handlers *) * 'a
+  | Pass of 'a
+  | Break of 'a
+  | Continue of 'a
+  | Expr of 'a expr (* value *) * 'a
 [@@deriving eq, ord, show]
 
-and expr =
-    | BoolOp of boolop (* op *) * expr list (* values *) * uid
-  | BinOp of expr (* left *) * operator (* op *) * expr (* right *) * uid
-  | UnaryOp of unaryop (* op *) * expr (* operand *) * uid
-  | IfExp of expr (* test *) * expr (* body *) * expr (* orelse *) * uid
-  | Compare of expr (* left *) * cmpop list (* ops *) * expr list (* comparators *) * uid
-  | Call of expr (* func *) * expr list (* args *) *  uid
-  | Attribute of expr (* object *) * identifier (* attr *) * uid
-  | List of expr list (* elts *)  * uid
-  | Tuple of expr list (* elts *)  * uid
-    | Num of number (* n *) * uid
-  | Str of uid
-  | Bool of bool * uid
-  | Name of identifier (* id *) * uid
+and 'a expr =
+    | BoolOp of boolop (* op *) * 'a expr list (* values *) * 'a
+  | BinOp of 'a expr (* left *) * operator (* op *) * 'a expr (* right *) * 'a
+  | UnaryOp of unaryop (* op *) * 'a expr (* operand *) * 'a
+  | IfExp of 'a expr (* test *) * 'a expr (* body *) * 'a expr (* orelse *) * 'a
+  | Compare of 'a expr (* left *) * cmpop list (* ops *) * 'a expr list (* comparators *) * 'a
+  | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a
+  | Attribute of 'a expr (* object *) * identifier (* attr *) * 'a
+  | List of 'a expr list (* elts *)  * 'a
+  | Tuple of 'a expr list (* elts *)  * 'a
+  | Num of number (* n *) * 'a
+  | Str of 'a
+  | Bool of bool * 'a
+  | Name of identifier (* id *) * 'a
 [@@deriving eq, ord, show]
 
 and boolop = And | Or
@@ -51,7 +48,7 @@ and unaryop = Not | UAdd | USub
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
 [@@deriving eq, ord, show]
 
-and excepthandler = ExceptHandler of expr option (* type *) * expr option (* name *) * stmt list (* body *) * uid
+and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * 'a expr option (* name *) * 'a stmt list (* body *) * 'a
 [@@deriving eq, ord, show]
 
 and sign = Pos | Neg | Zero
@@ -70,12 +67,14 @@ and name_of_stmt = function
   | Return _          -> "Return"
   | Assign _          -> "Assign"
   | Print _           -> "Print"
+  | While _           -> "While"
   | If _              -> "If"
   | Raise _           -> "Raise"
   | TryExcept _       -> "TryExcept"
   | Expr _            -> "Expr"
   | Pass _            -> "Pass"
-  | Goto _            -> "Goto"
+  | Break _           -> "Break"
+  | Continue _        -> "Continue"
 
 and name_of_expr = function
   | BoolOp _       -> "BoolOp"
@@ -123,38 +122,40 @@ and name_of_number = function
   | Int _       -> "Int"
   | Float _     -> "Float"
 
-let uid_of_mod = function
-  | Module (_, u)
-    -> u
+let annot_of_mod = function
+  | Module (_, a)
+    -> a
 
-and uid_of_stmt = function
-  | FunctionDef (_, _, _, u)
-  | Return (_, u)
-  | Assign (_, _, u)
-  | Print (_, _, _, u)
-  | If (_, _, _, u)
-  | Raise (_, _, u)
-  | TryExcept (_, _, u)
-  | Expr (_, u)
-  | Pass (u)
-  | Goto (_, u)
-    -> u
+and annot_of_stmt = function
+  | FunctionDef (_, _, _, a)
+  | Return (_, a)
+  | Assign (_, _, a)
+  | Print (_, _, _, a)
+  | While (_, _, a)
+  | If (_, _, _, a)
+  | Raise (_, _, a)
+  | TryExcept (_, _, a)
+  | Expr (_, a)
+  | Pass (a)
+  | Break (a)
+  | Continue (a)
+    -> a
 
-and uid_of_expr = function
-  | BoolOp (_, _, u)
-  | BinOp (_, _, _, u)
-  | UnaryOp (_, _, u)
-  | IfExp (_, _, _, u)
-  | Compare (_, _, _, u)
-  | Call (_, _, u)
-  | Attribute (_, _, u)
-  | List (_, u)
-  | Tuple (_, u)
-  | Num (_, u)
-  | Str (u)
-  | Bool (_, u)
-  | Name (_, u)
-    -> u
+and annot_of_expr = function
+  | BoolOp (_, _, a)
+  | BinOp (_, _, _, a)
+  | UnaryOp (_, _, a)
+  | IfExp (_, _, _, a)
+  | Compare (_, _, _, a)
+  | Call (_, _, a)
+  | Attribute (_, _, a)
+  | List (_, a)
+  | Tuple (_, a)
+  | Num (_, a)
+  | Str (a)
+  | Bool (_, a)
+  | Name (_, a)
+    -> a
 
 let string_of_boolop = function
   | And -> "and"

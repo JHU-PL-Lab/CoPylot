@@ -1,8 +1,6 @@
 module Abstract = Python2_abstract_ast
 module Simplified = Python2_simplified_ast
 
-let get_next_uid _ = 0;;
-
 let gen_unique_name _ = "";;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
@@ -15,30 +13,14 @@ let simplify_option func o =
   | Some(x) -> Some(func x)
 ;;
 
-(* Given a uid and an expr, assigns that expr to a new, unique name.
-   Returns the assignment statement (in a list) and the name used *)
-let gen_simplified_assignment annot e =
-  let u = get_next_uid annot in
-  let name = Simplified.Name(gen_unique_name u, u) in
-  let assignment = Simplified.Assign(name, e, get_next_uid annot) in
-  [assignment], name
-;;
-
-let rec simplify_modl m : Simplified.modl =
+let rec simplify_modl m : 'a Simplified.modl =
   match m with
   | Abstract.Module (body, annot) ->
-    Simplified.Module(map_and_concat simplify_stmt body, get_next_uid annot)
+    Simplified.Module(map_and_concat simplify_stmt body, annot)
 
-(* We need some additional arguments when we're inside a loop,
-   so that Break and Continue know what to do. These are only neded in that
-   special case, though, so it's convenient to hide them in other cases. *)
-and simplify_stmt s = simplify_stmt_full None None s
-
-and simplify_stmt_full
-    loop_start_uid
-    loop_end_uid
+and simplify_stmt
     (s : 'a Abstract.stmt)
-  : Simplified.stmt list =
+  : 'a Simplified.stmt list =
   match s with
   | Abstract.FunctionDef (func_name, args, body, _, annot)->
     let simplified_args = simplify_arguments args in
@@ -46,10 +28,10 @@ and simplify_stmt_full
     [Simplified.FunctionDef(func_name,
                             simplified_args,
                             simplified_body,
-                            get_next_uid annot)]
+                            annot)]
 
   | Abstract.Return (value, annot) ->
-    [Simplified.Return(simplify_expr_option value, get_next_uid annot)]
+    [Simplified.Return(simplify_expr_option value, annot)]
 
   | Abstract.Assign _ -> [] (* TODO *)
 
@@ -68,7 +50,7 @@ and simplify_stmt_full
         simplify_expr_option dest,
         List.map simplify_expr values,
         nl,
-        get_next_uid annot
+        annot
       )]
 
   | Abstract.For (target, seq, body, _, annot) ->
@@ -155,133 +137,106 @@ and simplify_stmt_full
       ) in
     map_and_concat simplify_stmt [bind_next_val; try_except]
   | Abstract.While (test, body, _, annot) ->
-    let test_cond =
-      (* It's nicer to have "if !test then goto end" as opposed to
-         "if test then pass else goto end" *)
-      simplify_expr (Abstract.UnaryOp(Abstract.Not,
-                                      test,
-                                      get_next_uid annot)) in
-
-    let start_uid = get_next_uid annot in (* Start label *)
-    let end_uid = get_next_uid annot in (* End label *)
-    let test_at_beginning =
-      Simplified.If(test_cond,
-                    [Simplified.Goto(end_uid, get_next_uid annot)],
-                    [],
-                    start_uid) in
-    let simplified_body =
-      (map_and_concat
-         (simplify_stmt_full
-            (Some(start_uid))
-            (Some(end_uid)))
-         body) in
-    let end_stmt = Simplified.Pass(end_uid) in
-    [test_at_beginning] @ simplified_body @ [end_stmt]
+    [Simplified.While(simplify_expr test,
+                      map_and_concat simplify_stmt body,
+                      annot)]
 
   | Abstract.If (test, body, orelse, annot) ->
     [Simplified.If(simplify_expr test,
                    map_and_concat simplify_stmt body,
                    map_and_concat simplify_stmt orelse,
-                   get_next_uid annot)]
+                   annot)]
 
   | Abstract.Raise (typ, value, _, annot) ->
     [Simplified.Raise(
-      simplify_expr_option typ,
-      simplify_expr_option value,
-      get_next_uid annot)]
+        simplify_expr_option typ,
+        simplify_expr_option value,
+        annot)]
 
   | Abstract.TryExcept _ -> [] (* TODO *)
 
   | Abstract.Expr (e, annot) ->
-    [Simplified.Expr(simplify_expr e, get_next_uid annot)]
+    [Simplified.Expr(simplify_expr e, annot)]
 
   | Abstract.Pass (annot) ->
-    [Simplified.Pass (get_next_uid annot)]
+    [Simplified.Pass (annot)]
 
   | Abstract.Break (annot) ->
-    begin
-      match loop_end_uid with
-      | None -> [] (* TODO: Throw error for break outside loop *)
-      | Some(u) -> [Simplified.Goto(u, get_next_uid annot)]
-    end
+    [Simplified.Break (annot)]
 
   | Abstract.Continue (annot) ->
-    begin
-      match loop_start_uid with
-      | None -> [] (* TODO: Throw error for continue outside loop *)
-      | Some(u) -> [Simplified.Goto(u, get_next_uid annot)]
-    end
+    [Simplified.Continue(annot)]
 
 (* Given an abstract expr, returns a list of statements, corresponding to
    the assignments necessary to compute it, and the name of the final
    variable that was bound *)
 and simplify_expr
     (e : 'a Abstract.expr)
-  : Simplified.expr =
+  : 'a Simplified.expr =
   match e with
   | Abstract.BoolOp (op, values, annot) ->
     Simplified.BoolOp (simplify_boolop op,
                        List.map simplify_expr values,
-                       get_next_uid annot)
+                       annot)
 
   | Abstract.BinOp (left, op, right, annot) ->
     Simplified.BinOp (simplify_expr left,
                       simplify_operator op,
                       simplify_expr right,
-                      get_next_uid annot)
+                      annot)
 
   | Abstract.UnaryOp (op, operand, annot) ->
     Simplified.UnaryOp (simplify_unaryop op,
                         simplify_expr operand,
-                        get_next_uid annot)
+                        annot)
 
   | Abstract.IfExp (test, body, orelse, annot) ->
     Simplified.IfExp (simplify_expr test,
                       simplify_expr body,
                       simplify_expr orelse,
-                      get_next_uid annot)
+                      annot)
 
   | Abstract.Compare (left, ops, comparators, annot) ->
     Simplified.Compare (simplify_expr left,
                         List.map simplify_cmpop ops,
                         List.map simplify_expr comparators,
-                        get_next_uid annot)
+                        annot)
 
   | Abstract.Call (func, args, _, _, _, annot) ->
     Simplified.Call (simplify_expr func,
                      List.map simplify_expr args,
-                     get_next_uid annot)
+                     annot)
 
   | Abstract.Num (n, annot) ->
-    Simplified.Num(simplify_number n, get_next_uid annot)
+    Simplified.Num(simplify_number n, annot)
 
   | Abstract.Str (annot) ->
-    Simplified.Str(get_next_uid annot)
+    Simplified.Str(annot)
 
   | Abstract.Bool (b, annot) ->
-    Simplified.Bool(b, get_next_uid annot)
+    Simplified.Bool(b, annot)
 
   | Abstract.Attribute (obj, attr, _, annot) ->
-    Simplified.Attribute (simplify_expr obj, attr, get_next_uid annot)
+    Simplified.Attribute (simplify_expr obj, attr, annot)
 
   (* Turn subscripts into calls to __getitem__() *)
   | Abstract.Subscript (value, slice, _, annot) ->
     Simplified.Call(simplify_expr value,
                     [simplify_slice slice annot],
-                    get_next_uid annot)
+                    annot)
 
   | Abstract.Name (id, _, annot) -> (* Throw out context *)
-    Simplified.Name(id, get_next_uid annot)
+    Simplified.Name(id, annot)
 
   | Abstract.List (elts, _, annot) ->
-    Simplified.List (List.map simplify_expr elts, get_next_uid annot)
+    Simplified.List (List.map simplify_expr elts, annot)
 
   | Abstract.Tuple (elts, _, annot) ->
-    Simplified.Tuple (List.map simplify_expr elts, get_next_uid annot)
+    Simplified.Tuple (List.map simplify_expr elts, annot)
 
 and simplify_expr_option
     (o : 'a Abstract.expr option)
-  : Simplified.expr option =
+  : 'a Simplified.expr option =
   let simplified_opt = simplify_option simplify_expr o in
   match simplified_opt with
   | None -> None
@@ -293,13 +248,13 @@ and simplify_expr_option
 and simplify_slice
     (s : 'a Abstract.slice)
     annot
-  : Simplified.expr =
+  : 'a Simplified.expr =
   (* Turn a "None" option into the python "None" object, and turn a
      "Some" option into the simplified version of its contents *)
   let exp_opt_to_slice_arg e =
     match e with
     | None ->
-      Simplified.Name("None", get_next_uid annot)
+      Simplified.Name("None", annot)
     | Some(x) ->
       simplify_expr x
   in
@@ -316,9 +271,9 @@ and simplify_slice
     end
   in
   Simplified.Call(
-    Simplified.Name("slice", get_next_uid annot),
+    Simplified.Name("slice", annot),
     args_list,
-    get_next_uid annot
+    annot
   )
 
 and simplify_boolop b =
@@ -352,7 +307,7 @@ and simplify_cmpop o =
   | Abstract.In -> Simplified.In
   | Abstract.NotIn -> Simplified.NotIn
 
-and simplify_arguments a : Simplified.expr list =
+and simplify_arguments a : 'a Simplified.expr list =
   match a with
   | (args, _, _, _) ->
     List.map simplify_expr args
