@@ -5,6 +5,7 @@ let all_tests =
   [
     Test_parser.tests;
     Test_abstract_ast.tests;
+    Test_simplified_ast.tests;
   ]
 ;;
 

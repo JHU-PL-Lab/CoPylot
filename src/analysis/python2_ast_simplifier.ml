@@ -186,10 +186,10 @@ and simplify_stmt
                (fun
                  (tuple_elt : 'a Abstract.expr)
                  (tmp_name : Abstract.identifier) ->
-                  Abstract.Assign(
-                    [tuple_elt],
-                    Abstract.Name(tmp_name, Abstract.Load, annot),
-                    annot)
+                 Abstract.Assign(
+                   [tuple_elt],
+                   Abstract.Name(tmp_name, Abstract.Load, annot),
+                   annot)
                )
                elts (fst tmp_bindings)
            in
@@ -391,9 +391,13 @@ and simplify_expr
 
   (* Turn subscripts into calls to __getitem__() *)
   | Abstract.Subscript (value, slice, _, annot) ->
-    Simplified.Call(simplify_expr value,
-                    [simplify_slice slice annot],
-                    annot)
+    Simplified.Call(
+      Simplified.Attribute(
+        simplify_expr value,
+        "__getitem__",
+        annot),
+      [simplify_slice slice annot],
+      annot)
 
   | Abstract.Name (id, _, annot) -> (* Throw out context *)
     Simplified.Name(id, annot)
