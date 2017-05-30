@@ -49,6 +49,20 @@ and simplify_stmt
            [Simplified.Assign(Simplified.Name(id, a),
                               value_name,
                               annot)]
+         | Abstract.Attribute _ -> [] (* TODO *)
+         | Abstract.Subscript (lst, slice, _, _) ->
+           [Simplified.Expr(
+               Simplified.Call(
+                 Simplified.Attribute(
+                   simplify_expr lst,
+                   "__setitem__",
+                   annot),
+                 [
+                   simplify_slice slice annot;
+                   value_name;
+                 ],
+                 annot),
+               annot)]
          (* To assign to a list or tuple, we iterate through value
             (which must therefore be iterable), and assign the elements
             of our lhs in order. If the number of elements doesn't match,
@@ -411,23 +425,21 @@ and simplify_slice
     | Some(x) ->
       simplify_expr x
   in
-  let args_list =
-    begin
-      match s with
-      | Abstract.Slice (lower, upper, step) ->
-        [
-          exp_opt_to_slice_arg lower;
-          exp_opt_to_slice_arg upper;
-          exp_opt_to_slice_arg step;
-        ]
-      | Abstract.Index (value) -> [simplify_expr value]
-    end
-  in
-  Simplified.Call(
-    Simplified.Name("slice", annot),
-    args_list,
-    annot
-  )
+  match s with
+  | Abstract.Slice (lower, upper, step) ->
+    let args_list =
+      [
+        exp_opt_to_slice_arg lower;
+        exp_opt_to_slice_arg upper;
+        exp_opt_to_slice_arg step;
+      ] in
+    Simplified.Call(
+      Simplified.Name("slice", annot),
+      args_list,
+      annot
+    )
+  | Abstract.Index (value) ->
+    simplify_expr value
 
 and simplify_boolop b =
   match b with
