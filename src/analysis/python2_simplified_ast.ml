@@ -10,34 +10,29 @@ and modl =
 [@@deriving eq, ord, show]
 
 and stmt =
-    | Assign of simple_expr (* target *) * compound_expr (* value *) * uid
-  | FunctionDef of identifier (* name *) * compound_expr list (* args *) * stmt list (* body *) * uid
-  | Return of compound_expr option (* value *) * uid
+    | Assign of expr (* target *) * expr (* value *) * uid
+  | FunctionDef of identifier (* name *) * expr list (* args *) * stmt list (* body *) * uid
+  | Return of expr option (* value *) * uid
 
-  | Print of simple_expr option (* dest *) * simple_expr list (* values *) * bool (* nl *) * uid
-  | If of compound_expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid
+  | Print of expr option (* dest *) * expr list (* values *) * bool (* nl *) * uid
+  | If of expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid
   | Pass of uid
-  | Raise of compound_expr option (* type *) * compound_expr option (* value *) * uid
+  | Raise of expr option (* type *) * expr option (* value *) * uid
   | TryExcept of stmt list (* body *) * excepthandler list (* handlers *) * uid
   | Goto of uid * uid
-  | SimpleExprStmt of simple_expr (* value *) * uid
+  | Expr of expr (* value *) * uid
 [@@deriving eq, ord, show]
 
-and compound_expr =
-    | BoolOp of boolop (* op *) * compound_expr list (* values *) * uid
-  | BinOp of compound_expr (* left *) * operator (* op *) * compound_expr (* right *) * uid
-  | UnaryOp of unaryop (* op *) * compound_expr (* operand *) * uid
-  | IfExp of compound_expr (* test *) * compound_expr (* body *) * compound_expr (* orelse *) * uid
-  | Compare of compound_expr (* left *) * cmpop list (* ops *) * compound_expr list (* comparators *) * uid
-  | Call of compound_expr (* func *) * compound_expr list (* args *) *  uid
-  | Attribute of compound_expr (* object *) * identifier (* attr *) * uid
-  (* TODO: Turn Subscripts and Slices into calls to __getitem__() *)
-  | List of compound_expr list (* elts *)  * uid
-  | Tuple of compound_expr list (* elts *)  * uid
-  | SimpleExpr of simple_expr (* value*) * uid
-[@@deriving eq, ord, show]
-
-and simple_expr =
+and expr =
+    | BoolOp of boolop (* op *) * expr list (* values *) * uid
+  | BinOp of expr (* left *) * operator (* op *) * expr (* right *) * uid
+  | UnaryOp of unaryop (* op *) * expr (* operand *) * uid
+  | IfExp of expr (* test *) * expr (* body *) * expr (* orelse *) * uid
+  | Compare of expr (* left *) * cmpop list (* ops *) * expr list (* comparators *) * uid
+  | Call of expr (* func *) * expr list (* args *) *  uid
+  | Attribute of expr (* object *) * identifier (* attr *) * uid
+  | List of expr list (* elts *)  * uid
+  | Tuple of expr list (* elts *)  * uid
     | Num of number (* n *) * uid
   | Str of uid
   | Bool of bool * uid
@@ -56,7 +51,7 @@ and unaryop = Not | UAdd | USub
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
 [@@deriving eq, ord, show]
 
-and excepthandler = ExceptHandler of compound_expr option (* type *) * simple_expr option (* name *) * stmt list (* body *) * uid
+and excepthandler = ExceptHandler of expr option (* type *) * expr option (* name *) * stmt list (* body *) * uid
 [@@deriving eq, ord, show]
 
 and sign = Pos | Neg | Zero
@@ -78,11 +73,11 @@ and name_of_stmt = function
   | If _              -> "If"
   | Raise _           -> "Raise"
   | TryExcept _       -> "TryExcept"
-  | SimpleExprStmt _  -> "Expr"
+  | Expr _            -> "Expr"
   | Pass _            -> "Pass"
   | Goto _            -> "Goto"
 
-and name_of_cmpound_expr = function
+and name_of_expr = function
   | BoolOp _       -> "BoolOp"
   | BinOp _        -> "BinOp"
   | UnaryOp _      -> "UnaryOp"
@@ -92,9 +87,6 @@ and name_of_cmpound_expr = function
   | Attribute _    -> "Attribute"
   | List _         -> "List"
   | Tuple _        -> "Tuple"
-  | SimpleExpr _   -> "SimpleExpr"
-
-and name_of_simple_expr = function
   | Num _          -> "Num"
   | Str _          -> "Str"
   | Bool _         -> "Bool"
@@ -143,12 +135,12 @@ and uid_of_stmt = function
   | If (_, _, _, u)
   | Raise (_, _, u)
   | TryExcept (_, _, u)
-  | SimpleExprStmt (_, u)
+  | Expr (_, u)
   | Pass (u)
   | Goto (_, u)
     -> u
 
-and uid_of_compound_expr = function
+and uid_of_expr = function
   | BoolOp (_, _, u)
   | BinOp (_, _, _, u)
   | UnaryOp (_, _, u)
@@ -158,10 +150,6 @@ and uid_of_compound_expr = function
   | Attribute (_, _, u)
   | List (_, u)
   | Tuple (_, u)
-  | SimpleExpr (_, u)
-    -> u
-
-and uid_of_simple_expr = function
   | Num (_, u)
   | Str (u)
   | Bool (_, u)

@@ -90,7 +90,7 @@ and name_of_stmt = function
   | If _              -> "If"
   | Raise _           -> "Raise"
   | TryExcept _       -> "TryExcept"
-  | SimpleExprStmt _  -> "Expr"
+  | SimpleExprStmt _  -> "SimpleExprStmt"
   | Pass _            -> "Pass"
   | Goto _            -> "Goto"
 
