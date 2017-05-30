@@ -49,7 +49,19 @@ and simplify_stmt
            [Simplified.Assign(Simplified.Name(id, a),
                               value_name,
                               annot)]
-         | Abstract.Attribute _ -> [] (* TODO *)
+         | Abstract.Attribute (obj, id, _, _) ->
+           [Simplified.Expr(
+               Simplified.Call(
+                 Simplified.Attribute(
+                   simplify_expr obj,
+                   "__setattr__",
+                   annot),
+                 [
+                   Simplified.Str(Simplified.StringLiteral(id), annot);
+                   value_name;
+                 ],
+                 annot),
+               annot)]
          | Abstract.Subscript (lst, slice, _, _) ->
            [Simplified.Expr(
                Simplified.Call(
@@ -200,7 +212,7 @@ and simplify_stmt
            [ bind_next_val ] @
            map_and_concat simplify_stmt assignment_list
 
-         | _ -> []
+         | _ -> [] (* TODO: Throw an error *)
       ) in
     [value_assignment] @ (map_and_concat simplify_assignment targets)
 
@@ -322,7 +334,11 @@ and simplify_stmt
         simplify_expr_option value,
         annot)]
 
-  | Abstract.TryExcept _ -> [] (* TODO *)
+  | Abstract.TryExcept (body, handlers, _, annot) ->
+    [Simplified.TryExcept (
+      map_and_concat simplify_stmt body,
+      List.map simplify_excepthandler handlers,
+      annot)]
 
   | Abstract.Expr (e, annot) ->
     [Simplified.Expr(simplify_expr e, annot)]
@@ -473,6 +489,15 @@ and simplify_cmpop o =
   | Abstract.GtE -> Simplified.GtE
   | Abstract.In -> Simplified.In
   | Abstract.NotIn -> Simplified.NotIn
+
+and simplify_excepthandler h =
+  match h with
+  | Abstract.ExceptHandler (typ, name, body, annot) ->
+    Simplified.ExceptHandler (
+      simplify_expr_option typ,
+      simplify_expr_option name,
+      map_and_concat simplify_stmt body,
+      annot)
 
 and simplify_arguments a : 'a Simplified.expr list =
   match a with
