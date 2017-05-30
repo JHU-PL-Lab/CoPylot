@@ -178,24 +178,102 @@ let var_double_assign_test = gen_module_test "var_double_assign_test"
     ]
 ;;
 
+let assign_iterator obj =
+  Assign(
+    Name("unique_name_placeholder", annot),
+    Attribute(
+      Call(
+        Attribute(
+          obj,
+          "__iter__",
+          annot
+        ),
+        [],
+        annot
+      ),
+      "next",
+      annot),
+    annot
+  )
+;;
+
 let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
     "i, j = (-1,0)" (* FIXME: This entire test *)
     [
       Assign(
-        Tuple(
-          [
-            Name("i", annot);
-            Name("j", annot);
-          ],
-          annot)
-        ,
+        Name("unique_name_placeholder", annot),
         Tuple(
           [
             Num(Int(Neg), annot);
             Num(Int(Zero), annot);
           ],
           annot),
-        annot)
+        annot);
+
+      assign_iterator (Name("unique_name_placeholder", annot));
+
+      TryExcept(
+        [
+          Assign(
+            Name("unique_name_placeholder", annot),
+            Call(Name("unique_name_placeholder", annot), [], annot),
+            annot);
+          Assign(
+            Name("unique_name_placeholder", annot),
+            Call(Name("unique_name_placeholder", annot), [], annot),
+            annot);
+          TryExcept(
+            [
+              Expr(
+                Call(Name("unique_name_placeholder", annot), [], annot),
+                annot
+              );
+              Raise(
+                Some(Name("ValueError", annot)),
+                Some(Str(StringLiteral("too many values to unpack"),
+                         annot)),
+                annot);
+            ],
+            [ExceptHandler(
+                Some(Name("StopIteration", annot)),
+                None,
+                [
+                  Pass(annot)
+                ],
+                annot
+              )
+            ],
+            annot
+          )
+        ],
+        [ExceptHandler(
+            Some(Name("StopIteration", annot)),
+            None,
+            [
+              Raise(
+                Some(Name("ValueError", annot)),
+                Some(Str(StringAbstract, annot)),
+                annot)
+            ],
+            annot
+          )],
+        annot);
+      Assign(
+        Name("unique_name_placeholder", annot),
+        Name("unique_name_placeholder", annot),
+        annot);
+      Assign(
+        Name("i", annot),
+        Name("unique_name_placeholder", annot),
+        annot);
+      Assign(
+        Name("unique_name_placeholder", annot),
+        Name("unique_name_placeholder", annot),
+        annot);
+      Assign(
+        Name("j", annot),
+        Name("unique_name_placeholder", annot),
+        annot);
     ]
 ;;
 
@@ -393,22 +471,44 @@ let while_test = gen_module_test "while_test"
 ;;
 
 let for_test = gen_module_test "for_test"
-    "for i in list:\n\ti+=1"
+    "for i in list:\n\tf(i)"
     [
-      (* FIXME: This
-         For(
-         Name("i", annot),
-         Name("list", annot),
-         [
-          AugAssign(
-            Name("i", annot),
-            Add,
-            Num(Int(Pos), annot),
-            annot)
-         ],
-         [],
-         annot);
-      *)
+      assign_iterator (Name("list", annot));
+      Assign(
+        Name("unique_name_placeholder", annot),
+        Name("unique_name_placeholder", annot),
+        annot
+      );
+      TryExcept(
+        [
+          While(
+            Bool(true, annot),
+            [
+              Assign(
+                Name("unique_name_placeholder", annot),
+                Call(Name("unique_name_placeholder", annot), [], annot),
+                annot
+              );
+              Assign(
+                Name("i", annot),
+                Name("unique_name_placeholder", annot),
+                annot
+              );
+              Expr(Call(Name("f", annot), [Name("i", annot)], annot), annot);
+            ],
+            annot
+          )
+        ],
+        [
+          ExceptHandler(
+            Some(Name("StopIteration", annot)),
+            None,
+            [Pass(annot)],
+            annot
+          )
+        ],
+        annot
+      )
     ]
 ;;
 
@@ -769,7 +869,7 @@ let tests =
     boolop_all_test;
     var_assign_test;
     var_double_assign_test;
-    (* var_assign_from_tuple_test; *)
+    var_assign_from_tuple_test;
     var_aug_assign_test;
     var_cmp_test;
     if_test;
@@ -780,7 +880,7 @@ let tests =
     tuple_test;
     print_test;
     while_test;
-    (* for_test; *)
+    for_test;
     break_test;
     continue_test;
     raise_test_no_args;

@@ -194,7 +194,6 @@ and simplify_stmt
                elts (fst tmp_bindings)
            in
            verification @
-           [ bind_next_val ] @
            map_and_concat simplify_stmt assignment_list
 
          | _ -> [] (* TODO: Throw an error *)
@@ -284,7 +283,7 @@ and simplify_stmt
       ) in
     let while_loop = (* while True: i = next_val(); <body> *)
       Abstract.While(
-        Abstract.Name("True", Abstract.Load, annot),
+        Abstract.Bool(true, annot),
         [assign_target] @ body,
         [],
         annot
