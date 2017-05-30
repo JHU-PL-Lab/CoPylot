@@ -33,7 +33,160 @@ and simplify_stmt
   | Abstract.Return (value, annot) ->
     [Simplified.Return(simplify_expr_option value, annot)]
 
-  | Abstract.Assign _ -> [] (* TODO *)
+  | Abstract.Assign (targets, value, annot) ->
+    (* Assignments are very complicated, with different behavior depending
+       on the lvalue. Targets is a list, to handle the syntax x=y=2.
+       We write a function to simplify an assignment to a single entry,
+       then map that across targets. *)
+    let simplified_value = simplify_expr value in
+    let value_name = Simplified.Name(gen_unique_name annot, annot) in
+    let value_assignment =
+      Simplified.Assign(value_name, simplified_value, annot) in
+    let simplify_assignment =
+      (fun e ->
+         match e with
+         | Abstract.Name (id, _, a) ->
+           [Simplified.Assign(Simplified.Name(id, a),
+                              value_name,
+                              annot)]
+         (* To assign to a list or tuple, we iterate through value
+            (which must therefore be iterable), and assign the elements
+            of our lhs in order. If the number of elements doesn't match,
+            we raise a ValueError and do not assign any of the values.
+
+            We turn "i,j,k = val" into
+
+            next_val = val.__iter__.next
+            counter = 0
+            n = <number of elements on lhs>
+            try:
+              while counter < n:
+                next_val()
+                counter += 1
+              next_val() # Should raise a StopIteration exception
+              raise ValueError, "too many elements to unpack"
+            except StopIteration:
+              if counter < n: # We stopped to early
+                raise ValueError, "need more than" + str(counter) + "elements to unpack"
+
+            # We have the right number of elements, so start assigning
+            next_val2 = val.__iter__.next
+            i = next_val2()
+            j = next_val2()
+            k = next_val2()
+         *)
+         (* TODO: The parser detects if we're assining to literals
+            BEFORE it detects a number mismatch *)
+         | Abstract.List (elts, _, _)
+         | Abstract.Tuple (elts, _, _) ->
+           let next_val = Simplified.Name(gen_unique_name annot, annot) in
+           let counter = Simplified.Name(gen_unique_name annot, annot) in
+           let n = Simplified.Name(gen_unique_name annot, annot) in
+           let bind_next_val = (* next_val = seq.__iter__().next *)
+             Simplified.Assign(
+               next_val,
+               Simplified.Attribute(
+                 Simplified.Call(
+                   Simplified.Attribute(
+                     value_name,
+                     "__iter__",
+                     annot),
+                   [],
+                   annot),
+                 "next",
+                 annot),
+               annot) in
+           let bind_counter =
+             Simplified.Assign(
+               counter,
+               Simplified.Num(Simplified.Int(Simplified.Zero), annot),
+               annot) in
+           let bind_n =
+             Simplified.Assign(
+               n,
+               Simplified.Num(Simplified.Int(Simplified.Pos), annot),
+               annot) in
+           let while_loop =
+             Simplified.While(
+               Simplified.Compare(counter, [Simplified.Lt], [n], annot),
+               [
+                 Simplified.Expr(Simplified.Call(next_val, [], annot), annot);
+                 Simplified.Assign(counter,
+                                   Simplified.BinOp(
+                                     counter,
+                                     Simplified.Add,
+                                     Simplified.Num(Simplified.Int(Simplified.Pos), annot),
+                                     annot),
+                                   annot);
+               ],
+               annot) in
+           let try_except =
+             Simplified.TryExcept(
+               [
+                 while_loop;
+                 Simplified.Expr(Simplified.Call(next_val, [], annot), annot);
+                 Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
+                                  Some(Simplified.Str(annot)),
+                                  None);
+               ],
+               [Simplified.ExceptHandler(
+                   Some(Simplified.Name("StopIteration", annot)),
+                   None,
+                   [
+                     Simplified.If(
+                       Simplified.Compare(counter, [Simplified.Lt], [n], annot),
+                       [Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
+                                         Some(Simplified.Str(annot)),
+                                         None)],
+                       [],
+                       annot)
+                   ],
+                   annot)],
+               annot) in
+           let verification =
+             [
+               bind_next_val;
+               bind_counter;
+               bind_n;
+               try_except;
+             ] in
+           (* Now we just have to assign the values. Since the values
+              might still be complex (e.g. tuples), we have to do this
+              recursively. *)
+           let next_val2_id = gen_unique_name annot in
+           let bind_next_val = (* next_val2 = seq.__iter__().next *)
+             Simplified.Assign(
+               Simplified.Name(next_val2_id, annot),
+               Simplified.Attribute(
+                 Simplified.Call(
+                   Simplified.Attribute(
+                     value_name,
+                     "__iter__",
+                     annot),
+                   [],
+                   annot),
+                 "next",
+                 annot),
+               annot) in
+           let assignment_list =
+             List.map
+               (fun list_elt ->
+                  Abstract.Assign(
+                    [list_elt],
+                    Abstract.Call(
+                      Abstract.Name(next_val2_id, Abstract.Load, annot),
+                      [], [], None, None, annot),
+                    annot)
+               )
+               elts
+           in
+           verification @
+           [ bind_next_val ] @
+           map_and_concat simplify_stmt assignment_list
+
+         | _ -> []
+      ) in
+    [value_assignment] @ (map_and_concat simplify_assignment targets)
 
   | Abstract.AugAssign (target, op, value, annot) ->
     (* Convert to a standard assignment, then simplify that *)
