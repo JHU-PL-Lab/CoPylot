@@ -136,7 +136,7 @@ let var_assign_test = gen_module_test "var_assign_test"
     ]
 ;;
 
-let var_double_assign_test = gen_module_test "var_assign_test"
+let var_double_assign_test = gen_module_test "var_double_assign_test"
     "x = y = 5"
     [
       Assign(

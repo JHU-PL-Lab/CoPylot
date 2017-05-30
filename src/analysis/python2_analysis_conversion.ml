@@ -6,11 +6,12 @@ let lift_option func opt =
   match opt with
   | None -> None
   | Some(x) -> Some(func x)
+;;
 
 let rec lift_modl m =
   match m with
   | Concrete.Module (statements, annot) ->
-    Abstract.Module(List.map lift_stmt statements, annot)
+    Abstract.Module (List.map lift_stmt statements, annot)
 
 and lift_stmt s =
   match s with
@@ -32,12 +33,12 @@ and lift_stmt s =
     Abstract.While (lift_expr arg1, List.map lift_stmt arg2, List.map lift_stmt arg3, annot)
   | Concrete.If (arg1, arg2, arg3, annot) ->
     Abstract.If (lift_expr arg1, List.map lift_stmt arg2, List.map lift_stmt arg3, annot)
-  | Concrete.Raise(arg1, arg2, arg3, annot) ->
-    Abstract.Raise(lift_option lift_expr arg1, lift_option lift_expr arg2,
-                   lift_option lift_expr arg3, annot)
-  | Concrete.TryExcept(arg1, arg2, arg3, annot) ->
-    Abstract.TryExcept(List.map lift_stmt arg1, List.map lift_excepthandler arg2,
-                       List.map lift_stmt arg3, annot)
+  | Concrete.Raise (arg1, arg2, arg3, annot) ->
+    Abstract.Raise (lift_option lift_expr arg1, lift_option lift_expr arg2,
+                    lift_option lift_expr arg3, annot)
+  | Concrete.TryExcept (arg1, arg2, arg3, annot) ->
+    Abstract.TryExcept (List.map lift_stmt arg1, List.map lift_excepthandler arg2,
+                        List.map lift_stmt arg3, annot)
   | Concrete.Expr (arg1, annot) ->
     Abstract.Expr (lift_expr arg1, annot)
   | Concrete.Pass (annot) ->

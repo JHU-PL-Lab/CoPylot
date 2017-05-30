@@ -1,7 +1,7 @@
 module Abstract = Python2_abstract_ast
 module Simplified = Python2_simplified_ast
 
-let gen_unique_name _ = "";;
+let gen_unique_name _ = "unique_name_placeholder";;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
@@ -13,7 +13,7 @@ let simplify_option func o =
   | Some(x) -> Some(func x)
 ;;
 
-let rec simplify_modl m : 'a Simplified.modl =
+let rec simplify_modl (m : 'a Abstract.modl) : 'a Simplified.modl =
   match m with
   | Abstract.Module (body, annot) ->
     Simplified.Module(map_and_concat simplify_stmt body, annot)
@@ -49,6 +49,7 @@ and simplify_stmt
            [Simplified.Assign(Simplified.Name(id, a),
                               value_name,
                               annot)]
+
          | Abstract.Attribute (obj, id, _, _) ->
            [Simplified.Expr(
                Simplified.Call(
@@ -62,6 +63,7 @@ and simplify_stmt
                  ],
                  annot),
                annot)]
+
          | Abstract.Subscript (lst, slice, _, _) ->
            [Simplified.Expr(
                Simplified.Call(
@@ -75,39 +77,43 @@ and simplify_stmt
                  ],
                  annot),
                annot)]
+
          (* To assign to a list or tuple, we iterate through value
             (which must therefore be iterable), and assign the elements
             of our lhs in order. If the number of elements doesn't match,
             we raise a ValueError and do not assign any of the values.
 
-            We turn "i,j,k = val" into
+            We turn "i,j,k = list" into
 
-            next_val = val.__iter__.next
-            counter = 0
-            n = <number of elements on lhs>
+            next_val = list.__iter__().next
             try:
-              while counter < n:
-                next_val()
-                counter += 1
-              next_val() # Should raise a StopIteration exception
-              raise ValueError, "too many elements to unpack"
+              tmp_i = next_val()
+              tmp_j = next_val()
+              tmp_k = next_val()
+
+              try: # Make sure there aren't too many variables
+                next_val() # Should raise a StopIteration exception
+                raise ValueError, "too many elements to unpack"
+              except StopIteration:
+                pass
+
             except StopIteration:
-              if counter < n: # We stopped to early
-                raise ValueError, "need more than" + str(counter) + "elements to unpack"
+              raise ValueError, "Too few elements to unpack"
 
             # We have the right number of elements, so start assigning
-            next_val2 = val.__iter__.next
-            i = next_val2()
-            j = next_val2()
-            k = next_val2()
+            # This potentially involves recursion
+            i = tmp_i
+            j = tmp_j
+            k = tmp_k
+
+            Since we don't care about the specific string contained in
+            the ValueError, we can drop the bits about the counter
          *)
          (* TODO: The parser detects if we're assining to literals
             BEFORE it detects a number mismatch *)
          | Abstract.List (elts, _, _)
          | Abstract.Tuple (elts, _, _) ->
            let next_val = Simplified.Name(gen_unique_name annot, annot) in
-           let counter = Simplified.Name(gen_unique_name annot, annot) in
-           let n = Simplified.Name(gen_unique_name annot, annot) in
            let bind_next_val = (* next_val = seq.__iter__().next *)
              Simplified.Assign(
                next_val,
@@ -122,91 +128,70 @@ and simplify_stmt
                  "next",
                  annot),
                annot) in
-           let bind_counter =
-             Simplified.Assign(
-               counter,
-               Simplified.Num(Simplified.Int(Simplified.Zero), annot),
-               annot) in
-           let bind_n =
-             Simplified.Assign(
-               n,
-               Simplified.Num(Simplified.Int(Simplified.Pos), annot),
-               annot) in
-           let while_loop =
-             Simplified.While(
-               Simplified.Compare(counter, [Simplified.Lt], [n], annot),
-               [
-                 Simplified.Expr(Simplified.Call(next_val, [], annot), annot);
-                 Simplified.Assign(counter,
-                                   Simplified.BinOp(
-                                     counter,
-                                     Simplified.Add,
-                                     Simplified.Num(Simplified.Int(Simplified.Pos), annot),
-                                     annot),
-                                   annot);
-               ],
-               annot) in
-           let try_except =
+           let tmp_bindings =
+             List.fold_left
+               (fun
+                 (prev : Abstract.identifier list * 'a Simplified.stmt list)
+                 (_ : 'a Abstract.expr) ->
+                 let tmp_name = gen_unique_name annot in
+                 let next_assignment =
+                   [
+                     Simplified.Assign( (* tmp_i = next_val() *)
+                       Simplified.Name(tmp_name, annot),
+                       Simplified.Call(next_val, [], annot),
+                       annot);
+                   ]
+                 in
+                 (fst prev) @ [tmp_name], (snd prev) @ next_assignment)
+               ([], []) elts in
+           let subordinate_try_except =
              Simplified.TryExcept(
                [
-                 while_loop;
                  Simplified.Expr(Simplified.Call(next_val, [], annot), annot);
                  Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
                                   Some(Simplified.Str(
                                       Simplified.StringLiteral("too many values to unpack"),
                                       annot)),
-                                  None);
+                                  annot);
                ],
                [Simplified.ExceptHandler(
                    Some(Simplified.Name("StopIteration", annot)),
                    None,
+                   [ Simplified.Pass(annot) ],
+                   annot)],
+               annot) in
+           let overall_try_except =
+             Simplified.TryExcept(
+               (snd tmp_bindings) @ [ subordinate_try_except ],
+               [Simplified.ExceptHandler(
+                   Some(Simplified.Name("StopIteration", annot)),
+                   None,
                    [
-                     Simplified.If(
-                       Simplified.Compare(counter, [Simplified.Lt], [n], annot),
-                       [Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
-                                         Some(Simplified.Str(Simplified.StringAbstract, annot)),
-                                         None)],
-                       [],
-                       annot)
+                     Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
+                                      Some(Simplified.Str(Simplified.StringAbstract, annot)),
+                                      annot)
                    ],
                    annot)],
                annot) in
            let verification =
              [
                bind_next_val;
-               bind_counter;
-               bind_n;
-               try_except;
+               overall_try_except;
              ] in
            (* Now we just have to assign the values. Since the values
               might still be complex (e.g. tuples), we have to do this
               recursively. *)
-           let next_val2_id = gen_unique_name annot in
-           let bind_next_val = (* next_val2 = seq.__iter__().next *)
-             Simplified.Assign(
-               Simplified.Name(next_val2_id, annot),
-               Simplified.Attribute(
-                 Simplified.Call(
-                   Simplified.Attribute(
-                     value_name,
-                     "__iter__",
-                     annot),
-                   [],
-                   annot),
-                 "next",
-                 annot),
-               annot) in
            let assignment_list =
-             List.map
-               (fun list_elt ->
+             List.map2
+               (fun
+                 (tuple_elt : 'a Abstract.expr)
+                 (tmp_name : Abstract.identifier) ->
                   Abstract.Assign(
-                    [list_elt],
-                    Abstract.Call(
-                      Abstract.Name(next_val2_id, Abstract.Load, annot),
-                      [], [], None, None, annot),
+                    [tuple_elt],
+                    Abstract.Name(tmp_name, Abstract.Load, annot),
                     annot)
                )
-               elts
+               elts (fst tmp_bindings)
            in
            verification @
            [ bind_next_val ] @
@@ -336,9 +321,9 @@ and simplify_stmt
 
   | Abstract.TryExcept (body, handlers, _, annot) ->
     [Simplified.TryExcept (
-      map_and_concat simplify_stmt body,
-      List.map simplify_excepthandler handlers,
-      annot)]
+        map_and_concat simplify_stmt body,
+        List.map simplify_excepthandler handlers,
+        annot)]
 
   | Abstract.Expr (e, annot) ->
     [Simplified.Expr(simplify_expr e, annot)]
