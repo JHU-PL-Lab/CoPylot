@@ -198,7 +198,7 @@ let assign_iterator obj =
 ;;
 
 let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
-    "i, j = (-1,0)" (* FIXME: This entire test *)
+    "i, j = (-1,0)"
     [
       Assign(
         Name("unique_name_placeholder", annot),
@@ -274,6 +274,87 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
         Name("j", annot),
         Name("unique_name_placeholder", annot),
         annot);
+    ]
+;;
+
+let assign_to_index_test = gen_module_test "assign_to_index_test"
+    "list[1+2] = 3"
+    [
+      Assign(
+        Name("unique_name_placeholder", annot),
+        Num(Int(Pos), annot),
+        annot);
+      Expr(
+        Call(
+          Attribute(
+            Name("list", annot),
+            "__setitem__",
+            annot),
+          [
+            BinOp(Num(Int(Pos), annot), Add, Num(Int(Pos), annot), annot);
+            Name("unique_name_placeholder", annot);
+          ],
+          annot
+        ),
+        annot
+      )
+    ]
+;;
+
+let assign_to_slice_test = gen_module_test "assign_to_index_test"
+    "list[1:2] = 3"
+    [
+      Assign(
+        Name("unique_name_placeholder", annot),
+        Num(Int(Pos), annot),
+        annot);
+      Expr(
+        Call(
+          Attribute(
+            Name("list", annot),
+            "__setitem__",
+            annot),
+          [
+            Call(
+              Name("slice", annot),
+              [
+                Num(Int(Pos), annot);
+                Num(Int(Pos), annot);
+                Name("None", annot);
+              ],
+              annot
+            );
+            Name("unique_name_placeholder", annot);
+          ],
+          annot
+        ),
+        annot
+      )
+    ]
+;;
+
+let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
+    "obj.member = 7"
+    [
+      Assign(
+        Name("unique_name_placeholder", annot),
+        Num(Int(Pos), annot),
+        annot);
+      Expr(
+        Call(
+          Attribute(
+            Name("obj", annot),
+            "__setattr__",
+            annot
+          ),
+          [
+            Str(StringLiteral("member"), annot);
+            Name("unique_name_placeholder", annot);
+          ],
+          annot
+        ),
+        annot
+      )
     ]
 ;;
 
@@ -870,6 +951,9 @@ let tests =
     var_assign_test;
     var_double_assign_test;
     var_assign_from_tuple_test;
+    assign_to_index_test;
+    assign_to_slice_test;
+    assign_to_attribute_test;
     var_aug_assign_test;
     var_cmp_test;
     if_test;
