@@ -51,14 +51,15 @@ and simplify_stmt
        value is the expression we are assigning from. This is only ever
        evaluated once, no matter what we're assigning to. *)
     let simplified_value = simplify_expr value in
-    let value_name = Simplified.Name(gen_unique_name annot, annot) in
+    let unique_name = gen_unique_name annot in
+    let value_name = Simplified.Name(unique_name, annot) in
     let value_assignment =
-      Simplified.Assign(value_name, simplified_value, annot) in
+      Simplified.Assign(unique_name, simplified_value, annot) in
     let simplify_assignment =
       (fun e ->
          match e with
-         | Abstract.Name (id, _, a) ->
-           [Simplified.Assign(Simplified.Name(id, a),
+         | Abstract.Name (id, _, _) ->
+           [Simplified.Assign(id,
                               value_name,
                               annot)]
 
@@ -118,11 +119,9 @@ and simplify_stmt
             j = tmp_j
             k = tmp_k
          *)
-         (* TODO: The parser detects if we're assining to literals
-            BEFORE it detects a number mismatch *)
          | Abstract.List (elts, _, _)
          | Abstract.Tuple (elts, _, _) ->
-           let next_val = Simplified.Name(gen_unique_name annot, annot) in
+           let next_val = gen_unique_name annot in
            let bind_next_val = (* next_val = seq.__iter__().next *)
              Simplified.Assign(
                next_val,
@@ -146,8 +145,10 @@ and simplify_stmt
                  let next_assignment =
                    [
                      Simplified.Assign( (* tmp_i = next_val() *)
-                       Simplified.Name(tmp_name, annot),
-                       Simplified.Call(next_val, [], annot),
+                       tmp_name,
+                       Simplified.Call(Simplified.Name(next_val, annot),
+                                       [],
+                                       annot),
                        annot);
                    ]
                  in
@@ -156,15 +157,21 @@ and simplify_stmt
            let subordinate_try_except =
              Simplified.TryExcept(
                [
-                 Simplified.Expr(Simplified.Call(next_val, [], annot), annot);
-                 Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
-                                  Some(Simplified.Str(
-                                      Simplified.StringLiteral("too many values to unpack"),
-                                      annot)),
-                                  annot);
+                 Simplified.Expr(
+                   Simplified.Call(
+                     Simplified.Name(next_val, annot),
+                     [],
+                     annot),
+                   annot);
+                 Simplified.Raise(
+                   Some(Simplified.Name("ValueError", annot)),
+                   Some(Simplified.Str(
+                       Simplified.StringLiteral("too many values to unpack"),
+                       annot)),
+                   annot);
                ],
                [Simplified.ExceptHandler(
-                   Some(Simplified.Name("StopIteration", annot)),
+                   Some("StopIteration"),
                    None,
                    [ Simplified.Pass(annot) ],
                    annot)],
@@ -173,7 +180,7 @@ and simplify_stmt
              Simplified.TryExcept(
                (snd tmp_bindings) @ [ subordinate_try_except ],
                [Simplified.ExceptHandler(
-                   Some(Simplified.Name("StopIteration", annot)),
+                   Some("StopIteration"),
                    None,
                    [
                      Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
@@ -490,16 +497,34 @@ and simplify_cmpop o =
 and simplify_excepthandler h =
   match h with
   | Abstract.ExceptHandler (typ, name, body, annot) ->
+    let new_typ =
+      match typ with
+      | None -> None
+      | Some(Abstract.Name(id,_,_)) -> Some(id)
+      | _ -> Some("BAD") (* TODO: Error *)
+    in
+    let new_name =
+      match name with
+      | None -> None
+      | Some(Abstract.Name(id,_,_)) -> Some(id)
+      | _ -> Some("BAD") (* TODO: Error *)
+    in
     Simplified.ExceptHandler (
-      simplify_expr_option typ,
-      simplify_expr_option name,
+      new_typ,
+      new_name,
       map_and_concat simplify_stmt body,
       annot)
 
-and simplify_arguments a : 'a Simplified.expr list =
+and simplify_arguments a : Simplified.identifier list =
   match a with
   | (args, _, _, _) ->
-    List.map simplify_expr args
+    List.map
+      (fun arg ->
+         match arg with
+         | Abstract.Name (id, _, _) -> id
+         | _ -> "BAD" (* TODO: Error *)
+      )
+      args
 
 and simplify_sign s =
   match s with

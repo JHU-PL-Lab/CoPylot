@@ -147,12 +147,12 @@ let var_assign_test = gen_module_test "var_assign_test"
     "x = 5"
     [
       Assign(
-        Name("$unique_name_0", annot),
+        "$unique_name_0",
         Num(Int(Pos), annot),
         annot
       );
       Assign(
-        Name("x", annot),
+        "x",
         Name("$unique_name_0", annot),
         annot
       )
@@ -163,17 +163,17 @@ let var_double_assign_test = gen_module_test "var_double_assign_test"
     "x = y = 5"
     [
       Assign(
-        Name("$unique_name_0", annot),
+        "$unique_name_0",
         Num(Int(Pos), annot),
         annot
       );
       Assign(
-        Name("x", annot),
+        "x",
         Name("$unique_name_0", annot),
         annot
       );
       Assign(
-        Name("y", annot),
+        "y",
         Name("$unique_name_0", annot),
         annot
       )
@@ -182,7 +182,7 @@ let var_double_assign_test = gen_module_test "var_double_assign_test"
 
 let assign_iterator obj num =
   Assign(
-    Name("$unique_name_" ^ string_of_int num, annot),
+    "$unique_name_" ^ string_of_int num,
     Attribute(
       Call(
         Attribute(
@@ -203,7 +203,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
     "i, j = (-1,0)"
     [
       Assign(
-        Name("$unique_name_0", annot),
+        "$unique_name_0",
         Tuple(
           [
             Num(Int(Neg), annot);
@@ -217,11 +217,11 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
       TryExcept(
         [
           Assign(
-            Name("$unique_name_2", annot),
+            "$unique_name_2",
             Call(Name("$unique_name_1", annot), [], annot),
             annot);
           Assign(
-            Name("$unique_name_3", annot),
+            "$unique_name_3",
             Call(Name("$unique_name_1", annot), [], annot),
             annot);
           TryExcept(
@@ -237,7 +237,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                 annot);
             ],
             [ExceptHandler(
-                Some(Name("StopIteration", annot)),
+                Some("StopIteration"),
                 None,
                 [
                   Pass(annot)
@@ -249,7 +249,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
           )
         ],
         [ExceptHandler(
-            Some(Name("StopIteration", annot)),
+            Some("StopIteration"),
             None,
             [
               Raise(
@@ -261,19 +261,19 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
           )],
         annot);
       Assign(
-        Name("$unique_name_4", annot),
+        "$unique_name_4",
         Name("$unique_name_2", annot),
         annot);
       Assign(
-        Name("i", annot),
+        "i",
         Name("$unique_name_4", annot),
         annot);
       Assign(
-        Name("$unique_name_5", annot),
+        "$unique_name_5",
         Name("$unique_name_3", annot),
         annot);
       Assign(
-        Name("j", annot),
+        "j",
         Name("$unique_name_5", annot),
         annot);
     ]
@@ -283,7 +283,7 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
     "list[1+2] = 3"
     [
       Assign(
-        Name("$unique_name_0", annot),
+        "$unique_name_0",
         Num(Int(Pos), annot),
         annot);
       Expr(
@@ -307,7 +307,7 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
     "list[1:2] = 3"
     [
       Assign(
-        Name("$unique_name_0", annot),
+        "$unique_name_0",
         Num(Int(Pos), annot),
         annot);
       Expr(
@@ -339,7 +339,7 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
     "obj.member = 7"
     [
       Assign(
-        Name("$unique_name_0", annot),
+        "$unique_name_0",
         Num(Int(Pos), annot),
         annot);
       Expr(
@@ -364,7 +364,7 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
     "x *= -5"
     [
       Assign(
-        Name("$unique_name_0", annot),
+        "$unique_name_0",
         BinOp(Name("x", annot),
               Mult,
               Num(Int(Neg), annot),
@@ -373,7 +373,7 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
         annot
       );
       Assign(
-        Name("x", annot),
+        "x",
         Name("$unique_name_0", annot),
         annot
       )
@@ -400,10 +400,8 @@ let funcdef_test = gen_module_test "funcdef_test"
     [
       FunctionDef("test_function",
                   [
-                    Name("arg1",
-                         annot);
-                    Name("arg2",
-                         annot)
+                    "arg1";
+                    "arg2";
                   ],
                   [ (* Body *)
                     Return(Some(Name("arg1", annot)),
@@ -455,12 +453,12 @@ let if_test = gen_module_test "if_test"
                 annot),
         [
           Assign(
-            Name("$unique_name_1", annot),
+            "$unique_name_1",
             Num(Int(Pos), annot),
             annot
           );
           Assign(
-            Name("x", annot),
+            "x",
             Name("$unique_name_1", annot),
             annot
           )
@@ -473,7 +471,7 @@ let if_test = gen_module_test "if_test"
                     annot),
             [
               Assign(
-                Name("$unique_name_0", annot),
+                "$unique_name_0",
                 BinOp(Name("x", annot),
                       Mult,
                       Num(Int(Neg), annot),
@@ -482,7 +480,7 @@ let if_test = gen_module_test "if_test"
                 annot
               );
               Assign(
-                Name("x", annot),
+                "x",
                 Name("$unique_name_0", annot),
                 annot
               )
@@ -534,7 +532,7 @@ let while_test = gen_module_test "while_test"
           annot),
         [
           Assign(
-            Name("$unique_name_0", annot),
+            "$unique_name_0",
             BinOp(Name("x", annot),
                   Add,
                   Num(Int(Pos), annot),
@@ -543,7 +541,7 @@ let while_test = gen_module_test "while_test"
             annot
           );
           Assign(
-            Name("x", annot),
+            "x",
             Name("$unique_name_0", annot),
             annot
           )
@@ -558,7 +556,7 @@ let for_test = gen_module_test "for_test"
     [
       assign_iterator (Name("list", annot)) 1;
       Assign(
-        Name("$unique_name_0", annot),
+        "$unique_name_0",
         Name("$unique_name_1", annot),
         annot
       );
@@ -568,12 +566,12 @@ let for_test = gen_module_test "for_test"
             Bool(true, annot),
             [
               Assign(
-                Name("$unique_name_2", annot),
+                "$unique_name_2",
                 Call(Name("$unique_name_0", annot), [], annot),
                 annot
               );
               Assign(
-                Name("i", annot),
+                "i",
                 Name("$unique_name_2", annot),
                 annot
               );
@@ -584,7 +582,7 @@ let for_test = gen_module_test "for_test"
         ],
         [
           ExceptHandler(
-            Some(Name("StopIteration", annot)),
+            Some("StopIteration"),
             None,
             [Pass(annot)],
             annot
@@ -666,17 +664,17 @@ let try_test = gen_module_test "try_test"
       TryExcept(
         [
           Assign(
-            Name("$unique_name_0", annot),
+            "$unique_name_0",
             Num(Int(Pos), annot),
             annot);
           Assign(
-            Name("x", annot),
+            "x",
             Name("$unique_name_0", annot),
             annot)
         ],
         [
           ExceptHandler(
-            Some(Name("ValueError", annot)),
+            Some("ValueError"),
             None,
             [
               Print(None,
@@ -686,8 +684,8 @@ let try_test = gen_module_test "try_test"
             ],
             annot);
           ExceptHandler(
-            Some(Name("StopIteration", annot)),
-            Some(Name("e", annot)),
+            Some("StopIteration"),
+          Some("e"),
             [
               Print (None,
                      [Str(StringLiteral("Other Error"),annot)],
@@ -714,23 +712,23 @@ let triangle_def =
 let triangle_ast =
   FunctionDef(
     "triangle",
-    [Name("n", annot)],
+    ["n"],
     [ (* Body *)
       Assign(
-        Name("$unique_name_0", annot),
+        "$unique_name_0",
         Num(Int(Zero), annot),
         annot);
       Assign(
-        Name("count", annot),
+        "count",
         Name("$unique_name_0", annot),
         annot
       );
       Assign(
-        Name("$unique_name_1", annot),
+        "$unique_name_1",
         Num(Int(Zero), annot),
         annot);
       Assign(
-        Name("i", annot),
+        "i",
         Name("$unique_name_1", annot),
         annot
       );
@@ -743,23 +741,23 @@ let triangle_ast =
         ),
         [
           Assign(
-            Name("$unique_name_2", annot),
+            "$unique_name_2",
             BinOp(Name("i", annot),
                   Add,
                   Name("count", annot),
                   annot),
             annot);
           Assign(
-            Name("i", annot),
+            "i",
             Name("$unique_name_2", annot),
             annot
           );
           Assign(
-            Name("$unique_name_3", annot),
+            "$unique_name_3",
             BinOp(Name("count", annot), Add, Num(Int(Pos), annot), annot),
             annot);
           Assign(
-            Name("count", annot),
+            "count",
             Name("$unique_name_3", annot),
             annot
           )

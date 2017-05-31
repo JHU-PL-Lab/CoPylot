@@ -2,7 +2,7 @@ type identifier = string
 [@@deriving eq, ord, show]
 
 and 'a modl =
-   | Module of 'a stmt list (* body *) * 'a
+    | Module of 'a stmt list (* body *) * 'a
 (* | Interactive of 'a stmt list (* body *) * 'a *)
 (* | Expression of 'a expr (* body *) * 'a *)
 
@@ -10,7 +10,7 @@ and 'a modl =
 [@@deriving eq, ord, show]
 
 and 'a stmt =
-  | FunctionDef of identifier (* name *) * 'a arguments (* args *) * 'a stmt list (* body *) * 'a expr list (* decorator_list *) * 'a
+    | FunctionDef of identifier (* name *) * 'a arguments (* args *) * 'a stmt list (* body *) * 'a expr list (* decorator_list *) * 'a
   (* | ClassDef of identifier (* name *) * 'a expr list (* bases *) * 'a stmt list (* body *) * 'a expr list (* decorator_list *) * 'a *)
   | Return of 'a expr option (* value *) * 'a
 
@@ -43,7 +43,7 @@ and 'a stmt =
 [@@deriving eq, ord, show]
 
 and 'a expr =
-  | BoolOp of boolop (* op *) * 'a expr list (* values *) * 'a
+    | BoolOp of boolop (* op *) * 'a expr list (* values *) * 'a
   | BinOp of 'a expr (* left *) * operator (* op *) * 'a expr (* right *) * 'a
   | UnaryOp of unaryop (* op *) * 'a expr (* operand *) * 'a
   (* | Lambda of 'a arguments (* args *) * 'a expr (* body *) * 'a *)
@@ -73,8 +73,8 @@ and expr_context = Load | Store | Del | AugLoad | AugStore | Param
 [@@deriving eq, ord, show]
 
 and 'a slice =
-  (* | Ellipsis *)
-  | Slice of 'a expr option (* lower *) * 'a expr option (* upper *) * 'a expr option (* step *)
+    (* | Ellipsis *)
+    | Slice of 'a expr option (* lower *) * 'a expr option (* upper *) * 'a expr option (* step *)
   (* | ExtSlice of 'a slice list (* dims *) *)
   | Index of 'a expr (* value *)
 [@@deriving eq, ord, show]
@@ -111,14 +111,14 @@ and sign = Pos | Neg | Zero
 [@@deriving eq, ord, show]
 
 and number =
-  | Int of sign
+    | Int of sign
   | Float of sign
   (*
   | Imag of string*)
 [@@deriving eq, ord, show]
 
 and str =
-  | StringAbstract
+    | StringAbstract
   | StringLiteral of string
 [@@deriving eq, ord, show]
 
@@ -225,8 +225,8 @@ and name_of_cmpop = function
   | In          -> "In"
   | NotIn       -> "NotIn"
 
-(* and name_of_excepthandler = function *)
-(* | ExceptHandler _ -> "ExceptHandler" *)
+and name_of_excepthandler = function
+  | ExceptHandler _ -> "ExceptHandler"
 
 and name_of_number = function
   | Int _       -> "Int"
@@ -293,8 +293,8 @@ and annot_of_expr = function
   | Tuple (_, _, a)
     -> a
 
-(* and annot_of_excepthandler = function *)
-(* | ExceptHandler (_, _, _, a) -> a *)
+and annot_of_excepthandler = function
+  | ExceptHandler (_, _, _, a) -> a
 
 let context_of_expr = function
   | Attribute (_, _, ctx, _) -> Some ctx

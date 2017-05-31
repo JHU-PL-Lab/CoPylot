@@ -6,8 +6,8 @@ and 'a modl =
 [@@deriving eq, ord, show]
 
 and 'a stmt =
-    | Assign of 'a expr (* target *) * 'a expr (* value *) * 'a
-  | FunctionDef of identifier (* name *) * 'a expr list (* args *) * 'a stmt list (* body *) * 'a
+    | Assign of identifier (* target *) * 'a expr (* value *) * 'a
+  | FunctionDef of identifier (* name *) * identifier list (* args *) * 'a stmt list (* body *) * 'a
   | Return of 'a expr option (* value *) * 'a
   | Print of 'a expr option (* dest *) * 'a expr list (* values *) * bool (* nl *) * 'a
   | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a
@@ -48,7 +48,7 @@ and unaryop = Not | UAdd | USub
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
 [@@deriving eq, ord, show]
 
-and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * 'a expr option (* name *) * 'a stmt list (* body *) * 'a
+and 'a excepthandler = ExceptHandler of identifier option (* type *) * identifier option (* name *) * 'a stmt list (* body *) * 'a
 [@@deriving eq, ord, show]
 
 and sign = Pos | Neg | Zero
