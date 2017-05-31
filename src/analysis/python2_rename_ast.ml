@@ -3,14 +3,6 @@ open Batteries
 module Concrete = Python2_ast
 
 
-(* TODO: *)
-(* Finished so far: *)
-(* - get_id functions *)
-(* ----------------------------------------------------------- *)
-(* Future plan: *)
-(* - test get_id *)
-(* ----------------------------------------------------------- *)
-
 
 
 module ID_tuple = struct
@@ -38,11 +30,18 @@ let safe_map (id,ctx) id_map =
     Not_found -> id
 ;;
 
+(* Let us add maps with regard to context *)
 let safe_add (id,ctx) path id_map =
-  let new_map = Id_map.add (id,ctx) path id_map in
-  Id_map.add (id,Load) path new_map
+  match ctx with
+  | Param ->
+    let new_map = Id_map.add (id,ctx) path id_map in
+    let new_map = Id_map.add (id,Store) path new_map in
+    Id_map.add (id,Load) path new_map
+  | Store ->
+    let new_map = Id_map.add (id,ctx) path id_map in
+    Id_map.add (id,Load) path new_map
+  | _ -> id_map
 ;;
-
 
 (* Getting (identifier, context) tuples of Nodes in the tree *)
 
@@ -211,10 +210,8 @@ let update_address id address a =
 (* Given the id_list at each level of recursion, update id_map with id and path *)
 (* Names of "Param" contexts are named with $param. *)
 let rec update_map id_map id_list address =
-  let path id ctx =
-    match ctx with
-    | Param -> String.concat "_" [(List.hd address);id^"$param"]
-    | _ -> String.concat "_" [(List.hd address);id] in
+  let path id _ =
+    String.concat "_" [(List.hd address);id] in
   match id_list with
   | [] -> id_map
   | (id,ctx) :: rest -> update_map (safe_add (id,ctx) (path id ctx) id_map) rest address
