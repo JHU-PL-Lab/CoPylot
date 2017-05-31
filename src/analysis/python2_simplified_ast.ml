@@ -48,7 +48,7 @@ and unaryop = Not | UAdd | USub
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
 [@@deriving eq, ord, show]
 
-and 'a excepthandler = ExceptHandler of identifier option (* type *) * identifier option (* name *) * 'a stmt list (* body *) * 'a
+and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * identifier option (* name *) * 'a stmt list (* body *) * 'a
 [@@deriving eq, ord, show]
 
 and sign = Pos | Neg | Zero

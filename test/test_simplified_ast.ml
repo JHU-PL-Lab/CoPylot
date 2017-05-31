@@ -256,7 +256,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                 annot);
             ],
             [ExceptHandler(
-                Some("StopIteration"),
+                Some(Name("StopIteration", annot)),
                 None,
                 [
                   Pass(annot)
@@ -268,7 +268,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
           )
         ],
         [ExceptHandler(
-            Some("StopIteration"),
+            Some(Name("StopIteration", annot)),
             None,
             [
               Raise(
@@ -665,7 +665,7 @@ let for_test = gen_module_test "for_test"
         ],
         [
           ExceptHandler(
-            Some("StopIteration"),
+            Some(Name("StopIteration", annot)),
             None,
             [Pass(annot)],
             annot
@@ -757,7 +757,7 @@ let try_test = gen_module_test "try_test"
         ],
         [
           ExceptHandler(
-            Some("ValueError"),
+            Some(Name("ValueError", annot)),
             None,
             [
               Print(None,
@@ -767,7 +767,7 @@ let try_test = gen_module_test "try_test"
             ],
             annot);
           ExceptHandler(
-            Some("StopIteration"),
+            Some(Name("StopIteration", annot)),
             Some("e"),
             [
               Print (None,
@@ -781,26 +781,8 @@ let try_test = gen_module_test "try_test"
     ]
 ;;
 
-let bad_exception_handler_test1 = expect_error_test
-    "bad_exception_handler_test1"
-    [Abstract.TryExcept(
-        [],
-        [
-          Abstract.ExceptHandler(
-            Some(dummy_expr),
-            None,
-            [],
-            annot
-          )
-        ],
-        [],
-        annot
-      )]
-    (Failure("First argument to exception handler must be an identifier"))
-;;
-
-let bad_exception_handler_test2 = expect_error_test
-    "bad_exception_handler_test2"
+let bad_exception_handler_test = expect_error_test
+    "bad_exception_handler_test"
     [Abstract.TryExcept(
         [],
         [
@@ -1091,8 +1073,7 @@ let tests =
     raise_test_one_arg;
     raise_test_two_args;
     try_test;
-    bad_exception_handler_test1;
-    bad_exception_handler_test2;
+    bad_exception_handler_test;
     big_test;
   ]
   @ binop_tests
