@@ -172,7 +172,7 @@ and simplify_stmt
                    annot);
                ],
                [Simplified.ExceptHandler(
-                   Some("StopIteration"),
+                   Some(Simplified.Name("StopIteration", annot)),
                    None,
                    [ Simplified.Pass(annot) ],
                    annot)],
@@ -181,7 +181,7 @@ and simplify_stmt
              Simplified.TryExcept(
                (snd tmp_bindings) @ [ subordinate_try_except ],
                [Simplified.ExceptHandler(
-                   Some("StopIteration"),
+                   Some(Simplified.Name("StopIteration", annot)),
                    None,
                    [
                      Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
@@ -509,8 +509,7 @@ and simplify_excepthandler h =
     let new_typ =
       match typ with
       | None -> None
-      | Some(Abstract.Name(id,_,_)) -> Some(id)
-      | _ -> failwith "First argument to exception handler must be an identifier"
+      | Some(e) -> Some(simplify_expr e)
     in
     let new_name =
       match name with
