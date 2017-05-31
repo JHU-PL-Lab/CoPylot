@@ -43,6 +43,7 @@ let gen_module_test (name : string) (prog : string) (expected : 'a stmt list) =
       let concrete = parse_from_string_safe (prog ^ "\n") in
       let abstract = Lift.lift_modl concrete in
       let actual = Simplify.simplify_modl abstract in
+      Simplify.reset_unique_name ();
       assert_equal ~printer:string_of_modl ~cmp:equivalent_modl
         (Module(expected, annot)) actual
   )
@@ -53,6 +54,7 @@ let gen_stmt_test (name : string) (prog : string) (expected : 'a expr) =
       let concrete = parse_stmt_from_string_safe (prog ^ "\n") in
       let abstract = List.map Lift.lift_stmt concrete in
       let actual = List.concat (List.map Simplify.simplify_stmt abstract) in
+      Simplify.reset_unique_name ();
       assert_equal ~printer:string_of_stmt ~cmp:equivalent_stmt
         [(Expr(expected, annot))] actual
   )
@@ -145,13 +147,13 @@ let var_assign_test = gen_module_test "var_assign_test"
     "x = 5"
     [
       Assign(
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         Num(Int(Pos), annot),
         annot
       );
       Assign(
         Name("x", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         annot
       )
     ]
@@ -161,26 +163,26 @@ let var_double_assign_test = gen_module_test "var_double_assign_test"
     "x = y = 5"
     [
       Assign(
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         Num(Int(Pos), annot),
         annot
       );
       Assign(
         Name("x", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         annot
       );
       Assign(
         Name("y", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         annot
       )
     ]
 ;;
 
-let assign_iterator obj =
+let assign_iterator obj num =
   Assign(
-    Name("unique_name_placeholder", annot),
+    Name("$unique_name_" ^ string_of_int num, annot),
     Attribute(
       Call(
         Attribute(
@@ -201,7 +203,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
     "i, j = (-1,0)"
     [
       Assign(
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         Tuple(
           [
             Num(Int(Neg), annot);
@@ -210,22 +212,22 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
           annot),
         annot);
 
-      assign_iterator (Name("unique_name_placeholder", annot));
+      assign_iterator (Name("$unique_name_0", annot)) 1;
 
       TryExcept(
         [
           Assign(
-            Name("unique_name_placeholder", annot),
-            Call(Name("unique_name_placeholder", annot), [], annot),
+            Name("$unique_name_2", annot),
+            Call(Name("$unique_name_1", annot), [], annot),
             annot);
           Assign(
-            Name("unique_name_placeholder", annot),
-            Call(Name("unique_name_placeholder", annot), [], annot),
+            Name("$unique_name_3", annot),
+            Call(Name("$unique_name_1", annot), [], annot),
             annot);
           TryExcept(
             [
               Expr(
-                Call(Name("unique_name_placeholder", annot), [], annot),
+                Call(Name("$unique_name_1", annot), [], annot),
                 annot
               );
               Raise(
@@ -259,20 +261,20 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
           )],
         annot);
       Assign(
-        Name("unique_name_placeholder", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_4", annot),
+        Name("$unique_name_2", annot),
         annot);
       Assign(
         Name("i", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_4", annot),
         annot);
       Assign(
-        Name("unique_name_placeholder", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_5", annot),
+        Name("$unique_name_3", annot),
         annot);
       Assign(
         Name("j", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_5", annot),
         annot);
     ]
 ;;
@@ -281,7 +283,7 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
     "list[1+2] = 3"
     [
       Assign(
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         Num(Int(Pos), annot),
         annot);
       Expr(
@@ -292,7 +294,7 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
             annot),
           [
             BinOp(Num(Int(Pos), annot), Add, Num(Int(Pos), annot), annot);
-            Name("unique_name_placeholder", annot);
+            Name("$unique_name_0", annot);
           ],
           annot
         ),
@@ -301,11 +303,11 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
     ]
 ;;
 
-let assign_to_slice_test = gen_module_test "assign_to_index_test"
+let assign_to_slice_test = gen_module_test "assign_to_slice_test"
     "list[1:2] = 3"
     [
       Assign(
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         Num(Int(Pos), annot),
         annot);
       Expr(
@@ -324,7 +326,7 @@ let assign_to_slice_test = gen_module_test "assign_to_index_test"
               ],
               annot
             );
-            Name("unique_name_placeholder", annot);
+            Name("$unique_name_0", annot);
           ],
           annot
         ),
@@ -337,7 +339,7 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
     "obj.member = 7"
     [
       Assign(
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         Num(Int(Pos), annot),
         annot);
       Expr(
@@ -349,7 +351,7 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
           ),
           [
             Str(StringLiteral("member"), annot);
-            Name("unique_name_placeholder", annot);
+            Name("$unique_name_0", annot);
           ],
           annot
         ),
@@ -362,7 +364,7 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
     "x *= -5"
     [
       Assign(
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         BinOp(Name("x", annot),
               Mult,
               Num(Int(Neg), annot),
@@ -372,7 +374,7 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
       );
       Assign(
         Name("x", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         annot
       )
     ]
@@ -453,13 +455,13 @@ let if_test = gen_module_test "if_test"
                 annot),
         [
           Assign(
-            Name("unique_name_placeholder", annot),
+            Name("$unique_name_1", annot),
             Num(Int(Pos), annot),
             annot
           );
           Assign(
             Name("x", annot),
-            Name("unique_name_placeholder", annot),
+            Name("$unique_name_1", annot),
             annot
           )
         ],
@@ -471,7 +473,7 @@ let if_test = gen_module_test "if_test"
                     annot),
             [
               Assign(
-                Name("unique_name_placeholder", annot),
+                Name("$unique_name_0", annot),
                 BinOp(Name("x", annot),
                       Mult,
                       Num(Int(Neg), annot),
@@ -481,7 +483,7 @@ let if_test = gen_module_test "if_test"
               );
               Assign(
                 Name("x", annot),
-                Name("unique_name_placeholder", annot),
+                Name("$unique_name_0", annot),
                 annot
               )
             ],
@@ -532,7 +534,7 @@ let while_test = gen_module_test "while_test"
           annot),
         [
           Assign(
-            Name("unique_name_placeholder", annot),
+            Name("$unique_name_0", annot),
             BinOp(Name("x", annot),
                   Add,
                   Num(Int(Pos), annot),
@@ -542,7 +544,7 @@ let while_test = gen_module_test "while_test"
           );
           Assign(
             Name("x", annot),
-            Name("unique_name_placeholder", annot),
+            Name("$unique_name_0", annot),
             annot
           )
         ],
@@ -554,10 +556,10 @@ let while_test = gen_module_test "while_test"
 let for_test = gen_module_test "for_test"
     "for i in list:\n\tf(i)"
     [
-      assign_iterator (Name("list", annot));
+      assign_iterator (Name("list", annot)) 1;
       Assign(
-        Name("unique_name_placeholder", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
+        Name("$unique_name_1", annot),
         annot
       );
       TryExcept(
@@ -566,13 +568,13 @@ let for_test = gen_module_test "for_test"
             Bool(true, annot),
             [
               Assign(
-                Name("unique_name_placeholder", annot),
-                Call(Name("unique_name_placeholder", annot), [], annot),
+                Name("$unique_name_2", annot),
+                Call(Name("$unique_name_0", annot), [], annot),
                 annot
               );
               Assign(
                 Name("i", annot),
-                Name("unique_name_placeholder", annot),
+                Name("$unique_name_2", annot),
                 annot
               );
               Expr(Call(Name("f", annot), [Name("i", annot)], annot), annot);
@@ -664,12 +666,12 @@ let try_test = gen_module_test "try_test"
       TryExcept(
         [
           Assign(
-            Name("unique_name_placeholder", annot),
+            Name("$unique_name_0", annot),
             Num(Int(Pos), annot),
             annot);
           Assign(
             Name("x", annot),
-            Name("unique_name_placeholder", annot),
+            Name("$unique_name_0", annot),
             annot)
         ],
         [
@@ -715,21 +717,21 @@ let triangle_ast =
     [Name("n", annot)],
     [ (* Body *)
       Assign(
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         Num(Int(Zero), annot),
         annot);
       Assign(
         Name("count", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_0", annot),
         annot
       );
       Assign(
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_1", annot),
         Num(Int(Zero), annot),
         annot);
       Assign(
         Name("i", annot),
-        Name("unique_name_placeholder", annot),
+        Name("$unique_name_1", annot),
         annot
       );
       While(
@@ -741,7 +743,7 @@ let triangle_ast =
         ),
         [
           Assign(
-            Name("unique_name_placeholder", annot),
+            Name("$unique_name_2", annot),
             BinOp(Name("i", annot),
                   Add,
                   Name("count", annot),
@@ -749,16 +751,16 @@ let triangle_ast =
             annot);
           Assign(
             Name("i", annot),
-            Name("unique_name_placeholder", annot),
+            Name("$unique_name_2", annot),
             annot
           );
           Assign(
-            Name("unique_name_placeholder", annot),
+            Name("$unique_name_3", annot),
             BinOp(Name("count", annot), Add, Num(Int(Pos), annot), annot),
             annot);
           Assign(
             Name("count", annot),
-            Name("unique_name_placeholder", annot),
+            Name("$unique_name_3", annot),
             annot
           )
         ],

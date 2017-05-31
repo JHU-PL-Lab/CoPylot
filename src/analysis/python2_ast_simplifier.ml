@@ -1,7 +1,15 @@
 module Abstract = Python2_abstract_ast
 module Simplified = Python2_simplified_ast
 
-let gen_unique_name _ = "unique_name_placeholder";;
+let name_counter = ref 0;;
+
+let gen_unique_name _ =
+  let count = !name_counter in
+  name_counter := count + 1;
+  "$unique_name_" ^ string_of_int count
+;;
+
+let reset_unique_name () = name_counter := 0;;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
@@ -35,9 +43,13 @@ and simplify_stmt
 
   | Abstract.Assign (targets, value, annot) ->
     (* Assignments are very complicated, with different behavior depending
-       on the lvalue. Targets is a list, to handle the syntax x=y=2.
-       We write a function to simplify an assignment to a single entry,
-       then map that across targets. *)
+       on the lvalue.
+
+       targets is a list, which will have multiple entries if we used
+       the syntax x = y = ... = 2.
+
+       value is the expression we are assigning from. This is only ever
+       evaluated once, no matter what we're assigning to. *)
     let simplified_value = simplify_expr value in
     let value_name = Simplified.Name(gen_unique_name annot, annot) in
     let value_assignment =
@@ -105,9 +117,6 @@ and simplify_stmt
             i = tmp_i
             j = tmp_j
             k = tmp_k
-
-            Since we don't care about the specific string contained in
-            the ValueError, we can drop the bits about the counter
          *)
          (* TODO: The parser detects if we're assining to literals
             BEFORE it detects a number mismatch *)
