@@ -8,7 +8,7 @@ let name_counter = ref 0;;
 let gen_unique_name _ =
   let count = !name_counter in
   name_counter := count + 1;
-  "$unique_name_" ^ string_of_int count
+  "$normalized_unique_name_" ^ string_of_int count
 ;;
 
 let reset_unique_name () = name_counter := 0;;
@@ -161,8 +161,8 @@ and normalize_stmt_full
     let type_binding, type_result = normalize_expr_option typ in
     let value_binding, value_result = normalize_expr_option value in
     type_binding @ value_binding @
-    [Normalized.Raise(update_option_uid type_result annot,
-                      update_option_uid value_result annot,
+    [Normalized.Raise(update_option_uid annot type_result,
+                      update_option_uid annot value_result,
                       get_next_uid annot)]
 
   | Simplified.TryExcept _ -> [] (* TODO *)
@@ -216,6 +216,7 @@ and normalize_expr
     (* TODO: Throw a useful error if values is empty. Not sure if that's
        possible given how we generate these trees, but best to be safe. *)
     let first_arg = List.hd values in
+    let first_arg_bindings, first_arg_result = normalize_expr first_arg in
     let remaining_args = List.tl values in
     let norm_op = normalize_boolop op in
     (* Performs the single step of decomposition described above *)
@@ -268,7 +269,6 @@ and normalize_expr
       let bindings = (fst prev) @ [big_if] @ assignment in
       bindings, final_tmp_name
     in (* End definition of combine *)
-    let first_arg_bindings, first_arg_result = normalize_expr first_arg in
     List.fold_left combine
       (first_arg_bindings, update_uid annot first_arg_result)
       remaining_args

@@ -7,7 +7,7 @@ let name_counter = ref 0;;
 let gen_unique_name _ =
   let count = !name_counter in
   name_counter := count + 1;
-  "$unique_name_" ^ string_of_int count
+  "$simplified_unique_name_" ^ string_of_int count
 ;;
 
 let reset_unique_name () = name_counter := 0;;
