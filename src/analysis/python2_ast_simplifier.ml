@@ -1,5 +1,6 @@
 module Abstract = Python2_abstract_ast
 module Simplified = Python2_simplified_ast
+exception Identifier_Only
 
 let name_counter = ref 0;;
 
@@ -212,7 +213,15 @@ and simplify_stmt
            verification @
            map_and_concat simplify_stmt assignment_list
 
-         | _ -> [] (* TODO: Throw an error *)
+         | Abstract.BoolOp _
+         | Abstract.BinOp _
+         | Abstract.UnaryOp _ -> failwith "can't assign to operator"
+         | Abstract.IfExp _ -> failwith "can't assign to conditional expression"
+         | Abstract.Compare _ -> failwith "can't assign to comparison"
+         | Abstract.Call _ -> failwith "can't assign to function call"
+         | Abstract.Num _
+         | Abstract.Str _
+         | Abstract.Bool _ -> failwith "can't assign to literal"
       ) in
     [value_assignment] @ (map_and_concat simplify_assignment targets)
 
@@ -501,13 +510,13 @@ and simplify_excepthandler h =
       match typ with
       | None -> None
       | Some(Abstract.Name(id,_,_)) -> Some(id)
-      | _ -> Some("BAD") (* TODO: Error *)
+      | _ -> failwith "First argument to exception handler must be an identifier"
     in
     let new_name =
       match name with
       | None -> None
       | Some(Abstract.Name(id,_,_)) -> Some(id)
-      | _ -> Some("BAD") (* TODO: Error *)
+      | _ -> failwith "Second argument to exception handler must be an identifier"
     in
     Simplified.ExceptHandler (
       new_typ,
@@ -522,7 +531,7 @@ and simplify_arguments a : Simplified.identifier list =
       (fun arg ->
          match arg with
          | Abstract.Name (id, _, _) -> id
-         | _ -> "BAD" (* TODO: Error *)
+         | _ -> failwith "The arguments in a function definition must be identifiers"
       )
       args
 

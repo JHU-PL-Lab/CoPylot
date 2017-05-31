@@ -3,6 +3,7 @@ open Batteries
 open Jhupllib
 open Python2_parser
 open Lexing
+module Abstract = Python2_abstract_ast
 open Python2_simplified_ast
 module Lift = Python2_analysis_conversion
 module Simplify = Python2_ast_simplifier
@@ -47,6 +48,7 @@ let gen_module_test (name : string) (prog : string) (expected : 'a stmt list) =
       assert_equal ~printer:string_of_modl ~cmp:equivalent_modl
         (Module(expected, annot)) actual
   )
+;;
 
 let gen_stmt_test (name : string) (prog : string) (expected : 'a expr) =
   name>::
@@ -58,6 +60,23 @@ let gen_stmt_test (name : string) (prog : string) (expected : 'a expr) =
       assert_equal ~printer:string_of_stmt ~cmp:equivalent_stmt
         [(Expr(expected, annot))] actual
   )
+;;
+
+let expect_error_test
+    (name : string)
+    (prog : 'a Abstract.stmt list)
+    (expected : exn) =
+  name>::
+  (fun _ ->
+     assert_raises
+       expected
+       (fun _ ->
+          (List.concat (List.map Simplify.simplify_stmt prog)))
+  )
+;;
+
+(* This is useful when creating tests for expect_error_test *)
+let dummy_expr = Abstract.Num(Abstract.Int(Abstract.Zero), annot);;
 
 let int_test = gen_stmt_test "int_test"
     "4"
@@ -395,6 +414,54 @@ let var_cmp_test = gen_module_test "var_cmp_test"
     ]
 ;;
 
+let gen_some_abstract_assignment target =
+  Abstract.Assign(
+    [target],
+    dummy_expr,
+    annot)
+;;
+
+let bad_assign_tests =
+  [
+    expect_error_test "assign_to_num"
+      [(gen_some_abstract_assignment
+          (Abstract.Num(Abstract.Int(Abstract.Zero), annot)))]
+      (Failure("can't assign to literal"));
+    expect_error_test "assign_to_str"
+      [(gen_some_abstract_assignment
+          (Abstract.Str(Abstract.StringAbstract, annot)))]
+      (Failure("can't assign to literal"));
+    expect_error_test "assign_to_bool"
+      [(gen_some_abstract_assignment
+          (Abstract.Bool(true, annot)))]
+      (Failure("can't assign to literal"));
+    expect_error_test "assign_to_boolop"
+      [(gen_some_abstract_assignment
+          (Abstract.BoolOp(Abstract.And, [dummy_expr; dummy_expr], annot)))]
+      (Failure("can't assign to operator"));
+    expect_error_test "assign_to_binop"
+      [(gen_some_abstract_assignment
+          (Abstract.BinOp(dummy_expr, Abstract.Add, dummy_expr, annot)))]
+      (Failure("can't assign to operator"));
+    expect_error_test "assign_to_unaryop"
+      [(gen_some_abstract_assignment
+          (Abstract.UnaryOp(Abstract.UAdd, dummy_expr, annot)))]
+      (Failure("can't assign to operator"));
+    expect_error_test "assign_to_ifexp"
+      [(gen_some_abstract_assignment
+          (Abstract.IfExp(dummy_expr, dummy_expr, dummy_expr, annot)))]
+      (Failure("can't assign to conditional expression"));
+    expect_error_test "assign_to_compare"
+      [(gen_some_abstract_assignment
+          (Abstract.Compare(dummy_expr, [Abstract.Lt], [dummy_expr], annot)))]
+      (Failure("can't assign to comparison"));
+    expect_error_test "assign_to_call"
+      [(gen_some_abstract_assignment
+          (Abstract.Call(dummy_expr, [], [], None, None, annot)))]
+      (Failure("can't assign to function call"));
+  ]
+;;
+
 let funcdef_test = gen_module_test "funcdef_test"
     "def test_function(arg1,arg2):\n\treturn arg1"
     [
@@ -409,6 +476,22 @@ let funcdef_test = gen_module_test "funcdef_test"
                   ],
                   annot)
     ]
+;;
+
+let bad_funcdef_test = expect_error_test "bad_funcdef_test"
+    [
+      Abstract.FunctionDef(
+        "func",
+        ([Abstract.Num(Abstract.Int(Abstract.Pos), annot)],
+         None,
+         None,
+         []),
+        [Abstract.Pass(annot)],
+        [],
+        annot
+      )
+    ]
+    (Failure("The arguments in a function definition must be identifiers"))
 ;;
 
 let call_test = gen_stmt_test "call_test"
@@ -685,7 +768,7 @@ let try_test = gen_module_test "try_test"
             annot);
           ExceptHandler(
             Some("StopIteration"),
-          Some("e"),
+            Some("e"),
             [
               Print (None,
                      [Str(StringLiteral("Other Error"),annot)],
@@ -696,6 +779,42 @@ let try_test = gen_module_test "try_test"
         ],
         annot)
     ]
+;;
+
+let bad_exception_handler_test1 = expect_error_test
+    "bad_exception_handler_test1"
+    [Abstract.TryExcept(
+        [],
+        [
+          Abstract.ExceptHandler(
+            Some(dummy_expr),
+            None,
+            [],
+            annot
+          )
+        ],
+        [],
+        annot
+      )]
+    (Failure("First argument to exception handler must be an identifier"))
+;;
+
+let bad_exception_handler_test2 = expect_error_test
+    "bad_exception_handler_test2"
+    [Abstract.TryExcept(
+        [],
+        [
+          Abstract.ExceptHandler(
+            Some(Abstract.Name("foo", Abstract.Load, annot)),
+            Some(dummy_expr),
+            [],
+            annot
+          )
+        ],
+        [],
+        annot
+      )]
+    (Failure("Second argument to exception handler must be an identifier"))
 ;;
 
 let triangle_def =
@@ -958,6 +1077,7 @@ let tests =
     var_cmp_test;
     if_test;
     funcdef_test;
+    bad_funcdef_test;
     call_test;
     attribute_test;
     attribute_call_test;
@@ -971,7 +1091,10 @@ let tests =
     raise_test_one_arg;
     raise_test_two_args;
     try_test;
+    bad_exception_handler_test1;
+    bad_exception_handler_test2;
     big_test;
   ]
   @ binop_tests
   @ list_tests
+  @ bad_assign_tests
