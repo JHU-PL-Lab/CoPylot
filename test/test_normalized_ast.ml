@@ -1436,102 +1436,94 @@ let big_test = gen_module_test "big_test"
         dummy_uid);
     ]
 ;;
-(*
+
 (* Tests of lists and slicing *)
-let list_str = "[1,2,3,'four','five',2+4]";;
+let list_str = "[1,2,f(3),'four','five',2+4]";;
 let list_expr =
-  List(
-    [
-      Num(Int(Pos),dummy_uid);
-      Num(Int(Pos),dummy_uid);
-      Num(Int(Pos),dummy_uid);
-      Str(StringLiteral("four"), dummy_uid);
-      Str(StringLiteral("five"), dummy_uid);
-      BinOp(Num(Int(Pos),dummy_uid), Add, Num(Int(Pos),dummy_uid), dummy_uid);
-    ],
-    dummy_uid
-  )
-
-let list_test = gen_stmt_test "list_test"
-    list_str
-    list_expr;;
-
-let list_in_test = gen_stmt_test "lst_in_test"
-    ("5 in " ^ list_str)
-    (Compare(
-        Num(Int(Pos), dummy_uid),
-        [In],
-        [list_expr],
-        dummy_uid
-      )
-    )
-;;
-
-let gen_slice_test (name : string) (slice : string) (expected_slice: 'a expr) =
-  gen_stmt_test
-    name
-    (list_str ^ slice)
-    (Call(
-        Attribute(list_expr,
-                  "__getitem__",
-                  dummy_uid),
-        [ expected_slice ],
-        dummy_uid))
-;;
-
-let list_tests =
   [
-    list_test;
-    list_in_test;
-    (gen_slice_test "slice_test_1" "[0]"
-       (Num(Int(Zero),dummy_uid)));
-    (gen_slice_test "slice_test2" "[5-2]"
-       (BinOp(Num(Int(Pos),dummy_uid), Sub, Num(Int(Pos), dummy_uid), dummy_uid)));
-    (gen_slice_test "slice_test3" "[2:]"
-       (Call(Name("slice", dummy_uid),
-             [
-               Num(Int(Pos), dummy_uid);
-               Name("None", dummy_uid);
-               Name("None", dummy_uid);
-             ],
-             dummy_uid)));
-    (gen_slice_test "slice_test4" "[:4]"
-       (Call(Name("slice", dummy_uid),
-             [
-               Name("None", dummy_uid);
-               Num(Int(Pos), dummy_uid);
-               Name("None", dummy_uid);
-             ],
-             dummy_uid)));
-    (gen_slice_test "slice_test5" "[::3]"
-       (Call(Name("slice", dummy_uid),
-             [
-               Name("None", dummy_uid);
-               Name("None", dummy_uid);
-               Num(Int(Pos), dummy_uid);
-             ],
-             dummy_uid)));
-    (gen_slice_test "slice_test6" "[2:4]"
-       (Call(Name("slice", dummy_uid),
-             [
-               Num(Int(Pos), dummy_uid);
-               Num(Int(Pos), dummy_uid);
-               Name("None", dummy_uid);
-             ],
-             dummy_uid)));
-    (gen_slice_test "slice_test7" "[2:4:-1]"
-       (Call(Name("slice", dummy_uid),
-             [
-               Num(Int(Pos), dummy_uid);
-               Num(Int(Pos), dummy_uid);
-               Num(Int(Neg), dummy_uid);
-             ],
-             dummy_uid)));
+    Assign(
+      "$normalized_unique_name_0",
+      Call(
+        Name("f", dummy_uid),
+        [Num(Int(Pos), dummy_uid)],
+        dummy_uid),
+      dummy_uid);
+
+    Assign(
+      "$normalized_unique_name_1",
+      BinOp(
+        Num(Int(Pos), dummy_uid),
+        Add,
+        Num(Int(Pos), dummy_uid),
+        dummy_uid),
+      dummy_uid);
+
+    Assign(
+      "$normalized_unique_name_2",
+      List(
+        [
+          Num(Int(Pos),dummy_uid);
+          Num(Int(Pos),dummy_uid);
+          Name("$normalized_unique_name_0", dummy_uid);
+          Str(StringLiteral("four"), dummy_uid);
+          Str(StringLiteral("five"), dummy_uid);
+          Name("$normalized_unique_name_1", dummy_uid);
+        ],
+        dummy_uid),
+      dummy_uid);
   ]
 
+let list_test = gen_module_test "list_test"
+    list_str
+    [
+      Assign(
+        "$normalized_unique_name_0",
+        Call(
+          Name("f", dummy_uid),
+          [Num(Int(Pos), dummy_uid)],
+          dummy_uid),
+        dummy_uid);
+
+      Assign(
+        "$normalized_unique_name_1",
+        BinOp(
+          Num(Int(Pos), dummy_uid),
+          Add,
+          Num(Int(Pos), dummy_uid),
+          dummy_uid),
+        dummy_uid);
+
+      Assign(
+        "$normalized_unique_name_2",
+        List(
+          [
+            Num(Int(Pos),dummy_uid);
+            Num(Int(Pos),dummy_uid);
+            Name("$normalized_unique_name_0", dummy_uid);
+            Str(StringLiteral("four"), dummy_uid);
+            Str(StringLiteral("five"), dummy_uid);
+            Name("$normalized_unique_name_1", dummy_uid);
+          ],
+          dummy_uid),
+        dummy_uid);
+
+      SimpleExprStmt(Name("$normalized_unique_name_2", dummy_uid),
+                     dummy_uid)
+    ]
+;;
+
 (* Tests of various binary operations *)
-let gen_binop_test (name : string) (prog : string) (lhs : 'a expr) (rhs : 'a expr) op =
-  gen_stmt_test name prog (BinOp(lhs, op, rhs, dummy_uid))
+let gen_binop_test (name : string) (prog : string)
+    (lhs : simple_expr) (rhs : simple_expr) op =
+  gen_module_test name prog
+    [
+      Assign("$normalized_unique_name_0",
+             BinOp(lhs, op, rhs, dummy_uid),
+             dummy_uid);
+
+      SimpleExprStmt(Name("$normalized_unique_name_0", dummy_uid),
+                     dummy_uid);
+    ]
 ;;
 
 let binop_tests =
@@ -1558,25 +1550,9 @@ let binop_tests =
        (Num(Int(Pos), dummy_uid)) (Num(Int(Pos), dummy_uid)) Mod);
     (gen_binop_test "pow_int_test" "42 ** 9001"
        (Num(Int(Pos), dummy_uid)) (Num(Int(Pos), dummy_uid)) Pow);
-
-    (gen_binop_test "triple_binop_test" "(42 - 9001) + 17"
-       (BinOp(Num(Int(Pos), dummy_uid),
-              Sub,
-              Num(Int(Pos), dummy_uid),
-              dummy_uid))
-       (Num(Int(Pos), dummy_uid))
-       Add);
-
-    (gen_binop_test "order_of_operations_test" "1+2*3"
-       (Num(Int(Pos), dummy_uid))
-       (BinOp(Num(Int(Pos), dummy_uid),
-              Mult,
-              Num(Int(Pos), dummy_uid),
-              dummy_uid))
-       Add);
   ]
   (* Run the tests *)
-  *)
+
 let tests =
   "abstract_ast">:::
   [
@@ -1614,6 +1590,6 @@ let tests =
       raise_test_two_args;
       try_test;*)
     big_test;
+    list_test;
   ]
-(*@ binop_tests
-  @ list_tests*)
+@ binop_tests
