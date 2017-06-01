@@ -10,35 +10,35 @@ and modl =
 [@@deriving eq, ord, show]
 
 and stmt =
-    | Assign of identifier (* target *) * compound_expr (* value *) * uid
-  | FunctionDef of identifier (* name *) * identifier list (* args *) * stmt list (* body *) * uid
-  | Return of simple_expr option (* value *) * uid
-  | Print of simple_expr option (* dest *) * simple_expr list (* values *) * bool (* nl *) * uid
-  | If of simple_expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid
-  | Raise of simple_expr (* value *) * uid
-  | TryExcept of stmt list (* body *) * excepthandler list (* handlers *) * uid
-  | Pass of uid
-  | Goto of uid * uid
-  | SimpleExprStmt of simple_expr (* value *) * uid
+    | Assign of identifier (* target *) * compound_expr (* value *) * uid * uid option (* exception label *)
+  | FunctionDef of identifier (* name *) * identifier list (* args *) * stmt list (* body *) * uid * uid option (* exception label *)
+  | Return of simple_expr option (* value *) * uid * uid option (* exception label *)
+  | Print of simple_expr option (* dest *) * simple_expr list (* values *) * bool (* nl *) * uid * uid option (* exception label *)
+  | If of simple_expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid * uid option (* exception label *)
+  | Raise of simple_expr (* value *) * uid * uid option (* exception label *)
+  | TryExcept of stmt list (* body *) * excepthandler list (* handlers *) * uid * uid option (* exception label *)
+  | Pass of uid * uid option (* exception label *)
+  | Goto of uid * uid * uid option (* exception label *)
+  | SimpleExprStmt of simple_expr (* value *) * uid * uid option (* exception label *)
 [@@deriving eq, ord, show]
 
 and compound_expr =
-    | BoolOp of simple_expr (* left *) * boolop (* op *) * simple_expr (* right *) * uid
-  | BinOp of simple_expr (* left *) * operator (* op *) * simple_expr (* right *) * uid
-  | UnaryOp of unaryop (* op *) * simple_expr (* operand *) * uid
-  | Compare of simple_expr (* left *) * cmpop (* ops *) * simple_expr (* comparators *) * uid
-  | Call of simple_expr (* func *) * simple_expr list (* args *) *  uid
-  | Attribute of simple_expr (* object *) * identifier (* attr *) * uid
-  | List of simple_expr list (* elts *)  * uid
-  | Tuple of simple_expr list (* elts *)  * uid
-  | SimpleExpr of simple_expr (* value*) * uid
+    | BoolOp of simple_expr (* left *) * boolop (* op *) * simple_expr (* right *) * uid * uid option (* exception label *)
+  | BinOp of simple_expr (* left *) * operator (* op *) * simple_expr (* right *) * uid * uid option (* exception label *)
+  | UnaryOp of unaryop (* op *) * simple_expr (* operand *) * uid * uid option (* exception label *)
+  | Compare of simple_expr (* left *) * cmpop (* ops *) * simple_expr (* comparators *) * uid * uid option (* exception label *)
+  | Call of simple_expr (* func *) * simple_expr list (* args *) * uid * uid option (* exception label *)
+  | Attribute of simple_expr (* object *) * identifier (* attr *) * uid * uid option (* exception label *)
+  | List of simple_expr list (* elts *)  * uid * uid option (* exception label *)
+  | Tuple of simple_expr list (* elts *)  * uid * uid option (* exception label *)
+  | SimpleExpr of simple_expr (* value*) * uid * uid option (* exception label *)
 [@@deriving eq, ord, show]
 
 and simple_expr =
-    | Num of number (* n *) * uid
-  | Str of str * uid
-  | Bool of bool * uid
-  | Name of identifier (* id *) * uid
+    | Num of number (* n *) * uid * uid option (* exception label *)
+  | Str of str * uid * uid option (* exception label *)
+  | Bool of bool * uid * uid option (* exception label *)
+  | Name of identifier (* id *) * uid * uid option (* exception label *)
 [@@deriving eq, ord, show]
 
 and boolop = And | Or
@@ -53,7 +53,7 @@ and unaryop = Not | UAdd | USub
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
 [@@deriving eq, ord, show]
 
-and excepthandler = ExceptHandler of identifier option (* type *) * identifier option (* name *) * stmt list (* body *) * uid
+and excepthandler = ExceptHandler of identifier option (* type *) * identifier option (* name *) * stmt list (* body *) * uid * uid option (* exception label *)
 [@@deriving eq, ord, show]
 
 and sign = Pos | Neg | Zero
@@ -69,6 +69,7 @@ and str =
   | StringLiteral of string
 [@@deriving eq, ord, show]
 
+(*
 let name_of_mod = function
   | Module _      -> "Module"
 
@@ -212,3 +213,4 @@ let string_of_number = function
 let string_of_str = function
   | StringAbstract -> "StringAbstract"
   | StringLiteral (s) -> s
+*)

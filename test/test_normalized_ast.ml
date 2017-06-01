@@ -58,26 +58,28 @@ let expect_error_test
 
 let int_test = gen_module_test "int_test"
     "4"
-    [SimpleExprStmt(Num(Int(Pos), dummy_uid), dummy_uid)]
+    [SimpleExprStmt(Num(Int(Pos), dummy_uid, None), dummy_uid, None)]
 ;;
 
 let float_test = gen_module_test "float_test"
     "1.7"
-    [SimpleExprStmt(Num(Float(Pos), dummy_uid), dummy_uid)]
+    [SimpleExprStmt(Num(Float(Pos), dummy_uid, None), dummy_uid, None)]
 ;;
 
 let float_zero_test = gen_module_test "float_zero_test"
     "0.0"
-    [SimpleExprStmt(Num(Float(Zero), dummy_uid), dummy_uid)]
+    [SimpleExprStmt(Num(Float(Zero), dummy_uid, None), dummy_uid, None)]
 ;;
 
 let unop_test = gen_module_test "unop_test"
     "+4"
     [
       Assign("$normalized_unique_name_0",
-             UnaryOp(UAdd, Num(Int(Pos), dummy_uid), dummy_uid),
-             dummy_uid);
-      SimpleExprStmt(Name("$normalized_unique_name_0", dummy_uid), dummy_uid);
+             UnaryOp(UAdd, Num(Int(Pos), dummy_uid, None),
+                     dummy_uid, None),
+             dummy_uid, None);
+      SimpleExprStmt(Name("$normalized_unique_name_0", dummy_uid, None),
+                     dummy_uid, None);
     ]
 
 ;;
@@ -86,9 +88,9 @@ let unop_not_test = gen_module_test "unop_not_test"
     "not x"
     [
       Assign("$normalized_unique_name_0",
-             UnaryOp(Not, Name("x", dummy_uid), dummy_uid),
-             dummy_uid);
-      SimpleExprStmt(Name("$normalized_unique_name_0", dummy_uid), dummy_uid);
+             UnaryOp(Not, Name("x", dummy_uid, None), dummy_uid, None),
+             dummy_uid, None);
+      SimpleExprStmt(Name("$normalized_unique_name_0", dummy_uid, None), dummy_uid, None);
     ]
 ;;
 
@@ -97,104 +99,104 @@ let boolop_and_test = gen_module_test "boolop_and_test"
     [
       Assign("$normalized_unique_name_0",
              BinOp(
-               Num(Int(Pos), dummy_uid),
+               Num(Int(Pos), dummy_uid, None),
                Add,
-               Num(Int(Pos), dummy_uid),
-               dummy_uid),
-             dummy_uid);
+               Num(Int(Pos), dummy_uid, None),
+               dummy_uid, None),
+             dummy_uid, None);
 
-      If(Name("$normalized_unique_name_0", dummy_uid),
+      If(Name("$normalized_unique_name_0", dummy_uid, None),
          [
            Assign("$normalized_unique_name_1",
-                  SimpleExpr(Name("x", dummy_uid), dummy_uid),
-                  dummy_uid);
+                  SimpleExpr(Name("x", dummy_uid, None), dummy_uid, None),
+                  dummy_uid, None);
          ],
          [
            Assign("$normalized_unique_name_1",
-                  SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-                  dummy_uid);
+                  SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+                  dummy_uid, None);
          ],
-         dummy_uid);
+         dummy_uid, None);
 
       Assign("$normalized_unique_name_2",
              BoolOp(
-               Name("$normalized_unique_name_0", dummy_uid),
+               Name("$normalized_unique_name_0", dummy_uid, None),
                And,
-               Name("$normalized_unique_name_1", dummy_uid),
-               dummy_uid),
-             dummy_uid);
+               Name("$normalized_unique_name_1", dummy_uid, None),
+               dummy_uid, None),
+             dummy_uid, None);
 
-      If(Name("$normalized_unique_name_2", dummy_uid),
+      If(Name("$normalized_unique_name_2", dummy_uid, None),
          [
            Assign("$normalized_unique_name_3",
-                  SimpleExpr(Num(Int(Neg), dummy_uid), dummy_uid),
-                  dummy_uid);
+                  SimpleExpr(Num(Int(Neg), dummy_uid, None), dummy_uid, None),
+                  dummy_uid, None);
          ],
          [
            Assign("$normalized_unique_name_3",
-                  SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-                  dummy_uid);
+                  SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+                  dummy_uid, None);
          ],
-         dummy_uid);
+         dummy_uid, None);
 
       Assign("$normalized_unique_name_4",
              BoolOp(
-               Name("$normalized_unique_name_2", dummy_uid),
+               Name("$normalized_unique_name_2", dummy_uid, None),
                And,
-               Name("$normalized_unique_name_3", dummy_uid),
-               dummy_uid),
-             dummy_uid);
+               Name("$normalized_unique_name_3", dummy_uid, None),
+               dummy_uid, None),
+             dummy_uid, None);
 
-      SimpleExprStmt(Name("$normalized_unique_name_4", dummy_uid), dummy_uid);
+      SimpleExprStmt(Name("$normalized_unique_name_4", dummy_uid, None), dummy_uid, None);
     ]
 ;;
 
 let boolop_or_test = gen_module_test "boolop_or_test"
     "x or False or 0"
     [
-      If(Name("x", dummy_uid),
+      If(Name("x", dummy_uid, None),
          [
            Assign("$normalized_unique_name_0",
-                  SimpleExpr(Bool(true, dummy_uid), dummy_uid),
-                  dummy_uid);
+                  SimpleExpr(Bool(true, dummy_uid, None), dummy_uid, None),
+                  dummy_uid, None);
          ],
          [
            Assign("$normalized_unique_name_0",
-                  SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-                  dummy_uid);
+                  SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+                  dummy_uid, None);
          ],
-         dummy_uid);
+         dummy_uid, None);
 
       Assign("$normalized_unique_name_1",
              BoolOp(
-               Name("x", dummy_uid),
+               Name("x", dummy_uid, None),
                Or,
-               Name("$normalized_unique_name_0", dummy_uid),
-               dummy_uid),
-             dummy_uid);
+               Name("$normalized_unique_name_0", dummy_uid, None),
+               dummy_uid, None),
+             dummy_uid, None);
 
-      If(Name("$normalized_unique_name_1", dummy_uid),
+      If(Name("$normalized_unique_name_1", dummy_uid, None),
          [
            Assign("$normalized_unique_name_2",
-                  SimpleExpr(Bool(true, dummy_uid), dummy_uid),
-                  dummy_uid);
+                  SimpleExpr(Bool(true, dummy_uid, None), dummy_uid, None),
+                  dummy_uid, None);
          ],
          [
            Assign("$normalized_unique_name_2",
-                  SimpleExpr(Num(Int(Zero), dummy_uid), dummy_uid),
-                  dummy_uid);
+                  SimpleExpr(Num(Int(Zero), dummy_uid, None), dummy_uid, None),
+                  dummy_uid, None);
          ],
-         dummy_uid);
+         dummy_uid, None);
 
       Assign("$normalized_unique_name_3",
              BoolOp(
-               Name("$normalized_unique_name_1", dummy_uid),
+               Name("$normalized_unique_name_1", dummy_uid, None),
                Or,
-               Name("$normalized_unique_name_2", dummy_uid),
-               dummy_uid),
-             dummy_uid);
+               Name("$normalized_unique_name_2", dummy_uid, None),
+               dummy_uid, None),
+             dummy_uid, None);
 
-      SimpleExprStmt(Name("$normalized_unique_name_3", dummy_uid), dummy_uid);
+      SimpleExprStmt(Name("$normalized_unique_name_3", dummy_uid, None), dummy_uid, None);
     ]
 ;;
 
@@ -207,26 +209,25 @@ let boolop_or_test = gen_module_test "boolop_or_test"
         [
           BoolOp(And,
                  [
-                   Name("a", dummy_uid);
-                   Name("b", dummy_uid);
-                   UnaryOp(Not, Name("c", dummy_uid), dummy_uid);
+                   Name("a", dummy_uid, None);
+                   Name("b", dummy_uid, None);
+                   UnaryOp(Not, Name("c", dummy_uid, None), dummy_uid, None);
                  ],
-                 dummy_uid);
+                 dummy_uid, None);
           BoolOp(And,
                  [
-                   Name("d", dummy_uid);
-                   UnaryOp(Not, Name("c", dummy_uid), dummy_uid);
+                   Name("d", dummy_uid, None);
+                   UnaryOp(Not, Name("c", dummy_uid, None), dummy_uid, None);
                  ],
-                 dummy_uid);
+                 dummy_uid, None);
           BoolOp(And,
                  [
-                   UnaryOp(Not, Name("a", dummy_uid), dummy_uid);
-                   UnaryOp(Not, Name("b", dummy_uid), dummy_uid);
+                   UnaryOp(Not, Name("a", dummy_uid, None), dummy_uid, None);
+                   UnaryOp(Not, Name("b", dummy_uid, None), dummy_uid, None);
                  ],
-                 dummy_uid);
+                 dummy_uid, None);
         ],
-        dummy_uid
-      )
+        dummy_uid, None)
     )
    ;;
 *)
@@ -236,14 +237,13 @@ let var_assign_test = gen_module_test "var_assign_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        SimpleExpr(Num(Int(Pos), dummy_uid), dummy_uid),
-        dummy_uid
-      );
+        SimpleExpr(Num(Int(Pos), dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
+
       Assign(
         "x",
-        SimpleExpr(Name("$simplified_unique_name_0", dummy_uid), dummy_uid),
-        dummy_uid
-      )
+        SimpleExpr(Name("$simplified_unique_name_0", dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
@@ -252,19 +252,18 @@ let var_double_assign_test = gen_module_test "var_double_assign_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        SimpleExpr(Num(Int(Pos), dummy_uid), dummy_uid),
-        dummy_uid
-      );
+        SimpleExpr(Num(Int(Pos), dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
+
       Assign(
         "x",
-        SimpleExpr(Name("$simplified_unique_name_0", dummy_uid), dummy_uid),
-        dummy_uid
-      );
+        SimpleExpr(Name("$simplified_unique_name_0", dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
+
       Assign(
         "y",
-        SimpleExpr(Name("$simplified_unique_name_0", dummy_uid), dummy_uid),
-        dummy_uid
-      )
+        SimpleExpr(Name("$simplified_unique_name_0", dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
@@ -274,74 +273,73 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
       Assign(
         "$normalized_unique_name_0",
         Call(
-          Name("f", dummy_uid),
-          [Num(Int(Neg), dummy_uid)],
-          dummy_uid),
-        dummy_uid);
+          Name("f", dummy_uid, None),
+          [Num(Int(Neg), dummy_uid, None)],
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         Tuple(
           [
-            Num(Int(Neg), dummy_uid);
-            Name("$normalized_unique_name_0", dummy_uid);
+            Num(Int(Neg), dummy_uid, None);
+            Name("$normalized_unique_name_0", dummy_uid, None);
           ],
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$simplified_unique_name_0",
-        SimpleExpr(Name("$normalized_unique_name_1", dummy_uid),
-                   dummy_uid),
-        dummy_uid);
+        SimpleExpr(Name("$normalized_unique_name_1", dummy_uid, None),
+                   dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         Attribute(
-          Name("$simplified_unique_name_0", dummy_uid),
+          Name("$simplified_unique_name_0", dummy_uid, None),
           "__iter__",
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_3",
         Call(
-          Name("$normalized_unique_name_2", dummy_uid),
+          Name("$normalized_unique_name_2", dummy_uid, None),
           [],
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_4",
         Attribute(
-          Name("$normalized_unique_name_3", dummy_uid),
+          Name("$normalized_unique_name_3", dummy_uid, None),
           "next",
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$simplified_unique_name_1",
-        SimpleExpr(Name("$normalized_unique_name_4", dummy_uid),
-                   dummy_uid),
-        dummy_uid);
+        SimpleExpr(Name("$normalized_unique_name_4", dummy_uid, None),
+                   dummy_uid, None),
+        dummy_uid, None);
 
       (* TODO
          TryExcept(
          [
           Assign(
             "$simplified_unique_name_2",
-            Call(Name("$simplified_unique_name_1", dummy_uid), [], dummy_uid),
-            dummy_uid);
+            Call(Name("$simplified_unique_name_1", dummy_uid, None), [], dummy_uid, None),
+            dummy_uid, None);
           Assign(
             "$simplified_unique_name_3",
-            Call(Name("$simplified_unique_name_1", dummy_uid), [], dummy_uid),
-            dummy_uid);
+            Call(Name("$simplified_unique_name_1", dummy_uid, None), [], dummy_uid, None),
+            dummy_uid, None);
           TryExcept(
             [
               Expr(
-                Call(Name("$simplified_unique_name_1", dummy_uid), [], dummy_uid),
-                dummy_uid
-              );
+                Call(Name("$simplified_unique_name_1", dummy_uid, None), [], dummy_uid, None),
+                dummy_uid, None);
               Raise(
                 Call(
                   Name("ValueError", annot),
@@ -351,19 +349,17 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                 annot);
             ],
             [ExceptHandler(
-                Some(Name("StopIteration", dummy_uid)),
+                Some(Name("StopIteration", dummy_uid, None)),
                 None,
                 [
-                  Pass(dummy_uid)
+                  Pass(dummy_uid, None)
                 ],
-                dummy_uid
-              )
+                dummy_uid, None)
             ],
-            dummy_uid
-          )
+            dummy_uid, None)
          ],
          [ExceptHandler(
-            Some(Name("StopIteration", dummy_uid)),
+            Some(Name("StopIteration", dummy_uid, None)),
             None,
             [
             Raise(
@@ -374,33 +370,32 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                 annot),
               annot);
             ],
-            dummy_uid
-          )],
-         dummy_uid);
+            dummy_uid, None)],
+         dummy_uid, None);
       *)
       Assign(
         "$simplified_unique_name_4",
-        SimpleExpr(Name("$simplified_unique_name_2", dummy_uid),
-                   dummy_uid),
-        dummy_uid);
+        SimpleExpr(Name("$simplified_unique_name_2", dummy_uid, None),
+                   dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "i",
-        SimpleExpr(Name("$simplified_unique_name_4", dummy_uid),
-                   dummy_uid),
-        dummy_uid);
+        SimpleExpr(Name("$simplified_unique_name_4", dummy_uid, None),
+                   dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$simplified_unique_name_5",
-        SimpleExpr(Name("$simplified_unique_name_3", dummy_uid),
-                   dummy_uid),
-        dummy_uid);
+        SimpleExpr(Name("$simplified_unique_name_3", dummy_uid, None),
+                   dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "j",
-        SimpleExpr(Name("$simplified_unique_name_5", dummy_uid),
-                   dummy_uid),
-        dummy_uid);
+        SimpleExpr(Name("$simplified_unique_name_5", dummy_uid, None),
+                   dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
@@ -409,42 +404,40 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        SimpleExpr(Num(Int(Pos), dummy_uid), dummy_uid),
-        dummy_uid);
+        SimpleExpr(Num(Int(Pos), dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_0",
         Attribute(
-          Name("list", dummy_uid),
+          Name("list", dummy_uid, None),
           "__setitem__",
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         BinOp(
-          Num(Int(Pos), dummy_uid),
+          Num(Int(Pos), dummy_uid, None),
           Add,
-          Num(Int(Pos), dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Num(Int(Pos), dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         Call(
-          Name("$normalized_unique_name_0", dummy_uid),
+          Name("$normalized_unique_name_0", dummy_uid, None),
           [
-            Name("$normalized_unique_name_1", dummy_uid);
-            Name("$simplified_unique_name_0", dummy_uid);
+            Name("$normalized_unique_name_1", dummy_uid, None);
+            Name("$simplified_unique_name_0", dummy_uid, None);
           ],
-          dummy_uid
-        ),
-        dummy_uid
-      );
+          dummy_uid, None),
+        dummy_uid, None);
 
       SimpleExprStmt(
-        Name("$normalized_unique_name_2", dummy_uid),
-        dummy_uid);
+        Name("$normalized_unique_name_2", dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
@@ -453,46 +446,43 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        SimpleExpr(Num(Int(Pos), dummy_uid), dummy_uid),
-        dummy_uid);
+        SimpleExpr(Num(Int(Pos), dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_0",
         Attribute(
-          Name("list", dummy_uid),
+          Name("list", dummy_uid, None),
           "__setitem__",
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         Call(
-          Name("slice", dummy_uid),
+          Name("slice", dummy_uid, None),
           [
-            Num(Int(Pos), dummy_uid);
-            Num(Int(Pos), dummy_uid);
-            Name("None", dummy_uid);
+            Num(Int(Pos), dummy_uid, None);
+            Num(Int(Pos), dummy_uid, None);
+            Name("None", dummy_uid, None);
           ],
-          dummy_uid
-        ),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         Call(
-          Name("$normalized_unique_name_0", dummy_uid),
+          Name("$normalized_unique_name_0", dummy_uid, None),
           [
-            Name("$normalized_unique_name_1", dummy_uid);
-            Name("$simplified_unique_name_0", dummy_uid);
+            Name("$normalized_unique_name_1", dummy_uid, None);
+            Name("$simplified_unique_name_0", dummy_uid, None);
           ],
-          dummy_uid
-        ),
-        dummy_uid
-      );
+          dummy_uid, None),
+        dummy_uid, None);
 
       SimpleExprStmt(
-        Name("$normalized_unique_name_2", dummy_uid),
-        dummy_uid);
+        Name("$normalized_unique_name_2", dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
@@ -501,33 +491,30 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        SimpleExpr(Num(Int(Pos), dummy_uid), dummy_uid),
-        dummy_uid);
+        SimpleExpr(Num(Int(Pos), dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_0",
         Attribute(
-          Name("obj", dummy_uid),
+          Name("obj", dummy_uid, None),
           "__setattr__",
-          dummy_uid
-        ),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         Call(
-          Name("$normalized_unique_name_0", dummy_uid),
+          Name("$normalized_unique_name_0", dummy_uid, None),
           [
-            Str(StringLiteral("member"), dummy_uid);
-            Name("$simplified_unique_name_0", dummy_uid);
+            Str(StringLiteral("member"), dummy_uid, None);
+            Name("$simplified_unique_name_0", dummy_uid, None);
           ],
-          dummy_uid
-        ),
-        dummy_uid
-      );
+          dummy_uid, None),
+        dummy_uid, None);
 
-      SimpleExprStmt(Name("$normalized_unique_name_1", dummy_uid),
-                     dummy_uid);
+      SimpleExprStmt(Name("$normalized_unique_name_1", dummy_uid, None),
+                     dummy_uid, None);
 
     ]
 ;;
@@ -537,104 +524,96 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
     [
       Assign(
         "$normalized_unique_name_0",
-        BinOp(Name("x", dummy_uid),
+        BinOp(Name("x", dummy_uid, None),
               Mult,
-              Num(Int(Neg), dummy_uid),
-              dummy_uid
-             ),
-        dummy_uid
-      );
+              Num(Int(Neg), dummy_uid, None),
+              dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$simplified_unique_name_0",
-        SimpleExpr(Name("$normalized_unique_name_0", dummy_uid), dummy_uid),
-        dummy_uid
-      );
+        SimpleExpr(Name("$normalized_unique_name_0", dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "x",
-        SimpleExpr(Name("$simplified_unique_name_0", dummy_uid), dummy_uid),
-        dummy_uid
-      )
+        SimpleExpr(Name("$simplified_unique_name_0", dummy_uid, None), dummy_uid, None),
+        dummy_uid, None)
     ]
 ;;
 
 let var_cmp_test = gen_module_test "var_cmp_test"
     "x <= 9000+1 > True"
     [
-      If(Bool(true, dummy_uid),
+      If(Bool(true, dummy_uid, None),
          [
            Assign(
              "$normalized_unique_name_0",
              BinOp(
-               Num(Int(Pos), dummy_uid),
+               Num(Int(Pos), dummy_uid, None),
                Add,
-               Num(Int(Pos), dummy_uid),
-               dummy_uid),
-             dummy_uid);
+               Num(Int(Pos), dummy_uid, None),
+               dummy_uid, None),
+             dummy_uid, None);
 
            Assign(
              "$normalized_unique_name_1",
              Compare(
-               Name("x", dummy_uid),
+               Name("x", dummy_uid, None),
                LtE,
-               Name("$normalized_unique_name_0", dummy_uid),
-               dummy_uid
-             ),
-             dummy_uid)
+               Name("$normalized_unique_name_0", dummy_uid, None),
+               dummy_uid, None),
+             dummy_uid, None)
          ],
          [
            Assign(
              "$normalized_unique_name_1",
-             SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-             dummy_uid)
+             SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+             dummy_uid, None)
          ],
-         dummy_uid);
+         dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         BoolOp(
-          Bool(true, dummy_uid),
+          Bool(true, dummy_uid, None),
           And,
-          Name("$normalized_unique_name_1", dummy_uid),
-          dummy_uid),
-        dummy_uid
-      );
+          Name("$normalized_unique_name_1", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       If(
-        Name("$normalized_unique_name_2", dummy_uid),
+        Name("$normalized_unique_name_2", dummy_uid, None),
         [
           Assign(
             "$normalized_unique_name_3",
             Compare(
-              Name("$normalized_unique_name_0", dummy_uid),
+              Name("$normalized_unique_name_0", dummy_uid, None),
               Gt,
-              Bool(true, dummy_uid),
-              dummy_uid
-            ),
-            dummy_uid)
+              Bool(true, dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None)
         ],
         [
           Assign(
             "$normalized_unique_name_3",
-            SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-            dummy_uid)
+            SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+            dummy_uid, None)
         ],
-        dummy_uid);
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_4",
         BoolOp(
-          Name("$normalized_unique_name_2", dummy_uid),
+          Name("$normalized_unique_name_2", dummy_uid, None),
           And,
-          Name("$normalized_unique_name_3", dummy_uid),
-          dummy_uid),
-        dummy_uid
-      );
+          Name("$normalized_unique_name_3", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       SimpleExprStmt(
-        Name("$normalized_unique_name_4", dummy_uid),
-        dummy_uid);
+        Name("$normalized_unique_name_4", dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
@@ -647,10 +626,10 @@ let funcdef_test = gen_module_test "funcdef_test"
                     "arg2";
                   ],
                   [ (* Body *)
-                    Return(Some(Name("arg1", dummy_uid)),
-                           dummy_uid)
+                    Return(Some(Name("arg1", dummy_uid, None)),
+                           dummy_uid, None)
                   ],
-                  dummy_uid)
+                  dummy_uid, None)
     ]
 ;;
 
@@ -660,40 +639,35 @@ let call_test = gen_module_test "call_test"
       Assign(
         "$normalized_unique_name_0",
         BinOp(
-          Name("x", dummy_uid),
+          Name("x", dummy_uid, None),
           Sub,
-          Num(Int(Pos), dummy_uid),
-          dummy_uid
-        ),
-        dummy_uid
-      );
+          Num(Int(Pos), dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         Call(
-          Name("get_arg", dummy_uid),
-          [Str(StringLiteral("foo"), dummy_uid)],
-          dummy_uid
-        ),
-        dummy_uid
-      );
+          Name("get_arg", dummy_uid, None),
+          [Str(StringLiteral("foo"), dummy_uid, None)],
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         Call(
-          Name("func", dummy_uid),
+          Name("func", dummy_uid, None),
           [
-            Num(Int(Pos), dummy_uid);
-            Name("$normalized_unique_name_0", dummy_uid);
-            Name("$normalized_unique_name_1", dummy_uid);
+            Num(Int(Pos), dummy_uid, None);
+            Name("$normalized_unique_name_0", dummy_uid, None);
+            Name("$normalized_unique_name_1", dummy_uid, None);
           ],
-          dummy_uid),
-        dummy_uid
-      );
+          dummy_uid, None),
+        dummy_uid, None);
 
       SimpleExprStmt(
-        Name("$normalized_unique_name_2", dummy_uid),
-        dummy_uid);
+        Name("$normalized_unique_name_2", dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
@@ -703,14 +677,14 @@ let attribute_test = gen_module_test "attribute_test"
       Assign(
         "$normalized_unique_name_0",
         Attribute(
-          Name("obj", dummy_uid),
+          Name("obj", dummy_uid, None),
           "member_var",
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       SimpleExprStmt(
-        Name("$normalized_unique_name_0", dummy_uid),
-        dummy_uid);
+        Name("$normalized_unique_name_0", dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
@@ -720,22 +694,22 @@ let attribute_call_test = gen_module_test "attribute_call_test"
       Assign(
         "$normalized_unique_name_0",
         Attribute(
-          Name("obj", dummy_uid),
+          Name("obj", dummy_uid, None),
           "member_func",
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         Call(
-          Name("$normalized_unique_name_0", dummy_uid),
+          Name("$normalized_unique_name_0", dummy_uid, None),
           [],
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       SimpleExprStmt(
-        Name("$normalized_unique_name_1", dummy_uid),
-        dummy_uid);
+        Name("$normalized_unique_name_1", dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
@@ -743,120 +717,119 @@ let if_test = gen_module_test "if_test"
     "if x > 1+1:\n\tx = foo()\nelif x < 0.0: error('x < 0')\nelse: pass"
     [
       If(
-        Bool(true, dummy_uid),
+        Bool(true, dummy_uid, None),
         [
           Assign(
             "$normalized_unique_name_0",
             BinOp(
-              Num(Int(Pos), dummy_uid),
+              Num(Int(Pos), dummy_uid, None),
               Add,
-              Num(Int(Pos), dummy_uid),
-              dummy_uid),
-            dummy_uid);
+              Num(Int(Pos), dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None);
 
           Assign(
             "$normalized_unique_name_1",
             Compare(
-              Name("x", dummy_uid),
+              Name("x", dummy_uid, None),
               Gt,
-              Name("$normalized_unique_name_0", dummy_uid),
-              dummy_uid),
-            dummy_uid);
+              Name("$normalized_unique_name_0", dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None);
         ],
         [
           Assign(
             "$normalized_unique_name_1",
-            SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-            dummy_uid);
+            SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+            dummy_uid, None);
         ],
-        dummy_uid);
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         BoolOp(
-          Bool(true, dummy_uid),
+          Bool(true, dummy_uid, None),
           And,
-          Name("$normalized_unique_name_1", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_1", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       If(
-        Name("$normalized_unique_name_2", dummy_uid),
+        Name("$normalized_unique_name_2", dummy_uid, None),
         [
           Assign(
             "$normalized_unique_name_3",
             Call(
-              Name("foo", dummy_uid),
+              Name("foo", dummy_uid, None),
               [],
-              dummy_uid),
-            dummy_uid);
+              dummy_uid, None),
+            dummy_uid, None);
 
           Assign(
             "$simplified_unique_name_0",
             SimpleExpr(
-              Name("$normalized_unique_name_3", dummy_uid),
-              dummy_uid),
-            dummy_uid);
+              Name("$normalized_unique_name_3", dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None);
 
           Assign(
             "x",
             SimpleExpr(
-              Name("$simplified_unique_name_0", dummy_uid),
-              dummy_uid),
-            dummy_uid);
+              Name("$simplified_unique_name_0", dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None);
         ],
         [
           If( (* Computing x < 0.0 *)
-            Bool(true, dummy_uid),
+            Bool(true, dummy_uid, None),
             [
               Assign(
                 "$normalized_unique_name_4",
                 Compare(
-                  Name("x", dummy_uid),
+                  Name("x", dummy_uid, None),
                   Lt,
-                  Num(Float(Zero), dummy_uid),
-                  dummy_uid),
-                dummy_uid);
+                  Num(Float(Zero), dummy_uid, None),
+                  dummy_uid, None),
+                dummy_uid, None);
             ],
             [
               Assign(
                 "$normalized_unique_name_4",
-                SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-                dummy_uid);
+                SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+                dummy_uid, None);
             ],
-            dummy_uid);
+            dummy_uid, None);
 
           Assign(
             "$normalized_unique_name_5",
             BoolOp(
-              Bool(true, dummy_uid),
+              Bool(true, dummy_uid, None),
               And,
-              Name("$normalized_unique_name_4", dummy_uid),
-              dummy_uid),
-            dummy_uid);
+              Name("$normalized_unique_name_4", dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None);
 
           If( (* Elif stmt *)
-            Name("$normalized_unique_name_5", dummy_uid),
+            Name("$normalized_unique_name_5", dummy_uid, None),
             [
               Assign(
                 "$normalized_unique_name_6",
                 Call(
-                  Name("error", dummy_uid),
-                  [Str(StringLiteral("x < 0"), dummy_uid)],
-                  dummy_uid),
-                dummy_uid);
+                  Name("error", dummy_uid, None),
+                  [Str(StringLiteral("x < 0"), dummy_uid, None)],
+                  dummy_uid, None),
+                dummy_uid, None);
 
               SimpleExprStmt(
-                Name("$normalized_unique_name_6", dummy_uid),
-                dummy_uid);
+                Name("$normalized_unique_name_6", dummy_uid, None),
+                dummy_uid, None);
             ],
             [
-              Pass(dummy_uid);
+              Pass(dummy_uid, None);
             ],
-            dummy_uid)
+            dummy_uid, None)
         ],
-        dummy_uid
-      )
+        dummy_uid, None)
     ]
 ;;
 
@@ -866,28 +839,28 @@ let print_test = gen_module_test "print_test"
       Assign(
         "$normalized_unique_name_0",
         BinOp(
-          Num(Int(Pos), dummy_uid),
+          Num(Int(Pos), dummy_uid, None),
           Add,
-          Num(Int(Pos), dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Num(Int(Pos), dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         Call(
-          Name("x", dummy_uid),
-          [Name("$normalized_unique_name_0", dummy_uid)],
-          dummy_uid),
-        dummy_uid);
+          Name("x", dummy_uid, None),
+          [Name("$normalized_unique_name_0", dummy_uid, None)],
+          dummy_uid, None),
+        dummy_uid, None);
 
       Print(None,
             [
-              Num(Int(Pos), dummy_uid);
-              Name("$normalized_unique_name_1", dummy_uid);
-              Str(StringLiteral("foo"),dummy_uid);
+              Num(Int(Pos), dummy_uid, None);
+              Name("$normalized_unique_name_1", dummy_uid, None);
+              Str(StringLiteral("foo"),dummy_uid, None);
             ],
             true,
-            dummy_uid)
+            dummy_uid, None)
     ]
 ;;
 
@@ -897,125 +870,123 @@ let tuple_test = gen_module_test "tuple_test"
       Assign( (* 1+1 *)
         "$normalized_unique_name_0",
         BinOp(
-          Num(Int(Pos), dummy_uid),
+          Num(Int(Pos), dummy_uid, None),
           Add,
-          Num(Int(Pos), dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Num(Int(Pos), dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign( (* f(2) *)
         "$normalized_unique_name_1",
         Call(
-          Name("f", dummy_uid),
-          [Num(Int(Pos), dummy_uid)],
-          dummy_uid),
-        dummy_uid);
+          Name("f", dummy_uid, None),
+          [Num(Int(Pos), dummy_uid, None)],
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign( (* (2, f(2)) *)
         "$normalized_unique_name_2",
         Tuple(
           [
-            Num(Int(Pos), dummy_uid);
-            Name("$normalized_unique_name_1", dummy_uid);
+            Num(Int(Pos), dummy_uid, None);
+            Name("$normalized_unique_name_1", dummy_uid, None);
           ],
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_3",
         Tuple(
           [
-            Num(Int(Pos), dummy_uid);
-            Name("$normalized_unique_name_0", dummy_uid);
-            Name("$normalized_unique_name_2", dummy_uid);
-            Str(StringLiteral("foo"), dummy_uid);
+            Num(Int(Pos), dummy_uid, None);
+            Name("$normalized_unique_name_0", dummy_uid, None);
+            Name("$normalized_unique_name_2", dummy_uid, None);
+            Str(StringLiteral("foo"), dummy_uid, None);
           ],
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       SimpleExprStmt(
-        Name("$normalized_unique_name_3", dummy_uid),
-        dummy_uid);
+        Name("$normalized_unique_name_3", dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
 let while_test = gen_module_test "while_test"
     "while x < 9001:\n\tx = x+1"
     [
-      Pass(dummy_uid);
+      Pass(dummy_uid, None);
 
       If(
-        Bool(true, dummy_uid),
+        Bool(true, dummy_uid, None),
         [
           Assign(
             "$normalized_unique_name_0",
             Compare(
-              Name("x", dummy_uid),
+              Name("x", dummy_uid, None),
               Lt,
-              Num(Int(Pos), dummy_uid),
-              dummy_uid),
-            dummy_uid);
+              Num(Int(Pos), dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None);
         ],
         [
           Assign(
             "$normalized_unique_name_0",
-            SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-            dummy_uid);
+            SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+            dummy_uid, None);
         ],
-        dummy_uid);
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         BoolOp(
-          Bool(true, dummy_uid),
+          Bool(true, dummy_uid, None),
           And,
-          Name("$normalized_unique_name_0", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_0", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         UnaryOp(
           Not,
-          Name("$normalized_unique_name_1", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_1", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       If(
-        Name("$normalized_unique_name_2", dummy_uid),
+        Name("$normalized_unique_name_2", dummy_uid, None),
         [
-          Goto(dummy_uid, dummy_uid);
+          Goto(dummy_uid, dummy_uid, None);
         ],
         [],
-        dummy_uid
-      );
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_3",
-        BinOp(Name("x", dummy_uid),
+        BinOp(Name("x", dummy_uid, None),
               Add,
-              Num(Int(Pos), dummy_uid),
-              dummy_uid
-             ),
-        dummy_uid);
+              Num(Int(Pos), dummy_uid, None),
+              dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$simplified_unique_name_0",
         SimpleExpr(
-          Name("$normalized_unique_name_3", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_3", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "x",
         SimpleExpr(
-          Name("$simplified_unique_name_0", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$simplified_unique_name_0", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
-      Goto(dummy_uid, dummy_uid);
+      Goto(dummy_uid, dummy_uid, None);
 
-      Pass(dummy_uid);
+      Pass(dummy_uid, None);
     ]
 ;;
 
@@ -1025,190 +996,183 @@ let for_test = gen_module_test "for_test"
       Assign(
         "$normalized_unique_name_0",
         Attribute(
-          Name("list", dummy_uid),
+          Name("list", dummy_uid, None),
           "__iter__",
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         Call(
-          Name("$normalized_unique_name_0", dummy_uid),
+          Name("$normalized_unique_name_0", dummy_uid, None),
           [],
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         Attribute(
-          Name("$normalized_unique_name_1", dummy_uid),
+          Name("$normalized_unique_name_1", dummy_uid, None),
           "next",
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$simplified_unique_name_1",
         SimpleExpr(
-          Name("$normalized_unique_name_2", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_2", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$simplified_unique_name_0",
         SimpleExpr(
-          Name("$simplified_unique_name_1", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$simplified_unique_name_1", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       (* TODO
          TryExcept(
          [
           While(
-            Bool(true, dummy_uid),
+            Bool(true, dummy_uid, None),
             [
               Assign(
                 "$simplified_unique_name_2",
-                Call(Name("$simplified_unique_name_0", dummy_uid), [], dummy_uid),
-                dummy_uid
-              );
+                Call(Name("$simplified_unique_name_0", dummy_uid, None), [], dummy_uid, None),
+                dummy_uid, None);
               Assign(
                 "i",
-                Name("$simplified_unique_name_2", dummy_uid),
-                dummy_uid
-              );
-              Expr(Call(Name("f", dummy_uid), [Name("i", dummy_uid)], dummy_uid), dummy_uid);
+                Name("$simplified_unique_name_2", dummy_uid, None),
+                dummy_uid, None);
+              Expr(Call(Name("f", dummy_uid, None), [Name("i", dummy_uid, None)], dummy_uid, None), dummy_uid, None);
             ],
-            dummy_uid
-          )
+            dummy_uid, None)
          ],
          [
           ExceptHandler(
-            Some(Name("StopIteration", dummy_uid)),
+            Some(Name("StopIteration", dummy_uid, None)),
             None,
-            [Pass(dummy_uid)],
-            dummy_uid
-          )
+            [Pass(dummy_uid, None)],
+            dummy_uid, None)
          ],
-         dummy_uid
-         )*)
+         dummy_uid, None)*)
     ]
 ;;
 
 let break_test = gen_module_test "break_test"
     "while x < 9001:\n\tbreak"
     [
-      Pass(dummy_uid);
+      Pass(dummy_uid, None);
 
       If(
-        Bool(true, dummy_uid),
+        Bool(true, dummy_uid, None),
         [
           Assign(
             "$normalized_unique_name_0",
             Compare(
-              Name("x", dummy_uid),
+              Name("x", dummy_uid, None),
               Lt,
-              Num(Int(Pos), dummy_uid),
-              dummy_uid),
-            dummy_uid);
+              Num(Int(Pos), dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None);
         ],
         [
           Assign(
             "$normalized_unique_name_0",
-            SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-            dummy_uid);
+            SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+            dummy_uid, None);
         ],
-        dummy_uid);
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         BoolOp(
-          Bool(true, dummy_uid),
+          Bool(true, dummy_uid, None),
           And,
-          Name("$normalized_unique_name_0", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_0", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         UnaryOp(
           Not,
-          Name("$normalized_unique_name_1", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_1", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       If(
-        Name("$normalized_unique_name_2", dummy_uid),
+        Name("$normalized_unique_name_2", dummy_uid, None),
         [
-          Goto(dummy_uid, dummy_uid);
+          Goto(dummy_uid, dummy_uid, None);
         ],
         [],
-        dummy_uid
-      );
+        dummy_uid, None);
 
-      Goto(dummy_uid, dummy_uid);
+      Goto(dummy_uid, dummy_uid, None);
 
-      Goto(dummy_uid, dummy_uid);
+      Goto(dummy_uid, dummy_uid, None);
 
-      Pass(dummy_uid);
+      Pass(dummy_uid, None);
     ]
 ;;
 
 let continue_test = gen_module_test "continue_test"
     "while x < 9001:\n\tcontinue"
     [
-      Pass(dummy_uid);
+      Pass(dummy_uid, None);
 
       If(
-        Bool(true, dummy_uid),
+        Bool(true, dummy_uid, None),
         [
           Assign(
             "$normalized_unique_name_0",
             Compare(
-              Name("x", dummy_uid),
+              Name("x", dummy_uid, None),
               Lt,
-              Num(Int(Pos), dummy_uid),
-              dummy_uid),
-            dummy_uid);
+              Num(Int(Pos), dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None);
         ],
         [
           Assign(
             "$normalized_unique_name_0",
-            SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-            dummy_uid);
+            SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+            dummy_uid, None);
         ],
-        dummy_uid);
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         BoolOp(
-          Bool(true, dummy_uid),
+          Bool(true, dummy_uid, None),
           And,
-          Name("$normalized_unique_name_0", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_0", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         UnaryOp(
           Not,
-          Name("$normalized_unique_name_1", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_1", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       If(
-        Name("$normalized_unique_name_2", dummy_uid),
+        Name("$normalized_unique_name_2", dummy_uid, None),
         [
-          Goto(dummy_uid, dummy_uid);
+          Goto(dummy_uid, dummy_uid, None);
         ],
         [],
-        dummy_uid
-      );
+        dummy_uid, None);
 
-      Goto(dummy_uid, dummy_uid);
+      Goto(dummy_uid, dummy_uid, None);
 
-      Goto(dummy_uid, dummy_uid);
+      Goto(dummy_uid, dummy_uid, None);
 
-      Pass(dummy_uid);
+      Pass(dummy_uid, None);
     ]
 ;;
 
@@ -1225,8 +1189,8 @@ let bad_continue_test = expect_error_test "bad_continue_test"
 let raise_test = gen_module_test "raise_test"
     "raise ValueError"
     [Raise(
-        Name("ValueError", dummy_uid),
-        dummy_uid)]
+        Name("ValueError", dummy_uid, None),
+        dummy_uid, None)]
 ;;
 
 (*
@@ -1247,36 +1211,36 @@ let try_test = gen_module_test "try_test"
         [
           Assign(
             "$unique_name_0",
-            Num(Int(Pos), dummy_uid),
-            dummy_uid);
+            Num(Int(Pos), dummy_uid, None),
+            dummy_uid, None);
           Assign(
             "x",
-            Name("$unique_name_0", dummy_uid),
-            dummy_uid)
+            Name("$unique_name_0", dummy_uid, None),
+            dummy_uid, None)
         ],
         [
           ExceptHandler(
-            Some(Name("ValueError", dummy_uid)),
+            Some(Name("ValueError", dummy_uid, None)),
             None,
             [
               Print(None,
-                    [Str (StringLiteral("Error"), dummy_uid)],
+                    [Str (StringLiteral("Error"), dummy_uid, None)],
                     true,
-                    dummy_uid)
+                    dummy_uid, None)
             ],
-            dummy_uid);
+            dummy_uid, None);
           ExceptHandler(
-            Some(Name("StopIteration", dummy_uid)),
+            Some(Name("StopIteration", dummy_uid, None)),
             Some("e"),
             [
               Print (None,
-                     [Str(StringLiteral("Other Error"),dummy_uid)],
+                     [Str(StringLiteral("Other Error"),dummy_uid, None)],
                      true,
-                     dummy_uid)
+                     dummy_uid, None)
             ],
-            dummy_uid)
+            dummy_uid, None)
         ],
-        dummy_uid)
+        dummy_uid, None)
     ]
 ;;
 *)
@@ -1299,125 +1263,122 @@ let triangle_ast =
     [ (* Body *)
       Assign(
         "$simplified_unique_name_0",
-        SimpleExpr(Num(Int(Zero), dummy_uid), dummy_uid),
-        dummy_uid);
+        SimpleExpr(Num(Int(Zero), dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "count",
-        SimpleExpr(Name("$simplified_unique_name_0", dummy_uid),
-                   dummy_uid),
-        dummy_uid);
+        SimpleExpr(Name("$simplified_unique_name_0", dummy_uid, None),
+                   dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$simplified_unique_name_1",
-        SimpleExpr(Num(Int(Zero), dummy_uid), dummy_uid),
-        dummy_uid);
+        SimpleExpr(Num(Int(Zero), dummy_uid, None), dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "i",
-        SimpleExpr(Name("$simplified_unique_name_1", dummy_uid),
-                   dummy_uid),
-        dummy_uid
-      );
+        SimpleExpr(Name("$simplified_unique_name_1", dummy_uid, None),
+                   dummy_uid, None),
+        dummy_uid, None);
 
-      Pass(dummy_uid);
+      Pass(dummy_uid, None);
 
       If(
-        Bool(true, dummy_uid),
+        Bool(true, dummy_uid, None),
         [
           Assign(
             "$normalized_unique_name_0",
             Compare(
-              Name("count", dummy_uid),
+              Name("count", dummy_uid, None),
               Lt,
-              Name("n", dummy_uid),
-              dummy_uid),
-            dummy_uid);
+              Name("n", dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None);
         ],
         [
           Assign(
             "$normalized_unique_name_0",
-            SimpleExpr(Bool(false, dummy_uid), dummy_uid),
-            dummy_uid);
+            SimpleExpr(Bool(false, dummy_uid, None), dummy_uid, None),
+            dummy_uid, None);
         ],
-        dummy_uid);
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         BoolOp(
-          Bool(true, dummy_uid),
+          Bool(true, dummy_uid, None),
           And,
-          Name("$normalized_unique_name_0", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_0", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         UnaryOp(
           Not,
-          Name("$normalized_unique_name_1", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$normalized_unique_name_1", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       If(
-        Name("$normalized_unique_name_2", dummy_uid),
+        Name("$normalized_unique_name_2", dummy_uid, None),
         [
-          Goto(dummy_uid, dummy_uid);
+          Goto(dummy_uid, dummy_uid, None);
         ],
         [],
-        dummy_uid
-      );
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_3",
-        BinOp(Name("i", dummy_uid),
+        BinOp(Name("i", dummy_uid, None),
               Add,
-              Name("count", dummy_uid),
-              dummy_uid),
-        dummy_uid);
+              Name("count", dummy_uid, None),
+              dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$simplified_unique_name_2",
-        SimpleExpr(Name("$normalized_unique_name_3", dummy_uid),
-                   dummy_uid),
-        dummy_uid);
+        SimpleExpr(Name("$normalized_unique_name_3", dummy_uid, None),
+                   dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "i",
         SimpleExpr(
-          Name("$simplified_unique_name_2", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$simplified_unique_name_2", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_4",
-        BinOp(Name("count", dummy_uid),
+        BinOp(Name("count", dummy_uid, None),
               Add,
-              Num(Int(Pos), dummy_uid),
-              dummy_uid),
-        dummy_uid);
+              Num(Int(Pos), dummy_uid, None),
+              dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$simplified_unique_name_3",
-        SimpleExpr(Name("$normalized_unique_name_4", dummy_uid),
-                   dummy_uid),
-        dummy_uid);
+        SimpleExpr(Name("$normalized_unique_name_4", dummy_uid, None),
+                   dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "count",
         SimpleExpr(
-          Name("$simplified_unique_name_3", dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Name("$simplified_unique_name_3", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
-      Goto(dummy_uid, dummy_uid);
+      Goto(dummy_uid, dummy_uid, None);
 
-      Pass(dummy_uid);
+      Pass(dummy_uid, None);
 
-      Return(Some(Name("i", dummy_uid)), dummy_uid);
+      Return(Some(Name("i", dummy_uid, None)), dummy_uid, None);
     ],
-    dummy_uid
-  )
+    dummy_uid, None)
 ;;
 
 let big_test = gen_module_test "big_test"
@@ -1428,32 +1389,32 @@ let big_test = gen_module_test "big_test"
       Assign(
         "$normalized_unique_name_5",
         Call(
-          Name("triangle", dummy_uid),
-          [Num(Int(Pos), dummy_uid)],
-          dummy_uid),
-        dummy_uid);
+          Name("triangle", dummy_uid, None),
+          [Num(Int(Pos), dummy_uid, None)],
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_6",
         Call(
-          Name("triangle", dummy_uid),
-          [Num(Int(Pos), dummy_uid)],
-          dummy_uid),
-        dummy_uid);
+          Name("triangle", dummy_uid, None),
+          [Num(Int(Pos), dummy_uid, None)],
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_7",
         List(
           [
-            Name("$normalized_unique_name_5", dummy_uid);
-            Name("$normalized_unique_name_6", dummy_uid);
+            Name("$normalized_unique_name_5", dummy_uid, None);
+            Name("$normalized_unique_name_6", dummy_uid, None);
           ],
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
       SimpleExprStmt(
-        Name("$normalized_unique_name_7", dummy_uid),
-        dummy_uid);
+        Name("$normalized_unique_name_7", dummy_uid, None),
+        dummy_uid, None);
     ]
 ;;
 
@@ -1464,33 +1425,33 @@ let list_expr =
     Assign(
       "$normalized_unique_name_0",
       Call(
-        Name("f", dummy_uid),
-        [Num(Int(Pos), dummy_uid)],
-        dummy_uid),
-      dummy_uid);
+        Name("f", dummy_uid, None),
+        [Num(Int(Pos), dummy_uid, None)],
+        dummy_uid, None),
+      dummy_uid, None);
 
     Assign(
       "$normalized_unique_name_1",
       BinOp(
-        Num(Int(Pos), dummy_uid),
+        Num(Int(Pos), dummy_uid, None),
         Add,
-        Num(Int(Pos), dummy_uid),
-        dummy_uid),
-      dummy_uid);
+        Num(Int(Pos), dummy_uid, None),
+        dummy_uid, None),
+      dummy_uid, None);
 
     Assign(
       "$normalized_unique_name_2",
       List(
         [
-          Num(Int(Pos),dummy_uid);
-          Num(Int(Pos),dummy_uid);
-          Name("$normalized_unique_name_0", dummy_uid);
-          Str(StringLiteral("four"), dummy_uid);
-          Str(StringLiteral("five"), dummy_uid);
-          Name("$normalized_unique_name_1", dummy_uid);
+          Num(Int(Pos),dummy_uid, None);
+          Num(Int(Pos),dummy_uid, None);
+          Name("$normalized_unique_name_0", dummy_uid, None);
+          Str(StringLiteral("four"), dummy_uid, None);
+          Str(StringLiteral("five"), dummy_uid, None);
+          Name("$normalized_unique_name_1", dummy_uid, None);
         ],
-        dummy_uid),
-      dummy_uid);
+        dummy_uid, None),
+      dummy_uid, None);
   ]
 
 let list_test = gen_module_test "list_test"
@@ -1499,36 +1460,36 @@ let list_test = gen_module_test "list_test"
       Assign(
         "$normalized_unique_name_0",
         Call(
-          Name("f", dummy_uid),
-          [Num(Int(Pos), dummy_uid)],
-          dummy_uid),
-        dummy_uid);
+          Name("f", dummy_uid, None),
+          [Num(Int(Pos), dummy_uid, None)],
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_1",
         BinOp(
-          Num(Int(Pos), dummy_uid),
+          Num(Int(Pos), dummy_uid, None),
           Add,
-          Num(Int(Pos), dummy_uid),
-          dummy_uid),
-        dummy_uid);
+          Num(Int(Pos), dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
 
       Assign(
         "$normalized_unique_name_2",
         List(
           [
-            Num(Int(Pos),dummy_uid);
-            Num(Int(Pos),dummy_uid);
-            Name("$normalized_unique_name_0", dummy_uid);
-            Str(StringLiteral("four"), dummy_uid);
-            Str(StringLiteral("five"), dummy_uid);
-            Name("$normalized_unique_name_1", dummy_uid);
+            Num(Int(Pos),dummy_uid, None);
+            Num(Int(Pos),dummy_uid, None);
+            Name("$normalized_unique_name_0", dummy_uid, None);
+            Str(StringLiteral("four"), dummy_uid, None);
+            Str(StringLiteral("five"), dummy_uid, None);
+            Name("$normalized_unique_name_1", dummy_uid, None);
           ],
-          dummy_uid),
-        dummy_uid);
+          dummy_uid, None),
+        dummy_uid, None);
 
-      SimpleExprStmt(Name("$normalized_unique_name_2", dummy_uid),
-                     dummy_uid)
+      SimpleExprStmt(Name("$normalized_unique_name_2", dummy_uid, None),
+                     dummy_uid, None)
     ]
 ;;
 
@@ -1538,38 +1499,38 @@ let gen_binop_test (name : string) (prog : string)
   gen_module_test name prog
     [
       Assign("$normalized_unique_name_0",
-             BinOp(lhs, op, rhs, dummy_uid),
-             dummy_uid);
+             BinOp(lhs, op, rhs, dummy_uid, None),
+             dummy_uid, None);
 
-      SimpleExprStmt(Name("$normalized_unique_name_0", dummy_uid),
-                     dummy_uid);
+      SimpleExprStmt(Name("$normalized_unique_name_0", dummy_uid, None),
+                     dummy_uid, None);
     ]
 ;;
 
 let binop_tests =
   [
     (gen_binop_test "add_int_test" "42 + 9001"
-       (Num(Int(Pos), dummy_uid)) (Num(Int(Pos), dummy_uid)) Add);
+       (Num(Int(Pos), dummy_uid, None)) (Num(Int(Pos), dummy_uid, None)) Add);
     (gen_binop_test "add_float_test" "42.0 + 9001.75"
-       (Num(Float(Pos), dummy_uid)) (Num(Float(Pos), dummy_uid)) Add);
+       (Num(Float(Pos), dummy_uid, None)) (Num(Float(Pos), dummy_uid, None)) Add);
     (gen_binop_test "add_int_float_test" "42 + -9001.5"
-       (Num(Int(Pos), dummy_uid)) (Num(Float(Neg), dummy_uid)) Add);
+       (Num(Int(Pos), dummy_uid, None)) (Num(Float(Neg), dummy_uid, None)) Add);
 
     (gen_binop_test "add_str_test" "'foo' + 'bar'"
-       (Str(StringLiteral("foo"), dummy_uid)) (Str(StringLiteral("bar"), dummy_uid)) Add);
+       (Str(StringLiteral("foo"), dummy_uid, None)) (Str(StringLiteral("bar"), dummy_uid, None)) Add);
     (gen_binop_test "add_int_str_test" "42 + 'foo'"
-       (Num(Int(Pos), dummy_uid)) (Str(StringLiteral("foo"), dummy_uid)) Add);
+       (Num(Int(Pos), dummy_uid, None)) (Str(StringLiteral("foo"), dummy_uid, None)) Add);
 
     (gen_binop_test "sub_int_test" "42 - 9001"
-       (Num(Int(Pos), dummy_uid)) (Num(Int(Pos), dummy_uid)) Sub);
+       (Num(Int(Pos), dummy_uid, None)) (Num(Int(Pos), dummy_uid, None)) Sub);
     (gen_binop_test "mult_int_test" "42 * 9001"
-       (Num(Int(Pos), dummy_uid)) (Num(Int(Pos), dummy_uid)) Mult);
+       (Num(Int(Pos), dummy_uid, None)) (Num(Int(Pos), dummy_uid, None)) Mult);
     (gen_binop_test "div_int_test" "42 / 9001"
-       (Num(Int(Pos), dummy_uid)) (Num(Int(Pos), dummy_uid)) Div);
+       (Num(Int(Pos), dummy_uid, None)) (Num(Int(Pos), dummy_uid, None)) Div);
     (gen_binop_test "mod_int_test" "42 % 9001"
-       (Num(Int(Pos), dummy_uid)) (Num(Int(Pos), dummy_uid)) Mod);
+       (Num(Int(Pos), dummy_uid, None)) (Num(Int(Pos), dummy_uid, None)) Mod);
     (gen_binop_test "pow_int_test" "42 ** 9001"
-       (Num(Int(Pos), dummy_uid)) (Num(Int(Pos), dummy_uid)) Pow);
+       (Num(Int(Pos), dummy_uid, None)) (Num(Int(Pos), dummy_uid, None)) Pow);
   ]
 (* Run the tests *)
 
