@@ -268,55 +268,78 @@ let var_double_assign_test = gen_module_test "var_double_assign_test"
     ]
 ;;
 
-(*
-let assign_iterator obj num =
-  Assign(
-    "$unique_name_" ^ string_of_int num,
-    Attribute(
-      Call(
-        Attribute(
-          obj,
-          "__iter__",
-          dummy_uid
-        ),
-        [],
-        dummy_uid
-      ),
-      "next",
-      dummy_uid),
-    dummy_uid
-  )
-;;
-TODO: This
 let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
-    "i, j = (-1,0)"
+    "i, j = (-1,f(-1))"
     [
       Assign(
-        "$unique_name_0",
-        Tuple(
-          [
-            Num(Int(Neg), dummy_uid);
-            Num(Int(Zero), dummy_uid);
-          ],
+        "$normalized_unique_name_0",
+        Call(
+          Name("f", dummy_uid),
+          [Num(Int(Neg), dummy_uid)],
           dummy_uid),
         dummy_uid);
 
-      assign_iterator (Name("$unique_name_0", dummy_uid)) 1;
+        Assign(
+          "$normalized_unique_name_1",
+          Tuple(
+            [
+              Num(Int(Neg), dummy_uid);
+              Name("$normalized_unique_name_0", dummy_uid);
+            ],
+            dummy_uid),
+          dummy_uid);
 
-      TryExcept(
+      Assign(
+        "$simplified_unique_name_0",
+        SimpleExpr(Name("$normalized_unique_name_1", dummy_uid),
+                   dummy_uid),
+        dummy_uid);
+
+      Assign(
+        "$normalized_unique_name_2",
+        Attribute(
+          Name("$simplified_unique_name_0", dummy_uid),
+          "__iter__",
+          dummy_uid),
+        dummy_uid);
+
+      Assign(
+        "$normalized_unique_name_3",
+        Call(
+          Name("$normalized_unique_name_2", dummy_uid),
+          [],
+          dummy_uid),
+        dummy_uid);
+
+      Assign(
+        "$normalized_unique_name_4",
+        Attribute(
+          Name("$normalized_unique_name_3", dummy_uid),
+          "next",
+          dummy_uid),
+        dummy_uid);
+
+      Assign(
+        "$simplified_unique_name_1",
+        SimpleExpr(Name("$normalized_unique_name_4", dummy_uid),
+                   dummy_uid),
+        dummy_uid);
+
+      (* TODO
+        TryExcept(
         [
           Assign(
-            "$unique_name_2",
-            Call(Name("$unique_name_1", dummy_uid), [], dummy_uid),
+            "$simplified_unique_name_2",
+            Call(Name("$simplified_unique_name_1", dummy_uid), [], dummy_uid),
             dummy_uid);
           Assign(
-            "$unique_name_3",
-            Call(Name("$unique_name_1", dummy_uid), [], dummy_uid),
+            "$simplified_unique_name_3",
+            Call(Name("$simplified_unique_name_1", dummy_uid), [], dummy_uid),
             dummy_uid);
           TryExcept(
             [
               Expr(
-                Call(Name("$unique_name_1", dummy_uid), [], dummy_uid),
+                Call(Name("$simplified_unique_name_1", dummy_uid), [], dummy_uid),
                 dummy_uid
               );
               Raise(
@@ -349,25 +372,32 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
             dummy_uid
           )],
         dummy_uid);
+      *)
       Assign(
-        "$unique_name_4",
-        Name("$unique_name_2", dummy_uid),
+        "$simplified_unique_name_4",
+        SimpleExpr(Name("$simplified_unique_name_2", dummy_uid),
+                   dummy_uid),
         dummy_uid);
+
       Assign(
         "i",
-        Name("$unique_name_4", dummy_uid),
+        SimpleExpr(Name("$simplified_unique_name_4", dummy_uid),
+                   dummy_uid),
         dummy_uid);
+
       Assign(
-        "$unique_name_5",
-        Name("$unique_name_3", dummy_uid),
+        "$simplified_unique_name_5",
+        SimpleExpr(Name("$simplified_unique_name_3", dummy_uid),
+                   dummy_uid),
         dummy_uid);
+
       Assign(
         "j",
-        Name("$unique_name_5", dummy_uid),
+        SimpleExpr(Name("$simplified_unique_name_5", dummy_uid),
+                   dummy_uid),
         dummy_uid);
     ]
 ;;
-*)
 
 let assign_to_index_test = gen_module_test "assign_to_index_test"
     "list[1+2] = 3"
@@ -1551,7 +1581,7 @@ let binop_tests =
     (gen_binop_test "pow_int_test" "42 ** 9001"
        (Num(Int(Pos), dummy_uid)) (Num(Int(Pos), dummy_uid)) Pow);
   ]
-  (* Run the tests *)
+(* Run the tests *)
 
 let tests =
   "abstract_ast">:::
@@ -1580,7 +1610,7 @@ let tests =
     print_test;
     tuple_test;
     while_test;
-    for_test;
+    (* for_test; *) (* TODO *)
     break_test;
     continue_test;
     bad_break_test;
@@ -1592,4 +1622,4 @@ let tests =
     big_test;
     list_test;
   ]
-@ binop_tests
+  @ binop_tests
