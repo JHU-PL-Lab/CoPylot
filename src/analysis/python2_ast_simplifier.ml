@@ -164,11 +164,14 @@ and simplify_stmt
                      [],
                      annot),
                    annot);
+
                  Simplified.Raise(
-                   Some(Simplified.Name("ValueError", annot)),
-                   Some(Simplified.Str(
-                       Simplified.StringLiteral("too many values to unpack"),
-                       annot)),
+                   Simplified.Call(
+                     Simplified.Name("ValueError", annot),
+                     [Simplified.Str(
+                         Simplified.StringLiteral("too many values to unpack"),
+                         annot)],
+                     annot),
                    annot);
                ],
                [Simplified.ExceptHandler(
@@ -184,9 +187,14 @@ and simplify_stmt
                    Some(Simplified.Name("StopIteration", annot)),
                    None,
                    [
-                     Simplified.Raise(Some(Simplified.Name("ValueError", annot)),
-                                      Some(Simplified.Str(Simplified.StringAbstract, annot)),
-                                      annot)
+                     Simplified.Raise(
+                       Simplified.Call(
+                         Simplified.Name("ValueError", annot),
+                         [Simplified.Str(
+                             Simplified.StringAbstract,
+                             annot)],
+                         annot),
+                       annot);
                    ],
                    annot)],
                annot) in
@@ -337,11 +345,13 @@ and simplify_stmt
                    map_and_concat simplify_stmt orelse,
                    annot)]
 
-  | Abstract.Raise (typ, value, _, annot) ->
-    [Simplified.Raise(
-        simplify_expr_option typ,
-        simplify_expr_option value,
-        annot)]
+  | Abstract.Raise (typ, _, _, annot) ->
+    let simplified_typ =
+      match typ with
+      | None -> failwith "Raise must have exactly one argument"
+      | Some(e) -> simplify_expr e
+    in
+    [Simplified.Raise(simplified_typ, annot)]
 
   | Abstract.TryExcept (body, handlers, _, annot) ->
     [Simplified.TryExcept (

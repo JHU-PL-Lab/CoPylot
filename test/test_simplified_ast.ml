@@ -250,9 +250,11 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                 annot
               );
               Raise(
-                Some(Name("ValueError", annot)),
-                Some(Str(StringLiteral("too many values to unpack"),
-                         annot)),
+                Call(
+                  Name("ValueError", annot),
+                  [Str(StringLiteral("too many values to unpack"),
+                       annot)],
+                  annot),
                 annot);
             ],
             [ExceptHandler(
@@ -272,9 +274,12 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
             None,
             [
               Raise(
-                Some(Name("ValueError", annot)),
-                Some(Str(StringAbstract, annot)),
-                annot)
+                Call(
+                  Name("ValueError", annot),
+                  [Str(StringAbstract,
+                       annot)],
+                  annot),
+                annot);
             ],
             annot
           )],
@@ -710,24 +715,10 @@ let continue_test = gen_module_test "continue_test"
     ]
 ;;
 
-let raise_test_no_args = gen_module_test "raise_test_no_args"
-    "raise"
-    [Raise(None, None, annot)]
-;;
-
-let raise_test_one_arg = gen_module_test "raise_test_no_args"
+let raise_test = gen_module_test "raise_test"
     "raise ValueError"
     [Raise(
-        Some(Name("ValueError", annot)),
-        None,
-        annot)]
-;;
-
-let raise_test_two_args = gen_module_test "raise_test_no_args"
-    "raise ValueError, 5"
-    [Raise(
-        Some(Name("ValueError", annot)),
-        Some(Num(Int(Pos), annot)),
+        Name("ValueError", annot),
         annot)]
 ;;
 
@@ -1069,9 +1060,7 @@ let tests =
     for_test;
     break_test;
     continue_test;
-    raise_test_no_args;
-    raise_test_one_arg;
-    raise_test_two_args;
+    raise_test;
     try_test;
     bad_exception_handler_test;
     big_test;

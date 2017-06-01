@@ -12,7 +12,10 @@ and 'a stmt =
   | Print of 'a expr option (* dest *) * 'a expr list (* values *) * bool (* nl *) * 'a
   | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
-  | Raise of 'a expr option (* type *) * 'a expr option (* value *) * 'a
+(* Raise is very complicated, with different behaviors based on the
+   number of arguments it recieves. For simplicity we require that
+   it take exactly one argument, which is the value to be raised. *)
+  | Raise of 'a expr (* value *) * 'a
   | TryExcept of 'a stmt list (* body *) * 'a excepthandler list (* handlers *) * 'a
   | Pass of 'a
   | Break of 'a
@@ -142,7 +145,7 @@ and annot_of_stmt = function
   | Print (_, _, _, a)
   | While (_, _, a)
   | If (_, _, _, a)
-  | Raise (_, _, a)
+  | Raise (_, a)
   | TryExcept (_, _, a)
   | Expr (_, a)
   | Pass (a)

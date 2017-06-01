@@ -428,35 +428,12 @@ let continue_test = gen_module_test "continue_test"
     ]
 ;;
 
-let raise_test_no_args = gen_module_test "raise_test_no_args"
-    "raise"
-    [Raise(None, None, None, annot)]
-;;
-
-let raise_test_one_arg = gen_module_test "raise_test_no_args"
+let raise_test = gen_module_test "raise_test"
     "raise ValueError"
     [Raise(
         Some(Name("ValueError", Load, annot)),
         None,
         None,
-        annot)]
-;;
-
-let raise_test_two_args = gen_module_test "raise_test_no_args"
-    "raise ValueError, 5"
-    [Raise(
-        Some(Name("ValueError", Load, annot)),
-        Some(Num(Int(Pos), annot)),
-        None,
-        annot)]
-;;
-
-let raise_test_three_args = gen_module_test "raise_test_no_args"
-    "raise ValueError, 5, traceback"
-    [Raise(
-        Some(Name("ValueError", Load, annot)),
-        Some(Num(Int(Pos), annot)),
-        Some(Name("traceback", Load, annot)),
         annot)]
 ;;
 
@@ -731,10 +708,7 @@ let tests =
     for_test;
     break_test;
     continue_test;
-    raise_test_no_args;
-    raise_test_one_arg;
-    raise_test_two_args;
-    raise_test_three_args;
+    raise_test;
     try_test;
     big_test;
   ]
