@@ -347,9 +347,11 @@ let string_of_number = function
 module type Annot = sig
   type t
   val of_pos : Lexing.position -> t
+  val to_pos : t -> Lexing.position
 end
 
 module Pos : Annot = struct
   type t = Lexing.position
   let of_pos pos = pos
+  let to_pos pos = pos
 end
