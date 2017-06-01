@@ -45,7 +45,8 @@ Library "analysis"
   Path: src/analysis
   Modules:
     Python2_abstract_ast,
-    Python2_analysis_conversion
+    Python2_analysis_conversion,
+    Python2_rename_ast
   BuildDepends:
     batteries,
     jhupllib,
