@@ -335,11 +335,14 @@ return_stmt:
 yield_stmt:
   | yield_expr { Expr ($1, annot_of_expr $1) } *)
 
+(* We only allow raise statements with exactly one argument.
+That argument should be the value we are raising, NOT just the
+type *)
 raise_stmt:
-  | RAISE { Raise (None, None, None, annot $1) }
+  /*| RAISE { Raise (None, None, None, annot $1) }*/
   | RAISE test { Raise (Some $2, None, None, annot $1) }
-  | RAISE test COMMA test { Raise (Some $2, Some $4, None, annot $1) }
-  | RAISE test COMMA test COMMA test { Raise (Some $2, Some $4, Some $6, annot $1) }
+  /*| RAISE test COMMA test { Raise (Some $2, Some $4, None, annot $1) }*/
+  /*| RAISE test COMMA test COMMA test { Raise (Some $2, Some $4, Some $6, annot $1) }*/
 
 
 (*
