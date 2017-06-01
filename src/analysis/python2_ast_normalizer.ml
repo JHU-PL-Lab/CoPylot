@@ -166,12 +166,10 @@ and normalize_stmt_full
                    normalized_orelse,
                    get_next_uid annot)]
 
-  | Simplified.Raise (typ, value, annot) ->
-    let type_binding, type_result = normalize_expr_option typ in
-    let value_binding, value_result = normalize_expr_option value in
-    type_binding @ value_binding @
-    [Normalized.Raise(update_option_uid annot type_result,
-                      update_option_uid annot value_result,
+  | Simplified.Raise (value, annot) ->
+    let value_binding, value_result = normalize_expr value in
+    value_binding @
+    [Normalized.Raise(update_uid annot value_result,
                       get_next_uid annot)]
 
   | Simplified.TryExcept _ -> [] (* TODO *)

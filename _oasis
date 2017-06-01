@@ -47,7 +47,9 @@ Library "analysis"
     Python2_abstract_ast,
     Python2_analysis_conversion,
     Python2_simplified_ast,
-    Python2_ast_simplifier
+    Python2_ast_simplifier,
+    Python2_normalized_ast,
+    Python2_ast_normalizer
   BuildDepends:
     batteries,
     jhupllib,

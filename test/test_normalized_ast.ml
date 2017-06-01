@@ -279,15 +279,15 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
           dummy_uid),
         dummy_uid);
 
-        Assign(
-          "$normalized_unique_name_1",
-          Tuple(
-            [
-              Num(Int(Neg), dummy_uid);
-              Name("$normalized_unique_name_0", dummy_uid);
-            ],
-            dummy_uid),
-          dummy_uid);
+      Assign(
+        "$normalized_unique_name_1",
+        Tuple(
+          [
+            Num(Int(Neg), dummy_uid);
+            Name("$normalized_unique_name_0", dummy_uid);
+          ],
+          dummy_uid),
+        dummy_uid);
 
       Assign(
         "$simplified_unique_name_0",
@@ -326,8 +326,8 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
         dummy_uid);
 
       (* TODO
-        TryExcept(
-        [
+         TryExcept(
+         [
           Assign(
             "$simplified_unique_name_2",
             Call(Name("$simplified_unique_name_1", dummy_uid), [], dummy_uid),
@@ -343,10 +343,12 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                 dummy_uid
               );
               Raise(
-                Some(Name("ValueError", dummy_uid)),
-                Some(Str(StringLiteral("too many values to unpack"),
-                         dummy_uid)),
-                dummy_uid);
+                Call(
+                  Name("ValueError", annot),
+                  [Str(StringLiteral("too many values to unpack"),
+                       annot)],
+                  annot),
+                annot);
             ],
             [ExceptHandler(
                 Some(Name("StopIteration", dummy_uid)),
@@ -359,19 +361,22 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
             ],
             dummy_uid
           )
-        ],
-        [ExceptHandler(
+         ],
+         [ExceptHandler(
             Some(Name("StopIteration", dummy_uid)),
             None,
             [
-              Raise(
-                Some(Name("ValueError", dummy_uid)),
-                Some(Str(StringAbstract, dummy_uid)),
-                dummy_uid)
+            Raise(
+              Call(
+                Name("ValueError", annot),
+                [Str(StringAbstract,
+                     annot)],
+                annot),
+              annot);
             ],
             dummy_uid
           )],
-        dummy_uid);
+         dummy_uid);
       *)
       Assign(
         "$simplified_unique_name_4",
@@ -1217,28 +1222,13 @@ let bad_continue_test = expect_error_test "bad_continue_test"
     (Failure("'continue' not properly in loop"))
 ;;
 
-(*
-let raise_test_no_args = gen_module_test "raise_test_no_args"
-    "raise"
-    [Raise(None, None, dummy_uid)]
-;;
-
-let raise_test_one_arg = gen_module_test "raise_test_no_args"
+let raise_test = gen_module_test "raise_test"
     "raise ValueError"
     [Raise(
-        Some(Name("ValueError", dummy_uid)),
-        None,
+        Name("ValueError", dummy_uid),
         dummy_uid)]
 ;;
 
-let raise_test_two_args = gen_module_test "raise_test_no_args"
-    "raise ValueError, 5"
-    [Raise(
-        Some(Name("ValueError", dummy_uid)),
-        Some(Num(Int(Pos), dummy_uid)),
-        dummy_uid)]
-;;
-*)
 (*
 let try_block =
   "try:" ^
@@ -1615,10 +1605,8 @@ let tests =
     continue_test;
     bad_break_test;
     bad_continue_test;
-    (*raise_test_no_args;
-      raise_test_one_arg;
-      raise_test_two_args;
-      try_test;*)
+    raise_test;
+    (* try_test; *)
     big_test;
     list_test;
   ]

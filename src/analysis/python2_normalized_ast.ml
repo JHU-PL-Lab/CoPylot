@@ -15,7 +15,7 @@ and stmt =
   | Return of simple_expr option (* value *) * uid
   | Print of simple_expr option (* dest *) * simple_expr list (* values *) * bool (* nl *) * uid
   | If of simple_expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid
-  | Raise of simple_expr option (* type *) * simple_expr option (* value *) * uid
+  | Raise of simple_expr (* value *) * uid
   | TryExcept of stmt list (* body *) * excepthandler list (* handlers *) * uid
   | Pass of uid
   | Goto of uid * uid
@@ -146,7 +146,7 @@ and uid_of_stmt = function
   | Assign (_, _, u)
   | Print (_, _, _, u)
   | If (_, _, _, u)
-  | Raise (_, _, u)
+  | Raise (_, u)
   | TryExcept (_, _, u)
   | SimpleExprStmt (_, u)
   | Pass (u)
