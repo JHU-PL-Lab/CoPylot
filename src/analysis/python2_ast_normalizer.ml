@@ -305,7 +305,7 @@ and normalize_expr
      We then apply the same process to break down the assignment to test4
      and continue in this manner until we hit the end of the statement. *)
   | Simplified.BoolOp (op, values, annot) ->
-    (* TODO: Throw a useful error if values is empty. Not sure if that's
+    (* FIXME: Throw a useful error if values is empty. Not sure if that's
        possible given how we generate these trees, but best to be safe. *)
     let first_arg = List.hd values in
     let first_arg_bindings, first_arg_result = normalize_expr exception_target first_arg in

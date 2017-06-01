@@ -200,38 +200,6 @@ let boolop_or_test = gen_module_test "boolop_or_test"
     ]
 ;;
 
-(* TODO: Translate this if you have a spare hour or so
-   let boolop_all_test = gen_stmt_test "boolop_all_test"
-    "a and b and not c or d and not c or not a and not b"
-    ( (* Expected order of operations is not, then and, then or *)
-      BoolOp(
-        Or,
-        [
-          BoolOp(And,
-                 [
-                   Name("a", dummy_uid, None);
-                   Name("b", dummy_uid, None);
-                   UnaryOp(Not, Name("c", dummy_uid, None), dummy_uid, None);
-                 ],
-                 dummy_uid, None);
-          BoolOp(And,
-                 [
-                   Name("d", dummy_uid, None);
-                   UnaryOp(Not, Name("c", dummy_uid, None), dummy_uid, None);
-                 ],
-                 dummy_uid, None);
-          BoolOp(And,
-                 [
-                   UnaryOp(Not, Name("a", dummy_uid, None), dummy_uid, None);
-                   UnaryOp(Not, Name("b", dummy_uid, None), dummy_uid, None);
-                 ],
-                 dummy_uid, None);
-        ],
-        dummy_uid, None)
-    )
-   ;;
-*)
-
 let var_assign_test = gen_module_test "var_assign_test"
     "x = 5"
     [
@@ -323,56 +291,161 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
         SimpleExpr(Name("$normalized_unique_name_4", dummy_uid, None),
                    dummy_uid, None),
         dummy_uid, None);
-
-      (* TODO
-         TryExcept(
-         [
-          Assign(
-            "$simplified_unique_name_2",
-            Call(Name("$simplified_unique_name_1", dummy_uid, None), [], dummy_uid, None),
-            dummy_uid, None);
-          Assign(
-            "$simplified_unique_name_3",
-            Call(Name("$simplified_unique_name_1", dummy_uid, None), [], dummy_uid, None),
-            dummy_uid, None);
-          TryExcept(
-            [
-              Expr(
-                Call(Name("$simplified_unique_name_1", dummy_uid, None), [], dummy_uid, None),
-                dummy_uid, None);
-              Raise(
-                Call(
-                  Name("ValueError", annot),
-                  [Str(StringLiteral("too many values to unpack"),
-                       annot)],
-                  annot),
-                annot);
+      (* I literally just copy-pasted the output of the program here. So
+         this one is more of a regression test. *)
+        (Assign ("$normalized_unique_name_5",
+          (Call (
+             (Name ("$simplified_unique_name_1", dummy_uid,
+                (Some dummy_uid))),
+             [], dummy_uid, (Some dummy_uid))),
+          dummy_uid, (Some dummy_uid)));
+       (Assign ("$simplified_unique_name_2",
+          (SimpleExpr (
+             (Name ("$normalized_unique_name_5", dummy_uid,
+                (Some dummy_uid))),
+             dummy_uid, (Some dummy_uid))),
+          dummy_uid, (Some dummy_uid)));
+       (Assign ("$normalized_unique_name_6",
+          (Call (
+             (Name ("$simplified_unique_name_1", dummy_uid,
+                (Some dummy_uid))),
+             [], dummy_uid, (Some dummy_uid))),
+          dummy_uid, (Some dummy_uid)));
+       (Assign ("$simplified_unique_name_3",
+          (SimpleExpr (
+             (Name ("$normalized_unique_name_6", dummy_uid,
+                (Some dummy_uid))),
+             dummy_uid, (Some dummy_uid))),
+          dummy_uid, (Some dummy_uid)));
+       (Assign ("$normalized_unique_name_7",
+          (Call (
+             (Name ("$simplified_unique_name_1", dummy_uid,
+                (Some dummy_uid))),
+             [], dummy_uid, (Some dummy_uid))),
+          dummy_uid, (Some dummy_uid)));
+       (SimpleExprStmt (
+          (Name ("$normalized_unique_name_7", dummy_uid,
+             (Some dummy_uid))),
+          dummy_uid, (Some dummy_uid)));
+       (Assign ("$normalized_unique_name_8",
+          (Call (
+             (Name ("ValueError", dummy_uid, (Some dummy_uid))),
+             [(Str (
+                 (StringLiteral
+                    "too many values to unpack"),
+                 dummy_uid, (Some dummy_uid)))
+               ],
+             dummy_uid, (Some dummy_uid))),
+          dummy_uid, (Some dummy_uid)));
+       (Raise (
+          (Name ("$normalized_unique_name_8", dummy_uid,
+             (Some dummy_uid))),
+          dummy_uid, (Some dummy_uid)));
+       (Goto (dummy_uid, dummy_uid, (Some dummy_uid)));
+       (Catch ("$normalized_unique_name_9", dummy_uid, (Some dummy_uid)
+          ));
+       (Assign ("$normalized_unique_name_10",
+          (Call (
+             (Name ("type", dummy_uid, (Some dummy_uid))),
+             [(Name ("$normalized_unique_name_9", dummy_uid,
+                 (Some dummy_uid)))
+               ],
+             dummy_uid, (Some dummy_uid))),
+          dummy_uid, (Some dummy_uid)));
+       (If (
+          (Bool (true, dummy_uid, (Some dummy_uid))),
+          [(Assign ("$normalized_unique_name_11",
+              (Compare (
+                 (Name ("$normalized_unique_name_10", dummy_uid,
+                    (Some dummy_uid))),
+                 Eq,
+                 (Name ("StopIteration", dummy_uid, (Some dummy_uid))),
+                 dummy_uid, (Some dummy_uid))),
+              dummy_uid, (Some dummy_uid)))
             ],
-            [ExceptHandler(
-                Some(Name("StopIteration", dummy_uid, None)),
-                None,
-                [
-                  Pass(dummy_uid, None)
-                ],
-                dummy_uid, None)
+          [(Assign ("$normalized_unique_name_11",
+              (SimpleExpr (
+                 (Bool (false, dummy_uid, (Some dummy_uid))), dummy_uid,
+                 (Some dummy_uid))),
+              dummy_uid, (Some dummy_uid)))
             ],
-            dummy_uid, None)
-         ],
-         [ExceptHandler(
-            Some(Name("StopIteration", dummy_uid, None)),
-            None,
-            [
-            Raise(
-              Call(
-                Name("ValueError", annot),
-                [Str(StringAbstract,
-                     annot)],
-                annot),
-              annot);
+          dummy_uid, (Some dummy_uid)));
+       (Assign ("$normalized_unique_name_12",
+          (BoolOp (
+             (Bool (true, dummy_uid, (Some dummy_uid))),
+             And,
+             (Name ("$normalized_unique_name_11", dummy_uid,
+                (Some dummy_uid))),
+             dummy_uid, (Some dummy_uid))),
+          dummy_uid, (Some dummy_uid)));
+       (If (
+          (Name ("$normalized_unique_name_12", dummy_uid,
+             (Some dummy_uid))),
+          [(Pass (dummy_uid, (Some dummy_uid)))],
+          [(Raise (
+              (Name ("$normalized_unique_name_9", dummy_uid,
+                 (Some dummy_uid))),
+              dummy_uid, (Some dummy_uid)))
             ],
-            dummy_uid, None)],
-         dummy_uid, None);
-      *)
+          dummy_uid, (Some dummy_uid)));
+       (Pass (dummy_uid, (Some dummy_uid)));
+       (Goto (dummy_uid, dummy_uid, None));
+       (Catch ("$normalized_unique_name_13", dummy_uid, None));
+       (Assign ("$normalized_unique_name_14",
+          (Call (
+             (Name ("type", dummy_uid, None)),
+             [(Name ("$normalized_unique_name_13", dummy_uid,
+                 None))
+               ],
+             dummy_uid, None)),
+          dummy_uid, None));
+       (If (
+          (Bool (true, dummy_uid, None)),
+          [(Assign ("$normalized_unique_name_15",
+              (Compare (
+                 (Name ("$normalized_unique_name_14", dummy_uid,
+                    None)),
+                 Eq,
+                 (Name ("StopIteration", dummy_uid, None)), dummy_uid,
+                 None)),
+              dummy_uid, None))
+            ],
+          [(Assign ("$normalized_unique_name_15",
+              (SimpleExpr (
+                 (Bool (false, dummy_uid, None)), dummy_uid, None)),
+              dummy_uid, None))
+            ],
+          dummy_uid, None));
+       (Assign ("$normalized_unique_name_16",
+          (BoolOp (
+             (Bool (true, dummy_uid, None)),
+             And,
+             (Name ("$normalized_unique_name_15", dummy_uid,
+                None)),
+             dummy_uid, None)),
+          dummy_uid, None));
+       (If (
+          (Name ("$normalized_unique_name_16", dummy_uid, None)),
+          [(Assign ("$normalized_unique_name_17",
+              (Call (
+                 (Name ("ValueError", dummy_uid, None)),
+                 [(Str (
+                     StringAbstract, dummy_uid, None))
+                   ],
+                 dummy_uid, None)),
+              dummy_uid, None));
+            (Raise (
+               (Name ("$normalized_unique_name_17", dummy_uid,
+                  None)),
+               dummy_uid, None))
+            ],
+          [(Raise (
+              (Name ("$normalized_unique_name_13", dummy_uid,
+                 None)),
+              dummy_uid, None))
+            ],
+          dummy_uid, None));
+       (Pass (dummy_uid, None));
       Assign(
         "$simplified_unique_name_4",
         SimpleExpr(Name("$simplified_unique_name_2", dummy_uid, None),
@@ -990,76 +1063,6 @@ let while_test = gen_module_test "while_test"
     ]
 ;;
 
-let for_test = gen_module_test "for_test"
-    "for i in list:\n\tf(i)"
-    [
-      Assign(
-        "$normalized_unique_name_0",
-        Attribute(
-          Name("list", dummy_uid, None),
-          "__iter__",
-          dummy_uid, None),
-        dummy_uid, None);
-
-      Assign(
-        "$normalized_unique_name_1",
-        Call(
-          Name("$normalized_unique_name_0", dummy_uid, None),
-          [],
-          dummy_uid, None),
-        dummy_uid, None);
-
-      Assign(
-        "$normalized_unique_name_2",
-        Attribute(
-          Name("$normalized_unique_name_1", dummy_uid, None),
-          "next",
-          dummy_uid, None),
-        dummy_uid, None);
-
-      Assign(
-        "$simplified_unique_name_1",
-        SimpleExpr(
-          Name("$normalized_unique_name_2", dummy_uid, None),
-          dummy_uid, None),
-        dummy_uid, None);
-
-      Assign(
-        "$simplified_unique_name_0",
-        SimpleExpr(
-          Name("$simplified_unique_name_1", dummy_uid, None),
-          dummy_uid, None),
-        dummy_uid, None);
-
-      (* TODO
-         TryExcept(
-         [
-          While(
-            Bool(true, dummy_uid, None),
-            [
-              Assign(
-                "$simplified_unique_name_2",
-                Call(Name("$simplified_unique_name_0", dummy_uid, None), [], dummy_uid, None),
-                dummy_uid, None);
-              Assign(
-                "i",
-                Name("$simplified_unique_name_2", dummy_uid, None),
-                dummy_uid, None);
-              Expr(Call(Name("f", dummy_uid, None), [Name("i", dummy_uid, None)], dummy_uid, None), dummy_uid, None);
-            ],
-            dummy_uid, None)
-         ],
-         [
-          ExceptHandler(
-            Some(Name("StopIteration", dummy_uid, None)),
-            None,
-            [Pass(dummy_uid, None)],
-            dummy_uid, None)
-         ],
-         dummy_uid, None)*)
-    ]
-;;
-
 let break_test = gen_module_test "break_test"
     "while x < 9001:\n\tbreak"
     [
@@ -1654,10 +1657,9 @@ let tests =
     unop_not_test;
     boolop_and_test;
     boolop_or_test;
-    (* boolop_all_test; *)
     var_assign_test;
     var_double_assign_test;
-    (* var_assign_from_tuple_test; *)
+    var_assign_from_tuple_test;
     assign_to_index_test;
     assign_to_slice_test;
     assign_to_attribute_test;
@@ -1671,7 +1673,6 @@ let tests =
     print_test;
     tuple_test;
     while_test;
-    (* for_test; *) (* TODO *)
     break_test;
     continue_test;
     bad_break_test;
