@@ -1193,57 +1193,167 @@ let raise_test = gen_module_test "raise_test"
         dummy_uid, None)]
 ;;
 
-(*
+
 let try_block =
   "try:" ^
   "\n\tx = 5" ^
   "\nexcept ValueError:" ^
-  "\n\tprint 'Error'" ^
+  "\n\tprint 'Error:', get_error()" ^
   "\nexcept StopIteration as e:" ^
-  "\n\tprint 'Other Error'" ^
+  "\n\tprint e" ^
   "\n"
 ;;
 
 let try_test = gen_module_test "try_test"
     try_block
     [
-      TryExcept(
+      (* Try body *)
+      Assign(
+        "$simplified_unique_name_0",
+        SimpleExpr(Num(Int(Pos), dummy_uid, Some(dummy_uid)),
+                   dummy_uid, Some(dummy_uid)),
+        dummy_uid, Some(dummy_uid));
+
+      Assign(
+        "x",
+        SimpleExpr(Name("$simplified_unique_name_0",
+                        dummy_uid, Some(dummy_uid)),
+                   dummy_uid, Some(dummy_uid)),
+        dummy_uid, Some(dummy_uid));
+
+      Goto(dummy_uid, dummy_uid, None);
+
+      (* Catch exception *)
+      Catch("$normalized_unique_name_0", dummy_uid, None);
+
+      (* Handler 1 - construct test expression*)
+      Assign(
+        "$normalized_unique_name_1",
+        Call(
+          Name("type", dummy_uid, None),
+          [Name("$normalized_unique_name_0", dummy_uid, None)],
+          dummy_uid, None),
+        dummy_uid, None);
+
+      If(
+        Bool(true, dummy_uid, None),
         [
           Assign(
-            "$unique_name_0",
-            Num(Int(Pos), dummy_uid, None),
+            "$normalized_unique_name_2",
+            Compare(
+              Name("$normalized_unique_name_1", dummy_uid, None),
+              Eq,
+              Name("ValueError", dummy_uid, None),
+              dummy_uid, None),
             dummy_uid, None);
+        ],
+        [
           Assign(
-            "x",
-            Name("$unique_name_0", dummy_uid, None),
+            "$normalized_unique_name_2",
+            SimpleExpr(Bool(false, dummy_uid, None),
+                       dummy_uid, None),
+            dummy_uid, None);
+        ],
+        dummy_uid, None);
+
+      Assign(
+        "$normalized_unique_name_3",
+        BoolOp(
+          Bool(true, dummy_uid, None),
+          And,
+          Name("$normalized_unique_name_2", dummy_uid, None),
+          dummy_uid, None),
+        dummy_uid, None);
+
+      (* Handler body *)
+      If(
+        Name("$normalized_unique_name_3", dummy_uid, None),
+        [
+          Assign(
+            "$normalized_unique_name_4",
+            Call(
+              Name("get_error", dummy_uid, None),
+              [],
+              dummy_uid, None),
+            dummy_uid, None);
+
+          Print(
+            None,
+            [
+              Str(StringLiteral("Error:"), dummy_uid, None);
+              Name("$normalized_unique_name_4", dummy_uid, None);
+            ],
+            true,
             dummy_uid, None)
         ],
         [
-          ExceptHandler(
-            Some(Name("ValueError", dummy_uid, None)),
-            None,
+          (* Construct handler 2 test *)
+          Assign(
+            "$normalized_unique_name_5",
+            Call(
+              Name("type", dummy_uid, None),
+              [Name("$normalized_unique_name_0", dummy_uid, None)],
+              dummy_uid, None),
+            dummy_uid, None);
+
+          If(
+            Bool(true, dummy_uid, None),
             [
-              Print(None,
-                    [Str (StringLiteral("Error"), dummy_uid, None)],
-                    true,
-                    dummy_uid, None)
+              Assign(
+                "$normalized_unique_name_6",
+                Compare(
+                  Name("$normalized_unique_name_5", dummy_uid, None),
+                  Eq,
+                  Name("StopIteration", dummy_uid, None),
+                  dummy_uid, None),
+                dummy_uid, None);
+            ],
+            [
+              Assign(
+                "$normalized_unique_name_6",
+                SimpleExpr(Bool(false, dummy_uid, None),
+                           dummy_uid, None),
+                dummy_uid, None);
             ],
             dummy_uid, None);
-          ExceptHandler(
-            Some(Name("StopIteration", dummy_uid, None)),
-            Some("e"),
+
+          Assign(
+            "$normalized_unique_name_7",
+            BoolOp(
+              Bool(true, dummy_uid, None),
+              And,
+              Name("$normalized_unique_name_6", dummy_uid, None),
+              dummy_uid, None),
+            dummy_uid, None);
+
+          (* Handler 2 body *)
+          If(
+            Name("$normalized_unique_name_7", dummy_uid, None),
             [
+              Assign(
+                "e",
+                SimpleExpr(
+                  Name("$normalized_unique_name_0", dummy_uid, None),
+                  dummy_uid, None),
+                dummy_uid, None);
+
               Print (None,
-                     [Str(StringLiteral("Other Error"),dummy_uid, None)],
+                     [Name("e",dummy_uid, None)],
                      true,
                      dummy_uid, None)
             ],
-            dummy_uid, None)
+            [
+              Raise(Name("$normalized_unique_name_0", dummy_uid, None),
+                    dummy_uid, None);
+            ],
+            dummy_uid, None);
         ],
-        dummy_uid, None)
+        dummy_uid, None);
+
+      Pass(dummy_uid, None);
     ]
 ;;
-*)
+
 
 let triangle_def =
   "def triangle(n):" ^
@@ -1567,7 +1677,7 @@ let tests =
     bad_break_test;
     bad_continue_test;
     raise_test;
-    (* try_test; *)
+    try_test;
     big_test;
     list_test;
   ]

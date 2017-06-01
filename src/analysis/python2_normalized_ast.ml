@@ -16,7 +16,7 @@ and stmt =
   | Print of simple_expr option (* dest *) * simple_expr list (* values *) * bool (* nl *) * uid * uid option (* exception label *)
   | If of simple_expr (* test *) * stmt list (* body *) * stmt list (* orelse *) * uid * uid option (* exception label *)
   | Raise of simple_expr (* value *) * uid * uid option (* exception label *)
-  | TryExcept of stmt list (* body *) * excepthandler list (* handlers *) * uid * uid option (* exception label *)
+  | Catch of identifier (* name *) * uid * uid option (* exception label *)
   | Pass of uid * uid option (* exception label *)
   | Goto of uid * uid * uid option (* exception label *)
   | SimpleExprStmt of simple_expr (* value *) * uid * uid option (* exception label *)
@@ -51,9 +51,6 @@ and unaryop = Not | UAdd | USub
 [@@deriving eq, ord, show]
 
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
-[@@deriving eq, ord, show]
-
-and excepthandler = ExceptHandler of identifier option (* type *) * identifier option (* name *) * stmt list (* body *) * uid * uid option (* exception label *)
 [@@deriving eq, ord, show]
 
 and sign = Pos | Neg | Zero

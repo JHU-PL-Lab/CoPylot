@@ -139,8 +139,8 @@ and normalize_stmt_full
       (* It's nicer to have "if !test then goto end" as opposed to
          "if test then pass else goto end" *)
       normalize_expr exception_target (Simplified.UnaryOp(Simplified.Not,
-                                         test,
-                                         annot)) in
+                                                          test,
+                                                          annot)) in
 
     let start_uid = get_next_uid annot in (* Start label *)
     let end_uid = get_next_uid annot in (* End label *)
@@ -192,8 +192,68 @@ and normalize_stmt_full
                       get_next_uid annot,
                       exception_target)]
 
-  | Simplified.TryExcept _ -> [] (* TODO *)
-  (* TODO/FIXME: ExceptHandlers need to have expr options as their first type *)
+  | Simplified.TryExcept (body, handlers, annot) ->
+    let handler_start_uid = get_next_uid annot in
+    let handler_end_uid = get_next_uid annot in
+    let normalized_body =
+      map_and_concat (normalize_stmt (Some(handler_start_uid))) body in
+    let exception_name = gen_unique_name annot in
+    let catch = Normalized.Catch(exception_name,
+                                 handler_start_uid,
+                                 exception_target) in
+    let rec handlers_to_simplified_if handler_list =
+      match handler_list with
+      | [] -> (* If we run out of handlers, re-raise the current exception *)
+        Simplified.Raise(
+          Simplified.Name(exception_name, annot), annot)
+
+      | Simplified.ExceptHandler(typ, name, body, annot)::rest ->
+        let if_test = (* Check if the exception matches this type *)
+          match typ with
+          | None ->
+            Simplified.Bool(true, annot)
+          | Some(exp) ->
+            Simplified.Compare(
+              Simplified.Call(
+                Simplified.Name("type", annot),
+                [Simplified.Name(exception_name, annot)],
+                annot),
+              [Simplified.Eq],
+              [exp],
+              annot)
+        in
+        let bind_exception =
+          (* Bind the exception to the given name, if we have one *)
+          match name with
+          | None -> []
+          | Some(id) ->
+            [Simplified.Assign(
+                id,
+                Simplified.Name(exception_name, annot),
+                annot)]
+        in
+        Simplified.If(
+          if_test,
+          bind_exception @ body,
+          [
+            handlers_to_simplified_if rest
+          ],
+          annot)
+    in (* End handler_to_if definition *)
+    let normalized_handlers =
+      (normalize_stmt exception_target)
+        (handlers_to_simplified_if handlers)
+    in
+    let handler_body =
+      [catch] @
+      normalized_handlers @
+      [Normalized.Pass(handler_end_uid, exception_target)]
+    in
+    normalized_body @
+    [Normalized.Goto(handler_end_uid,
+                     get_next_uid annot,
+                     exception_target)] @
+    handler_body
 
   | Simplified.Pass (annot) ->
     [Normalized.Pass (get_next_uid annot,
