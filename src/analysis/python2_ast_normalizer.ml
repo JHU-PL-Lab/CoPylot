@@ -137,15 +137,24 @@ and normalize_stmt_full
       Normalized.If(update_uid annot test_name,
                     [Normalized.Goto(end_uid, get_next_uid annot)],
                     [],
-                    start_uid) in
+                    get_next_uid annot) in
     let normalized_body =
       (map_and_concat
          (normalize_stmt_full
             (Some(start_uid))
             (Some(end_uid)))
          body) in
-    let end_stmt = Normalized.Pass(end_uid) in
-    test_bindings @ [test_at_beginning] @ normalized_body @ [end_stmt]
+    let start_stmt = Normalized.Pass(start_uid) in
+    let end_stmts =
+      [
+        Normalized.Goto(start_uid, get_next_uid annot);
+        Normalized.Pass(end_uid);
+      ] in
+    [start_stmt] @
+    test_bindings @
+    [test_at_beginning] @
+    normalized_body @
+    end_stmts
 
   | Simplified.If (test, body, orelse, annot) ->
     let test_bindings, test_name = normalize_expr test in
