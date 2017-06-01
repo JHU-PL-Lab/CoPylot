@@ -1,7 +1,14 @@
 module Simplified = Python2_simplified_ast
 module Normalized = Python2_normalized_ast
 
-let get_next_uid _ = 0;;
+let uid_counter = ref 0;;
+
+let get_next_uid _ =
+  let count = !uid_counter in
+  uid_counter := count + 1;
+  count;;
+
+let reset_uid () = uid_counter := 0;;
 
 let name_counter = ref 0;;
 
