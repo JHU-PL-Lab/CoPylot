@@ -414,34 +414,40 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                             (Some _))),
                      [], _, (Some _))),
                  _, (Some _)));
+
         (Assign ("$simplified_unique_name_2",
                  (SimpleExpr (
                      (Name ("$normalized_unique_name_5", _,
                             (Some _))),
                      _, (Some _))),
                  _, (Some _)));
+
         (Assign ("$normalized_unique_name_6",
                  (Call (
                      (Name ("$simplified_unique_name_1", _,
                             (Some _))),
                      [], _, (Some _))),
                  _, (Some _)));
+
         (Assign ("$simplified_unique_name_3",
                  (SimpleExpr (
                      (Name ("$normalized_unique_name_6", _,
                             (Some _))),
                      _, (Some _))),
                  _, (Some _)));
+
         (Assign ("$normalized_unique_name_7",
                  (Call (
                      (Name ("$simplified_unique_name_1", _,
                             (Some _))),
                      [], _, (Some _))),
                  _, (Some _)));
+
         (SimpleExprStmt (
             (Name ("$normalized_unique_name_7", _,
                    (Some _))),
             _, (Some _)));
+
         (Assign ("$normalized_unique_name_8",
                  (Call (
                      (Name ("ValueError", _, (Some _))),
@@ -452,13 +458,17 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                      ],
                      _, (Some _))),
                  _, (Some _)));
+
         (Raise (
             (Name ("$normalized_unique_name_8", _,
                    (Some _))),
             _, (Some _)));
+
         (Goto (_, _, (Some _)));
+
         (Catch ("$normalized_unique_name_9", _, (Some _)
                ));
+
         (Assign ("$normalized_unique_name_10",
                  (Call (
                      (Name ("type", _, (Some _))),
@@ -467,6 +477,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                      ],
                      _, (Some _))),
                  _, (Some _)));
+
         (If (
             (Bool (true, _, (Some _))),
             [(Assign ("$normalized_unique_name_11",
@@ -485,6 +496,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                       _, (Some _)))
             ],
             _, (Some _)));
+
         (Assign ("$normalized_unique_name_12",
                  (BoolOp (
                      (Bool (true, _, (Some _))),
@@ -493,6 +505,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                             (Some _))),
                      _, (Some _))),
                  _, (Some _)));
+
         (If (
             (Name ("$normalized_unique_name_12", _,
                    (Some _))),
@@ -503,9 +516,13 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                  _, (Some _)))
             ],
             _, (Some _)));
+
         (Pass (_, (Some _)));
+
         (Goto (_, _, None));
+
         (Catch ("$normalized_unique_name_13", _, None));
+
         (Assign ("$normalized_unique_name_14",
                  (Call (
                      (Name ("type", _, None)),
@@ -514,6 +531,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                      ],
                      _, None)),
                  _, None));
+
         (If (
             (Bool (true, _, None)),
             [(Assign ("$normalized_unique_name_15",
@@ -531,6 +549,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                       _, None))
             ],
             _, None));
+
         (Assign ("$normalized_unique_name_16",
                  (BoolOp (
                      (Bool (true, _, None)),
@@ -539,6 +558,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                             None)),
                      _, None)),
                  _, None));
+
         (If (
             (Name ("$normalized_unique_name_16", _, None)),
             [(Assign ("$normalized_unique_name_17",
@@ -549,6 +569,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                           ],
                           _, None)),
                       _, None));
+
              (Raise (
                  (Name ("$normalized_unique_name_17", _,
                         None)),
@@ -560,7 +581,9 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                  _, None))
             ],
             _, None));
+
         (Pass (_, None));
+
         Assign(
           "$simplified_unique_name_4",
           SimpleExpr(Name("$simplified_unique_name_2", _, None),
@@ -1142,7 +1165,7 @@ let while_test = gen_module_test "while_test"
     "while x < 9001:\n\tx = x+1"
     (function
       | [
-        Pass(_, None);
+        Pass(loop_start, None);
 
         If(
           Bool(true, _, None),
@@ -1184,7 +1207,7 @@ let while_test = gen_module_test "while_test"
         If(
           Name("$normalized_unique_name_2", _, None),
           [
-            Goto(_, _, None);
+            Goto(loop_end_jump, _, None);
           ],
           [],
           _, None);
@@ -1211,10 +1234,11 @@ let while_test = gen_module_test "while_test"
             _, None),
           _, None);
 
-        Goto(_, _, None);
+        Goto(loop_start_jump, _, None);
 
-        Pass(_, None);
-      ] -> true
+        Pass(loop_end, None);
+      ] -> (loop_start_jump == loop_start) &&
+           (loop_end_jump == loop_end)
       | _ -> false
     )
 ;;
@@ -1223,7 +1247,7 @@ let break_test = gen_module_test "break_test"
     "while x < 9001:\n\tbreak"
     (function
       | [
-        Pass(_, None);
+        Pass(loop_start, None);
 
         If(
           Bool(true, _, None),
@@ -1265,17 +1289,20 @@ let break_test = gen_module_test "break_test"
         If(
           Name("$normalized_unique_name_2", _, None),
           [
-            Goto(_, _, None);
+            Goto(loop_end_jump, _, None);
           ],
           [],
           _, None);
 
-        Goto(_, _, None);
+        Goto(break_jump, _, None);
 
-        Goto(_, _, None);
+        Goto(loop_start_jump, _, None);
 
-        Pass(_, None);
-      ] -> true
+        Pass(loop_end, None);
+
+      ] -> (loop_start_jump == loop_start) &&
+           (break_jump == loop_end) &&
+           (loop_end_jump == loop_end)
       | _ -> false
     )
 ;;
@@ -1284,7 +1311,7 @@ let continue_test = gen_module_test "continue_test"
     "while x < 9001:\n\tcontinue"
     (function
       | [
-        Pass(_, None);
+        Pass(loop_start, None);
 
         If(
           Bool(true, _, None),
@@ -1326,17 +1353,20 @@ let continue_test = gen_module_test "continue_test"
         If(
           Name("$normalized_unique_name_2", _, None),
           [
-            Goto(_, _, None);
+            Goto(loop_end_jump, _, None);
           ],
           [],
           _, None);
 
-        Goto(_, _, None);
+        Goto(continue_jump, _, None);
 
-        Goto(_, _, None);
+        Goto(loop_start_jump, _, None);
 
-        Pass(_, None);
-      ] -> true
+        Pass(loop_end, None);
+
+      ] -> (loop_start_jump == loop_start) &&
+           (continue_jump == loop_start) &&
+           (loop_end_jump == loop_end)
       | _ -> false
     )
 ;;
@@ -1379,7 +1409,7 @@ let try_test = gen_module_test "try_test"
         (* Try body *)
         Assign(
           "$simplified_unique_name_0",
-          SimpleExpr(Num(Int(Pos), _, Some(_)),
+          SimpleExpr(Num(Int(Pos), _, Some(catch_uid_check_1)),
                      _, Some(_)),
           _, Some(_));
 
@@ -1387,13 +1417,13 @@ let try_test = gen_module_test "try_test"
           "x",
           SimpleExpr(Name("$simplified_unique_name_0",
                           _, Some(_)),
-                     _, Some(_)),
+                     _, Some(catch_uid_check_2)),
           _, Some(_));
 
-        Goto(_, _, None);
+        Goto(handler_end_jump, _, None);
 
         (* Catch exception *)
-        Catch("$normalized_unique_name_0", _, None);
+        Catch("$normalized_unique_name_0", catch_uid, None);
 
         (* Handler 1 - construct test expression*)
         Assign(
@@ -1519,8 +1549,10 @@ let try_test = gen_module_test "try_test"
           ],
           _, None);
 
-        Pass(_, None);
-      ] -> true
+        Pass(handler_end, None);
+      ] -> (handler_end_jump == handler_end) &&
+           (catch_uid_check_1 == catch_uid) &&
+           (catch_uid_check_2 == catch_uid)
       | _ -> false
     )
 ;;
@@ -1566,7 +1598,7 @@ let big_test = gen_module_test "big_test"
                          _, None),
               _, None);
 
-            Pass(_, None);
+            Pass(loop_start, None);
 
             If(
               Bool(true, _, None),
@@ -1608,7 +1640,7 @@ let big_test = gen_module_test "big_test"
             If(
               Name("$normalized_unique_name_2", _, None),
               [
-                Goto(_, _, None);
+                Goto(loop_end_jump, _, None);
               ],
               [],
               _, None);
@@ -1655,9 +1687,9 @@ let big_test = gen_module_test "big_test"
                 _, None),
               _, None);
 
-            Goto(_, _, None);
+            Goto(loop_start_jump, _, None);
 
-            Pass(_, None);
+            Pass(loop_end, None);
 
             Return(Some(Name("i", _, None)), _, None);
           ],
@@ -1692,7 +1724,8 @@ let big_test = gen_module_test "big_test"
         SimpleExprStmt(
           Name("$normalized_unique_name_7", _, None),
           _, None);
-      ] -> true
+      ] -> (loop_start_jump == loop_start) &&
+           (loop_end_jump == loop_end)
       | _ -> false
     )
 ;;
