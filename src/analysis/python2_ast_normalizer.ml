@@ -367,12 +367,15 @@ and normalize_expr
               get_next_uid annot,
               exception_target)]
       in
-      let big_if = Normalized.If(snd prev, body, orelse, get_next_uid annot,
+      let big_if = Normalized.If(update_uid annot (snd prev),
+                                 body,
+                                 orelse,
+                                 get_next_uid annot,
                                  exception_target) in
       let assignment, final_tmp_name =
         gen_normalized_assignment exception_target annot
           (Normalized.BoolOp(
-              snd prev,
+              update_uid annot (snd prev),
               norm_op,
               Normalized.Name(next_tmp_name, get_next_uid annot,
                               exception_target),

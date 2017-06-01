@@ -23,6 +23,87 @@ let parse_from_string_safe str =
 
 (* Functions to hide testing boilerplate *)
 
+(* Return true if there are no duplicates (which is what we want) *)
+let rec check_for_duplicates (lst : int list) : bool =
+  let sorted = List.sort compare lst in
+  match sorted with
+  | [] -> true
+  | head::rest ->
+    let _, value =
+      List.fold_left
+        (fun (prev : int * bool) (next : int) ->
+           next, (snd prev) && (next != fst prev))
+        (head, true)
+        rest
+    in value
+
+let rec verify_unique_uids = function
+  | Module(body, uid) ->
+    let uids = List.concat (List.map collect_uids_stmt body) in
+    check_for_duplicates (uid::uids)
+
+and collect_uids_stmt = function
+  | Assign (_, value, u, _)
+    -> u::(collect_uids_cexpr value)
+  | FunctionDef (_, _, body, u, _)
+    -> u::(List.concat (List.map collect_uids_stmt body))
+  | Return (value, u, _)
+    -> begin
+        match value with
+        | None -> [u]
+        | Some(e) -> u::(collect_uids_sexpr e)
+      end
+  | Print (dest, values, _, u, _)
+    ->
+    let big_list =
+      u::(List.concat (List.map collect_uids_sexpr values)) in
+    begin
+      match dest with
+      | None -> big_list
+      | Some(e) -> (collect_uids_sexpr e) @ big_list
+    end
+  | If (test, body, orelse, u, _)
+    -> let test_uid = collect_uids_sexpr test in
+    let body_uids = List.concat (List.map collect_uids_stmt body) in
+    let orelse_uids = List.concat (List.map collect_uids_stmt orelse) in
+    u::(test_uid @ body_uids @ orelse_uids)
+  | Raise (value, u, _)
+    -> u::(collect_uids_sexpr value)
+  | Catch (_, u, _)
+    -> [u]
+  | Pass (u, _)
+    -> [u]
+  | Goto (_, u, _)
+    -> [u]
+  | SimpleExprStmt (value, u, _)
+    -> u::(collect_uids_sexpr value)
+
+and collect_uids_cexpr = function
+  | BoolOp (left, _, right, u, _)
+  | BinOp (left, _, right, u, _)
+  | Compare (left, _, right, u, _)
+    -> u::((collect_uids_sexpr left) @ (collect_uids_sexpr right))
+  | UnaryOp (_, operand, u, _)
+    -> u::(collect_uids_sexpr operand)
+  | Call (func, args, u, _)
+    -> u::((collect_uids_sexpr func) @
+             (List.concat (List.map collect_uids_sexpr args)))
+  | Attribute (obj, _, u, _)
+    -> u::(collect_uids_sexpr obj)
+  | List (elts, u, _)
+  | Tuple (elts, u, _)
+    -> u::(List.concat (List.map collect_uids_sexpr elts))
+  | SimpleExpr (value, u, _)
+    -> u::(collect_uids_sexpr value)
+
+and collect_uids_sexpr = function
+  | Num (_, u, _)
+  | Str (_, u, _)
+  | Bool (_, u, _)
+  | Name (_, u, _)
+    -> [u]
+;;
+
 let gen_module_test (name : string) (prog : string)
     (test_func : stmt list -> bool)=
   name>::
@@ -36,10 +117,13 @@ let gen_module_test (name : string) (prog : string)
       Simplify.reset_unique_name ();
       let actual = Normalize.normalize_modl simplified in
       Normalize.reset_unique_name (); Normalize.reset_uid ();
+      let distinct_uids = verify_unique_uids actual in
       match actual with
       | Module (body, _) ->
-        assert_bool ("got:\n" ^ string_of_modl actual)
-          (test_func body)
+        assert_bool ("Incorrect Tree:\n" ^ string_of_modl actual)
+          (test_func body);
+        assert_bool ("Repeated UIDs:\n" ^ string_of_modl actual)
+          distinct_uids
   )
 ;;
 
