@@ -40,9 +40,9 @@ Library "parser"
     jhupllib,
     ppx_deriving.std
 
-Library "analysis"
+Library "ast_simplification"
   FindlibParent: CoPylot
-  Path: src/analysis
+  Path: src/ast_simplification
   Modules:
     Python2_abstract_ast,
     Python2_ast_lifter,
@@ -69,7 +69,7 @@ Executable "test"
     pds-reachability,
     ppx_deriving.std,
     CoPylot.parser,
-    CoPylot.analysis
+    CoPylot.ast_simplification
 
 Test test
   Command: $test
