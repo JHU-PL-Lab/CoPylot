@@ -2,9 +2,6 @@ open Python2_abstract_ast
 open Batteries
 module Concrete = Python2_ast
 
-
-
-
 module ID_tuple = struct
   type t = identifier * expr_context
   let compare (id1,ctx1) (id2,ctx2) =
@@ -17,8 +14,6 @@ module ID_tuple = struct
     | n -> n
 end
 ;;
-
-
 
 (* Mapping utilities *)
 (* Maps: id * ctx -> id *)
@@ -197,8 +192,6 @@ and make_arguments id_map (args,v,k,d) =
   ((make_expr_list id_map args),v,k,d)
 ;;
 
-
-
 (* Mapping update *)
 (* These functions are called at each level of scope: *)
 
@@ -225,13 +218,11 @@ let rec filter_id = function
     else (id,ctx) :: (filter_id rest)
 ;;
 
-
 (* Main recursion *)
 (* id_map: (id * id) map.t ->     Maps to be applied to current frame.  *)
 (* address: string list ->        Address stack of scopes.              *)
 (* node: 'a stmt list ->          Node from original tree.              *)
 (* return: 'a stmt list           New AST.                              *)
-
 
 let rec rename_modl id_map address (node : 'a modl) =
   match node with

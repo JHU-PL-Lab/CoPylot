@@ -45,7 +45,7 @@ Library "analysis"
   Path: src/analysis
   Modules:
     Python2_abstract_ast,
-    Python2_analysis_conversion,
+    Python2_ast_lifter,
     Python2_rename_ast,
     Python2_simplified_ast,
     Python2_ast_simplifier,

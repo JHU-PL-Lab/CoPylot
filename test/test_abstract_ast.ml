@@ -5,7 +5,7 @@ open Python2_parser
 module Concrete = Python2_ast
 open Lexing
 open Python2_abstract_ast
-module Convert = Python2_analysis_conversion
+module Convert = Python2_ast_lifter
 
 let annot = Concrete.Pos.of_pos Lexing.dummy_pos;;
 

@@ -5,7 +5,7 @@ open Python2_parser
 open Lexing
 module Simplified = Python2_simplified_ast
 open Python2_normalized_ast
-module Lift = Python2_analysis_conversion
+module Lift = Python2_ast_lifter
 module Simplify = Python2_ast_simplifier
 module Normalize = Python2_ast_normalizer
 

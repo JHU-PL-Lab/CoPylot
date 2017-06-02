@@ -5,7 +5,7 @@ open Python2_parser
 open Lexing
 module Abstract = Python2_abstract_ast
 open Python2_simplified_ast
-module Lift = Python2_analysis_conversion
+module Lift = Python2_ast_lifter
 module Simplify = Python2_ast_simplifier
 
 let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
