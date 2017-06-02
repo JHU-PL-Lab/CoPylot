@@ -24,6 +24,17 @@ Library "CoPylot"
   Modules:
     Copylot
 
+Library "utils"
+  FindlibParent: CoPylot
+  Path: src/utils
+  Modules:
+    Graph,
+    Utils
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std
+
 Library "parser"
   FindlibParent: CoPylot
   Path: src/parser
@@ -56,6 +67,21 @@ Library "ast_simplification"
     jhupllib,
     ppx_deriving.std,
     CoPylot.parser
+
+Library "analysis"
+  FindlibParent: CoPylot
+  Path: src/analysis
+  Modules:
+    Python2_cfg,
+    Python2_pds,
+    Python2_analysis
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std,
+    CoPylot.parser,
+    CoPylot.ast_simplification,
+    CoPylot.utils
 
 Executable "test"
   Path: test/
