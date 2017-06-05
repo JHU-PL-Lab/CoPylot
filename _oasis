@@ -75,7 +75,8 @@ Library "analysis"
   Modules:
     Python2_cfg,
     Python2_pds,
-    Python2_analysis
+    Python2_analysis,
+    Python2_pds_edge_functions
   BuildDepends:
     batteries,
     jhupllib,

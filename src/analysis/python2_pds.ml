@@ -1,4 +1,6 @@
 open Batteries;;
+open Jhupllib;;
+open Nondeterminism;;
 open Python2_normalized_ast;;
 open Pds_reachability_types_stack;;
 open Python2_cfg;;
@@ -77,7 +79,8 @@ struct
   end;;
   module Untargeted_dynamic_pop_action =
   struct
-    type t = Foo of t
+    type t =
+      | Goto_value_state
       [@@deriving eq, ord, show, to_yojson]
   end;;
   module Stack_action =
@@ -86,6 +89,11 @@ struct
   module Terminus =
     Terminus_constructor(State)(Untargeted_dynamic_pop_action)
   ;;
+
+  (* open Stack_action.T;; *)
+  open Terminus.T;;
+  open Untargeted_dynamic_pop_action;;
+
   let perform_targeted_dynamic_pop element action =
     match action with
     | Pop_anything_but se ->
@@ -94,8 +102,15 @@ struct
       else
         Enum.singleton []
   ;;
-  let perform_untargeted_dynamic_pop _ (* element *) _ (* action *) =
-    Enum.empty ()
+  let perform_untargeted_dynamic_pop element action =
+    let open Nondeterminism_monad in
+    Nondeterminism_monad.enum @@
+    match action with
+    | Goto_value_state ->
+      let%orzero
+        Ans(v) = element
+      in
+      return ([],Static_terminus(Value_node(v)))
   ;;
 end;;
 

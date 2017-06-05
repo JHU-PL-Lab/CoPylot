@@ -2,7 +2,7 @@ open Batteries;;
 open Python2_cfg;;
 open Python2_pds;;
 open Python2_normalized_ast;;
-(* open Python2_pds_edge_functions;; *)
+open Python2_pds_edge_functions;;
 
 module Analysis_result =
 struct
@@ -14,7 +14,8 @@ struct
 
   let add_edge (curr : t) (e : Control_cfg.edge) : t =
     let new_cfg = Cfg.add_control_edge e curr.analysis_cfg in
-    let new_pds = curr.analysis_pds in (* TODO: Edge functions *)
+    let new_pds = Python2_pds.Reachability.add_edge_function
+        (create_edge_function e) curr.analysis_pds in
     { analysis_cfg = new_cfg; analysis_pds = new_pds }
 
   let query
@@ -32,7 +33,10 @@ struct
 
   let create (prog : modl) : t =
     let cfg = Cfg.create prog in
-    let pds = Python2_pds.Reachability.empty () in
+    let pds =
+      Python2_pds.Reachability.empty ()
+      |> Python2_pds.Reachability.add_edge_function (value_loop_edge_function)
+    in
     build_cfg_and_pds ({ analysis_cfg = cfg; analysis_pds = pds })
 
 end;;
