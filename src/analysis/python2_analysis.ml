@@ -2,7 +2,7 @@ open Batteries;;
 open Python2_cfg;;
 open Python2_pds;;
 open Python2_normalized_ast;;
-open Python2_pds_edge_functions;;
+(* open Python2_pds_edge_functions;; *)
 
 module Analysis_result =
 struct
