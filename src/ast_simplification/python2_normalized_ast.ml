@@ -1,13 +1,13 @@
 type uid = int
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 ;;
 
 type identifier = string
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and modl =
     | Module of stmt list (* body *) * uid
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and stmt =
     | Assign of identifier (* target *) * compound_expr (* value *) * uid * uid option (* exception label *)
@@ -20,7 +20,7 @@ and stmt =
   | Pass of uid * uid option (* exception label *)
   | Goto of uid * uid * uid option (* exception label *)
   | SimpleExprStmt of simple_expr (* value *) * uid * uid option (* exception label *)
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and compound_expr =
     | BoolOp of simple_expr (* left *) * boolop (* op *) * simple_expr (* right *) * uid * uid option (* exception label *)
@@ -32,36 +32,36 @@ and compound_expr =
   | List of simple_expr list (* elts *)  * uid * uid option (* exception label *)
   | Tuple of simple_expr list (* elts *)  * uid * uid option (* exception label *)
   | SimpleExpr of simple_expr (* value*) * uid * uid option (* exception label *)
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and simple_expr =
     | Num of number (* n *) * uid * uid option (* exception label *)
   | Str of str * uid * uid option (* exception label *)
   | Bool of bool * uid * uid option (* exception label *)
   | Name of identifier (* id *) * uid * uid option (* exception label *)
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and boolop = And | Or
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and operator = Add | Sub | Mult | Div | Mod | Pow
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and unaryop = Not | UAdd | USub
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and sign = Pos | Neg | Zero
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and number =
     | Int of sign
   | Float of sign
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and str =
     | StringAbstract
   | StringLiteral of string
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]

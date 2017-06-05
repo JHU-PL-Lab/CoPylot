@@ -66,6 +66,7 @@ Library "ast_simplification"
     batteries,
     jhupllib,
     ppx_deriving.std,
+    ppx_deriving_yojson,
     CoPylot.parser
 
 Library "analysis"
@@ -79,6 +80,8 @@ Library "analysis"
     batteries,
     jhupllib,
     ppx_deriving.std,
+    ppx_deriving_yojson,
+    pds-reachability,
     CoPylot.parser,
     CoPylot.ast_simplification,
     CoPylot.utils
