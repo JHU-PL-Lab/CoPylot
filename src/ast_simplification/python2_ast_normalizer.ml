@@ -32,10 +32,26 @@ let normalize_option func o =
 
 let update_uid annot (e : Normalized.simple_expr) =
   match e with
-  | Normalized.Num (n, _, e) -> Normalized.Num(n, get_next_uid annot, e)
-  | Normalized.Str (s, _, e) -> Normalized.Str(s, get_next_uid annot, e)
-  | Normalized.Bool (b, _, e) -> Normalized.Bool(b, get_next_uid annot,e)
-  | Normalized.Name (id, _, e) -> Normalized.Name(id, get_next_uid annot, e)
+  | Normalized.Literal (l, _, ex) ->
+    begin
+      match l with
+      | Normalized.Num (n, _, except) ->
+        Normalized.Literal(
+          Normalized.Num(n, get_next_uid annot, except),
+          get_next_uid annot,
+          ex)
+      | Normalized.Str (s, _, except) ->
+        Normalized.Literal(
+          Normalized.Str(s, get_next_uid annot, except),
+          get_next_uid annot,
+          ex)
+      | Normalized.Bool (b, _, except) ->
+        Normalized.Literal(
+          Normalized.Bool(b, get_next_uid annot, except),
+          get_next_uid annot,
+          ex)
+    end
+  | Normalized.Name (id, _, ex) -> Normalized.Name(id, get_next_uid annot, ex)
 ;;
 
 let update_option_uid annot (opt: Normalized.simple_expr option) =
@@ -340,8 +356,11 @@ and normalize_expr
           [Normalized.Assign(
               next_tmp_name,
               Normalized.SimpleExpr(
-                Normalized.Bool(false, get_next_uid annot,
-                                exception_target),
+                Normalized.Literal(
+                  Normalized.Bool(false, get_next_uid annot,
+                                  exception_target),
+                  get_next_uid annot,
+                  exception_target),
                 get_next_uid annot,
                 exception_target),
               get_next_uid annot,
@@ -351,8 +370,11 @@ and normalize_expr
           [Normalized.Assign(
               next_tmp_name,
               Normalized.SimpleExpr(
-                Normalized.Bool(true, get_next_uid annot,
-                                exception_target),
+                Normalized.Literal(
+                  Normalized.Bool(true, get_next_uid annot,
+                                  exception_target),
+                  get_next_uid annot,
+                  exception_target),
                 get_next_uid annot,
                 exception_target),
               get_next_uid annot,
@@ -502,8 +524,11 @@ and normalize_expr
                       [Normalized.Assign(
                           id_of_name curr_result,
                           Normalized.SimpleExpr(
-                            Normalized.Bool(false, get_next_uid annot,
-                                            exception_target),
+                            Normalized.Literal(
+                              Normalized.Bool(false, get_next_uid annot,
+                                              exception_target),
+                              get_next_uid annot,
+                              exception_target),
                             get_next_uid annot,
                             exception_target),
                           get_next_uid annot,
@@ -526,8 +551,11 @@ and normalize_expr
       List.fold_left2 combine
         (
           left_bindings,
-          Normalized.Bool(true, get_next_uid annot,
-                          exception_target),
+          Normalized.Literal(
+            Normalized.Bool(true, get_next_uid annot,
+                            exception_target),
+            get_next_uid annot,
+            exception_target),
           update_uid annot left_result
         )
         normed_ops
@@ -547,16 +575,25 @@ and normalize_expr
     bindings, name
 
   | Simplified.Num (n, annot) ->
-    ([], Normalized.Num(normalize_number n, get_next_uid annot,
-                        exception_target))
+    ([], Normalized.Literal(
+        Normalized.Num(normalize_number n, get_next_uid annot,
+                       exception_target),
+        get_next_uid annot,
+        exception_target))
 
   | Simplified.Str (s, annot) ->
-    ([], Normalized.Str(normalize_str s, get_next_uid annot,
-                        exception_target))
+    ([], Normalized.Literal(
+        Normalized.Str(normalize_str s, get_next_uid annot,
+                       exception_target),
+        get_next_uid annot,
+        exception_target))
 
   | Simplified.Bool (b, annot) ->
-    ([], Normalized.Bool(b, get_next_uid annot,
-                         exception_target))
+    ([], Normalized.Literal(
+        Normalized.Bool(b, get_next_uid annot,
+                        exception_target),
+        get_next_uid annot,
+        exception_target))
 
   | Simplified.Attribute (obj, attr, annot) ->
     let obj_bindings, obj_result = normalize_expr exception_target obj in

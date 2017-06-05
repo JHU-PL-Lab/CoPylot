@@ -87,7 +87,7 @@ and collect_uids_cexpr = function
     -> u::(collect_uids_sexpr operand)
   | Call (func, args, u, _)
     -> u::((collect_uids_sexpr func) @
-             (List.concat (List.map collect_uids_sexpr args)))
+           (List.concat (List.map collect_uids_sexpr args)))
   | Attribute (obj, _, u, _)
     -> u::(collect_uids_sexpr obj)
   | List (elts, u, _)
@@ -97,10 +97,15 @@ and collect_uids_cexpr = function
     -> u::(collect_uids_sexpr value)
 
 and collect_uids_sexpr = function
+  | Literal (l, u, _)
+    -> u::collect_uids_literal l
+  | Name (_, u, _)
+    -> [u]
+
+and collect_uids_literal = function
   | Num (_, u, _)
   | Str (_, u, _)
   | Bool (_, u, _)
-  | Name (_, u, _)
     -> [u]
 ;;
 
@@ -147,7 +152,7 @@ let expect_error_test
 let int_test = gen_module_test "int_test"
     "4"
     (function
-      | [SimpleExprStmt(Num(Int(Pos), _, None), _, None)] -> true
+      | [SimpleExprStmt(Literal(Num(Int(Pos), _, None), _, None), _, None)] -> true
       | _ -> false
     )
 ;;
@@ -155,7 +160,7 @@ let int_test = gen_module_test "int_test"
 let float_test = gen_module_test "float_test"
     "1.7"
     (function
-      | [SimpleExprStmt(Num(Float(Pos), _, None), _, None)] -> true
+      | [SimpleExprStmt(Literal(Num(Float(Pos), _, None), _, None), _, None)] -> true
       | _ -> false
     )
 ;;
@@ -163,7 +168,7 @@ let float_test = gen_module_test "float_test"
 let float_zero_test = gen_module_test "float_zero_test"
     "0.0"
     (function
-      | [SimpleExprStmt(Num(Float(Zero), _, None), _, None)] -> true
+      | [SimpleExprStmt(Literal(Num(Float(Zero), _, None), _, None), _, None)] -> true
       | _ -> false
     )
 ;;
@@ -174,7 +179,7 @@ let unop_test = gen_module_test "unop_test"
       |
         [
           Assign("$normalized_unique_name_0",
-                 UnaryOp(UAdd, Num(Int(Pos), _, None),
+                 UnaryOp(UAdd, Literal(Num(Int(Pos), _, None), _, None),
                          _, None),
                  _, None);
           SimpleExprStmt(Name("$normalized_unique_name_0", _, None),
@@ -202,9 +207,9 @@ let boolop_and_test = gen_module_test "boolop_and_test"
       | [
         Assign("$normalized_unique_name_0",
                BinOp(
-                 Num(Int(Pos), _, None),
+                 Literal(Num(Int(Pos), _, None), _, None),
                  Add,
-                 Num(Int(Pos), _, None),
+                 Literal(Num(Int(Pos), _, None), _, None),
                  _, None),
                _, None);
 
@@ -216,7 +221,7 @@ let boolop_and_test = gen_module_test "boolop_and_test"
            ],
            [
              Assign("$normalized_unique_name_1",
-                    SimpleExpr(Bool(false, _, None), _, None),
+                    SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
                     _, None);
            ],
            _, None);
@@ -232,12 +237,12 @@ let boolop_and_test = gen_module_test "boolop_and_test"
         If(Name("$normalized_unique_name_2", _, None),
            [
              Assign("$normalized_unique_name_3",
-                    SimpleExpr(Num(Int(Neg), _, None), _, None),
+                    SimpleExpr(Literal(Num(Int(Neg), _, None), _, None), _, None),
                     _, None);
            ],
            [
              Assign("$normalized_unique_name_3",
-                    SimpleExpr(Bool(false, _, None), _, None),
+                    SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
                     _, None);
            ],
            _, None);
@@ -263,12 +268,12 @@ let boolop_or_test = gen_module_test "boolop_or_test"
         If(Name("x", _, None),
            [
              Assign("$normalized_unique_name_0",
-                    SimpleExpr(Bool(true, _, None), _, None),
+                    SimpleExpr(Literal(Bool(true, _, None), _, None), _, None),
                     _, None);
            ],
            [
              Assign("$normalized_unique_name_0",
-                    SimpleExpr(Bool(false, _, None), _, None),
+                    SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
                     _, None);
            ],
            _, None);
@@ -284,12 +289,12 @@ let boolop_or_test = gen_module_test "boolop_or_test"
         If(Name("$normalized_unique_name_1", _, None),
            [
              Assign("$normalized_unique_name_2",
-                    SimpleExpr(Bool(true, _, None), _, None),
+                    SimpleExpr(Literal(Bool(true, _, None), _, None), _, None),
                     _, None);
            ],
            [
              Assign("$normalized_unique_name_2",
-                    SimpleExpr(Num(Int(Zero), _, None), _, None),
+                    SimpleExpr(Literal(Num(Int(Zero), _, None), _, None), _, None),
                     _, None);
            ],
            _, None);
@@ -314,7 +319,7 @@ let var_assign_test = gen_module_test "var_assign_test"
       | [
         Assign(
           "$simplified_unique_name_0",
-          SimpleExpr(Num(Int(Pos), _, None), _, None),
+          SimpleExpr(Literal(Num(Int(Pos), _, None), _, None), _, None),
           _, None);
 
         Assign(
@@ -332,7 +337,7 @@ let var_double_assign_test = gen_module_test "var_double_assign_test"
       | [
         Assign(
           "$simplified_unique_name_0",
-          SimpleExpr(Num(Int(Pos), _, None), _, None),
+          SimpleExpr(Literal(Num(Int(Pos), _, None), _, None), _, None),
           _, None);
 
         Assign(
@@ -357,7 +362,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
           "$normalized_unique_name_0",
           Call(
             Name("f", _, None),
-            [Num(Int(Neg), _, None)],
+            [Literal(Num(Int(Neg), _, None), _, None)],
             _, None),
           _, None);
 
@@ -365,7 +370,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
           "$normalized_unique_name_1",
           Tuple(
             [
-              Num(Int(Neg), _, None);
+              Literal(Num(Int(Neg), _, None), _, None);
               Name("$normalized_unique_name_0", _, None);
             ],
             _, None),
@@ -451,10 +456,10 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
         (Assign ("$normalized_unique_name_8",
                  (Call (
                      (Name ("ValueError", _, (Some _))),
-                     [(Str (
+                     [Literal(Str (
                           (StringLiteral
                              "too many values to unpack"),
-                          _, (Some _)))
+                          _, (Some _)), _, Some _)
                      ],
                      _, (Some _))),
                  _, (Some _)));
@@ -479,7 +484,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                  _, (Some _)));
 
         (If (
-            (Bool (true, _, (Some _))),
+            Literal(Bool (true, _, (Some _)), _, Some _),
             [(Assign ("$normalized_unique_name_11",
                       (Compare (
                           (Name ("$normalized_unique_name_10", _,
@@ -491,7 +496,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
             ],
             [(Assign ("$normalized_unique_name_11",
                       (SimpleExpr (
-                          (Bool (false, _, (Some _))), _,
+                          Literal(Bool (false, _, (Some _)), _, Some _), _,
                           (Some _))),
                       _, (Some _)))
             ],
@@ -499,7 +504,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
 
         (Assign ("$normalized_unique_name_12",
                  (BoolOp (
-                     (Bool (true, _, (Some _))),
+                     (Literal(Bool (true, _, (Some _)), _, Some _)),
                      And,
                      (Name ("$normalized_unique_name_11", _,
                             (Some _))),
@@ -533,7 +538,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
                  _, None));
 
         (If (
-            (Bool (true, _, None)),
+            (Literal(Bool (true, _, None), _, None)),
             [(Assign ("$normalized_unique_name_15",
                       (Compare (
                           (Name ("$normalized_unique_name_14", _,
@@ -545,14 +550,14 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
             ],
             [(Assign ("$normalized_unique_name_15",
                       (SimpleExpr (
-                          (Bool (false, _, None)), _, None)),
+                          (Literal(Bool (false, _, None), _, None), _, None))),
                       _, None))
             ],
             _, None));
 
         (Assign ("$normalized_unique_name_16",
                  (BoolOp (
-                     (Bool (true, _, None)),
+                     (Literal(Bool (true, _, None), _, None)),
                      And,
                      (Name ("$normalized_unique_name_15", _,
                             None)),
@@ -564,8 +569,8 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
             [(Assign ("$normalized_unique_name_17",
                       (Call (
                           (Name ("ValueError", _, None)),
-                          [(Str (
-                               StringAbstract, _, None))
+                          [Literal(Str (
+                               StringAbstract, _, None), _, None)
                           ],
                           _, None)),
                       _, None));
@@ -618,7 +623,7 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
       | [
         Assign(
           "$simplified_unique_name_0",
-          SimpleExpr(Num(Int(Pos), _, None), _, None),
+          SimpleExpr(Literal(Num(Int(Pos), _, None), _, None), _, None),
           _, None);
 
         Assign(
@@ -632,9 +637,9 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
         Assign(
           "$normalized_unique_name_1",
           BinOp(
-            Num(Int(Pos), _, None),
+            Literal(Num(Int(Pos), _, None), _, None),
             Add,
-            Num(Int(Pos), _, None),
+            Literal(Num(Int(Pos), _, None), _, None),
             _, None),
           _, None);
 
@@ -663,7 +668,7 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
       | [
         Assign(
           "$simplified_unique_name_0",
-          SimpleExpr(Num(Int(Pos), _, None), _, None),
+          SimpleExpr(Literal(Num(Int(Pos), _, None), _, None), _, None),
           _, None);
 
         Assign(
@@ -679,8 +684,8 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
           Call(
             Name("slice", _, None),
             [
-              Num(Int(Pos), _, None);
-              Num(Int(Pos), _, None);
+              Literal(Num(Int(Pos), _, None), _, None);
+              Literal(Num(Int(Pos), _, None), _, None);
               Name("None", _, None);
             ],
             _, None),
@@ -711,7 +716,7 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
       | [
         Assign(
           "$simplified_unique_name_0",
-          SimpleExpr(Num(Int(Pos), _, None), _, None),
+          SimpleExpr(Literal(Num(Int(Pos), _, None), _, None), _, None),
           _, None);
 
         Assign(
@@ -727,7 +732,7 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
           Call(
             Name("$normalized_unique_name_0", _, None),
             [
-              Str(StringLiteral("member"), _, None);
+              Literal(Str(StringLiteral("member"), _, None), _, None);
               Name("$simplified_unique_name_0", _, None);
             ],
             _, None),
@@ -749,7 +754,7 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
           "$normalized_unique_name_0",
           BinOp(Name("x", _, None),
                 Mult,
-                Num(Int(Neg), _, None),
+                Literal(Num(Int(Neg), _, None), _, None),
                 _, None),
           _, None);
 
@@ -771,14 +776,14 @@ let var_cmp_test = gen_module_test "var_cmp_test"
     "x <= 9000+1 > True"
     (function
       | [
-        If(Bool(true, _, None),
+        If(Literal(Bool(true, _, None), _, None),
            [
              Assign(
                "$normalized_unique_name_0",
                BinOp(
-                 Num(Int(Pos), _, None),
+                 Literal(Num(Int(Pos), _, None), _, None),
                  Add,
-                 Num(Int(Pos), _, None),
+                 Literal(Num(Int(Pos), _, None), _, None),
                  _, None),
                _, None);
 
@@ -794,7 +799,7 @@ let var_cmp_test = gen_module_test "var_cmp_test"
            [
              Assign(
                "$normalized_unique_name_1",
-               SimpleExpr(Bool(false, _, None), _, None),
+               SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
                _, None)
            ],
            _, None);
@@ -802,7 +807,7 @@ let var_cmp_test = gen_module_test "var_cmp_test"
         Assign(
           "$normalized_unique_name_2",
           BoolOp(
-            Bool(true, _, None),
+            Literal(Bool(true, _, None), _, None),
             And,
             Name("$normalized_unique_name_1", _, None),
             _, None),
@@ -816,14 +821,14 @@ let var_cmp_test = gen_module_test "var_cmp_test"
               Compare(
                 Name("$normalized_unique_name_0", _, None),
                 Gt,
-                Bool(true, _, None),
+                Literal(Bool(true, _, None), _, None),
                 _, None),
               _, None)
           ],
           [
             Assign(
               "$normalized_unique_name_3",
-              SimpleExpr(Bool(false, _, None), _, None),
+              SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
               _, None)
           ],
           _, None);
@@ -873,7 +878,7 @@ let call_test = gen_module_test "call_test"
           BinOp(
             Name("x", _, None),
             Sub,
-            Num(Int(Pos), _, None),
+            Literal(Num(Int(Pos), _, None), _, None),
             _, None),
           _, None);
 
@@ -881,7 +886,7 @@ let call_test = gen_module_test "call_test"
           "$normalized_unique_name_1",
           Call(
             Name("get_arg", _, None),
-            [Str(StringLiteral("foo"), _, None)],
+            [Literal(Str(StringLiteral("foo"), _, None), _, None)],
             _, None),
           _, None);
 
@@ -890,7 +895,7 @@ let call_test = gen_module_test "call_test"
           Call(
             Name("func", _, None),
             [
-              Num(Int(Pos), _, None);
+              Literal(Num(Int(Pos), _, None), _, None);
               Name("$normalized_unique_name_0", _, None);
               Name("$normalized_unique_name_1", _, None);
             ],
@@ -958,14 +963,14 @@ let if_test = gen_module_test "if_test"
     (function
       | [
         If(
-          Bool(true, _, None),
+          Literal(Bool(true, _, None), _, None),
           [
             Assign(
               "$normalized_unique_name_0",
               BinOp(
-                Num(Int(Pos), _, None),
+                Literal(Num(Int(Pos), _, None), _, None),
                 Add,
-                Num(Int(Pos), _, None),
+                Literal(Num(Int(Pos), _, None), _, None),
                 _, None),
               _, None);
 
@@ -981,7 +986,7 @@ let if_test = gen_module_test "if_test"
           [
             Assign(
               "$normalized_unique_name_1",
-              SimpleExpr(Bool(false, _, None), _, None),
+              SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
               _, None);
           ],
           _, None);
@@ -989,7 +994,7 @@ let if_test = gen_module_test "if_test"
         Assign(
           "$normalized_unique_name_2",
           BoolOp(
-            Bool(true, _, None),
+            Literal(Bool(true, _, None), _, None),
             And,
             Name("$normalized_unique_name_1", _, None),
             _, None),
@@ -1022,21 +1027,21 @@ let if_test = gen_module_test "if_test"
           ],
           [
             If( (* Computing x < 0.0 *)
-              Bool(true, _, None),
+              Literal(Bool(true, _, None), _, None),
               [
                 Assign(
                   "$normalized_unique_name_4",
                   Compare(
                     Name("x", _, None),
                     Lt,
-                    Num(Float(Zero), _, None),
+                    Literal(Num(Float(Zero), _, None), _, None),
                     _, None),
                   _, None);
               ],
               [
                 Assign(
                   "$normalized_unique_name_4",
-                  SimpleExpr(Bool(false, _, None), _, None),
+                  SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
                   _, None);
               ],
               _, None);
@@ -1044,7 +1049,7 @@ let if_test = gen_module_test "if_test"
             Assign(
               "$normalized_unique_name_5",
               BoolOp(
-                Bool(true, _, None),
+                Literal(Bool(true, _, None), _, None),
                 And,
                 Name("$normalized_unique_name_4", _, None),
                 _, None),
@@ -1057,7 +1062,7 @@ let if_test = gen_module_test "if_test"
                   "$normalized_unique_name_6",
                   Call(
                     Name("error", _, None),
-                    [Str(StringLiteral("x < 0"), _, None)],
+                    [Literal(Str(StringLiteral("x < 0"), _, None), _, None)],
                     _, None),
                   _, None);
 
@@ -1083,9 +1088,9 @@ let print_test = gen_module_test "print_test"
         Assign(
           "$normalized_unique_name_0",
           BinOp(
-            Num(Int(Pos), _, None),
+            Literal(Num(Int(Pos), _, None), _, None),
             Add,
-            Num(Int(Pos), _, None),
+            Literal(Num(Int(Pos), _, None), _, None),
             _, None),
           _, None);
 
@@ -1099,9 +1104,9 @@ let print_test = gen_module_test "print_test"
 
         Print(None,
               [
-                Num(Int(Pos), _, None);
+                Literal(Num(Int(Pos), _, None), _, None);
                 Name("$normalized_unique_name_1", _, None);
-                Str(StringLiteral("foo"),_, None);
+                Literal(Str(StringLiteral("foo"), _, None), _, None);
               ],
               true,
               _, None)
@@ -1117,9 +1122,9 @@ let tuple_test = gen_module_test "tuple_test"
         Assign( (* 1+1 *)
           "$normalized_unique_name_0",
           BinOp(
-            Num(Int(Pos), _, None),
+            Literal(Num(Int(Pos), _, None), _, None),
             Add,
-            Num(Int(Pos), _, None),
+            Literal(Num(Int(Pos), _, None), _, None),
             _, None),
           _, None);
 
@@ -1127,7 +1132,7 @@ let tuple_test = gen_module_test "tuple_test"
           "$normalized_unique_name_1",
           Call(
             Name("f", _, None),
-            [Num(Int(Pos), _, None)],
+            [Literal(Num(Int(Pos), _, None), _, None)],
             _, None),
           _, None);
 
@@ -1135,7 +1140,7 @@ let tuple_test = gen_module_test "tuple_test"
           "$normalized_unique_name_2",
           Tuple(
             [
-              Num(Int(Pos), _, None);
+              Literal(Num(Int(Pos), _, None), _, None);
               Name("$normalized_unique_name_1", _, None);
             ],
             _, None),
@@ -1145,10 +1150,10 @@ let tuple_test = gen_module_test "tuple_test"
           "$normalized_unique_name_3",
           Tuple(
             [
-              Num(Int(Pos), _, None);
+              Literal(Num(Int(Pos), _, None), _, None);
               Name("$normalized_unique_name_0", _, None);
               Name("$normalized_unique_name_2", _, None);
-              Str(StringLiteral("foo"), _, None);
+              Literal(Str(StringLiteral("foo"), _, None), _, None);
             ],
             _, None),
           _, None);
@@ -1168,21 +1173,21 @@ let while_test = gen_module_test "while_test"
         Pass(loop_start, None);
 
         If(
-          Bool(true, _, None),
+          Literal(Bool(true, _, None), _, None),
           [
             Assign(
               "$normalized_unique_name_0",
               Compare(
                 Name("x", _, None),
                 Lt,
-                Num(Int(Pos), _, None),
+                Literal(Num(Int(Pos), _, None), _, None),
                 _, None),
               _, None);
           ],
           [
             Assign(
               "$normalized_unique_name_0",
-              SimpleExpr(Bool(false, _, None), _, None),
+              SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
               _, None);
           ],
           _, None);
@@ -1190,7 +1195,7 @@ let while_test = gen_module_test "while_test"
         Assign(
           "$normalized_unique_name_1",
           BoolOp(
-            Bool(true, _, None),
+            Literal(Bool(true, _, None), _, None),
             And,
             Name("$normalized_unique_name_0", _, None),
             _, None),
@@ -1216,7 +1221,7 @@ let while_test = gen_module_test "while_test"
           "$normalized_unique_name_3",
           BinOp(Name("x", _, None),
                 Add,
-                Num(Int(Pos), _, None),
+                Literal(Num(Int(Pos), _, None), _, None),
                 _, None),
           _, None);
 
@@ -1250,21 +1255,21 @@ let break_test = gen_module_test "break_test"
         Pass(loop_start, None);
 
         If(
-          Bool(true, _, None),
+          Literal(Bool(true, _, None), _, None),
           [
             Assign(
               "$normalized_unique_name_0",
               Compare(
                 Name("x", _, None),
                 Lt,
-                Num(Int(Pos), _, None),
+                Literal(Num(Int(Pos), _, None), _, None),
                 _, None),
               _, None);
           ],
           [
             Assign(
               "$normalized_unique_name_0",
-              SimpleExpr(Bool(false, _, None), _, None),
+              SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
               _, None);
           ],
           _, None);
@@ -1272,7 +1277,7 @@ let break_test = gen_module_test "break_test"
         Assign(
           "$normalized_unique_name_1",
           BoolOp(
-            Bool(true, _, None),
+            Literal(Bool(true, _, None), _, None),
             And,
             Name("$normalized_unique_name_0", _, None),
             _, None),
@@ -1314,21 +1319,21 @@ let continue_test = gen_module_test "continue_test"
         Pass(loop_start, None);
 
         If(
-          Bool(true, _, None),
+          Literal(Bool(true, _, None), _, None),
           [
             Assign(
               "$normalized_unique_name_0",
               Compare(
                 Name("x", _, None),
                 Lt,
-                Num(Int(Pos), _, None),
+                Literal(Num(Int(Pos), _, None), _, None),
                 _, None),
               _, None);
           ],
           [
             Assign(
               "$normalized_unique_name_0",
-              SimpleExpr(Bool(false, _, None), _, None),
+              SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
               _, None);
           ],
           _, None);
@@ -1336,7 +1341,7 @@ let continue_test = gen_module_test "continue_test"
         Assign(
           "$normalized_unique_name_1",
           BoolOp(
-            Bool(true, _, None),
+            Literal(Bool(true, _, None), _, None),
             And,
             Name("$normalized_unique_name_0", _, None),
             _, None),
@@ -1409,8 +1414,8 @@ let try_test = gen_module_test "try_test"
         (* Try body *)
         Assign(
           "$simplified_unique_name_0",
-          SimpleExpr(Num(Int(Pos), _, Some(catch_uid_check_1)),
-                     _, Some(_)),
+          SimpleExpr(Literal(Num(Int(Pos), _, Some(catch_uid_check_1)),
+                             _, Some(_)), _, Some(_)),
           _, Some(_));
 
         Assign(
@@ -1435,7 +1440,7 @@ let try_test = gen_module_test "try_test"
           _, None);
 
         If(
-          Bool(true, _, None),
+          Literal(Bool(true, _, None), _, None),
           [
             Assign(
               "$normalized_unique_name_2",
@@ -1449,7 +1454,7 @@ let try_test = gen_module_test "try_test"
           [
             Assign(
               "$normalized_unique_name_2",
-              SimpleExpr(Bool(false, _, None),
+              SimpleExpr(Literal(Bool(false, _, None), _, None),
                          _, None),
               _, None);
           ],
@@ -1458,7 +1463,7 @@ let try_test = gen_module_test "try_test"
         Assign(
           "$normalized_unique_name_3",
           BoolOp(
-            Bool(true, _, None),
+            Literal(Bool(true, _, None), _, None),
             And,
             Name("$normalized_unique_name_2", _, None),
             _, None),
@@ -1479,7 +1484,7 @@ let try_test = gen_module_test "try_test"
             Print(
               None,
               [
-                Str(StringLiteral("Error:"), _, None);
+                Literal(Str(StringLiteral("Error:"), _, None), _, None);
                 Name("$normalized_unique_name_4", _, None);
               ],
               true,
@@ -1496,7 +1501,7 @@ let try_test = gen_module_test "try_test"
               _, None);
 
             If(
-              Bool(true, _, None),
+              Literal(Bool(true, _, None), _, None),
               [
                 Assign(
                   "$normalized_unique_name_6",
@@ -1510,7 +1515,7 @@ let try_test = gen_module_test "try_test"
               [
                 Assign(
                   "$normalized_unique_name_6",
-                  SimpleExpr(Bool(false, _, None),
+                  SimpleExpr(Literal(Bool(false, _, None), _, None),
                              _, None),
                   _, None);
               ],
@@ -1519,7 +1524,7 @@ let try_test = gen_module_test "try_test"
             Assign(
               "$normalized_unique_name_7",
               BoolOp(
-                Bool(true, _, None),
+                Literal(Bool(true, _, None), _, None),
                 And,
                 Name("$normalized_unique_name_6", _, None),
                 _, None),
@@ -1578,7 +1583,7 @@ let big_test = gen_module_test "big_test"
           [ (* Body *)
             Assign(
               "$simplified_unique_name_0",
-              SimpleExpr(Num(Int(Zero), _, None), _, None),
+              SimpleExpr(Literal(Num(Int(Zero), _, None), _, None), _, None),
               _, None);
 
             Assign(
@@ -1589,7 +1594,7 @@ let big_test = gen_module_test "big_test"
 
             Assign(
               "$simplified_unique_name_1",
-              SimpleExpr(Num(Int(Zero), _, None), _, None),
+              SimpleExpr(Literal(Num(Int(Zero), _, None), _, None), _, None),
               _, None);
 
             Assign(
@@ -1601,7 +1606,7 @@ let big_test = gen_module_test "big_test"
             Pass(loop_start, None);
 
             If(
-              Bool(true, _, None),
+              Literal(Bool(true, _, None), _, None),
               [
                 Assign(
                   "$normalized_unique_name_0",
@@ -1615,7 +1620,7 @@ let big_test = gen_module_test "big_test"
               [
                 Assign(
                   "$normalized_unique_name_0",
-                  SimpleExpr(Bool(false, _, None), _, None),
+                  SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
                   _, None);
               ],
               _, None);
@@ -1623,7 +1628,7 @@ let big_test = gen_module_test "big_test"
             Assign(
               "$normalized_unique_name_1",
               BoolOp(
-                Bool(true, _, None),
+                Literal(Bool(true, _, None), _, None),
                 And,
                 Name("$normalized_unique_name_0", _, None),
                 _, None),
@@ -1670,7 +1675,7 @@ let big_test = gen_module_test "big_test"
               "$normalized_unique_name_4",
               BinOp(Name("count", _, None),
                     Add,
-                    Num(Int(Pos), _, None),
+                    Literal(Num(Int(Pos), _, None), _, None),
                     _, None),
               _, None);
 
@@ -1699,7 +1704,7 @@ let big_test = gen_module_test "big_test"
           "$normalized_unique_name_5",
           Call(
             Name("triangle", _, None),
-            [Num(Int(Pos), _, None)],
+            [Literal(Num(Int(Pos), _, None), _, None)],
             _, None),
           _, None);
 
@@ -1707,7 +1712,7 @@ let big_test = gen_module_test "big_test"
           "$normalized_unique_name_6",
           Call(
             Name("triangle", _, None),
-            [Num(Int(Pos), _, None)],
+            [Literal(Num(Int(Pos), _, None), _, None)],
             _, None),
           _, None);
 
@@ -1741,16 +1746,16 @@ let list_test = gen_module_test "list_test"
           "$normalized_unique_name_0",
           Call(
             Name("f", _, None),
-            [Num(Int(Pos), _, None)],
+            [Literal(Num(Int(Pos), _, None), _, None)],
             _, None),
           _, None);
 
         Assign(
           "$normalized_unique_name_1",
           BinOp(
-            Num(Int(Pos), _, None),
+            Literal(Num(Int(Pos), _, None), _, None),
             Add,
-            Num(Int(Pos), _, None),
+            Literal(Num(Int(Pos), _, None), _, None),
             _, None),
           _, None);
 
@@ -1758,11 +1763,11 @@ let list_test = gen_module_test "list_test"
           "$normalized_unique_name_2",
           List(
             [
-              Num(Int(Pos), _, None);
-              Num(Int(Pos), _, None);
+              Literal(Num(Int(Pos), _, None), _, None);
+              Literal(Num(Int(Pos), _, None), _, None);
               Name("$normalized_unique_name_0", _, None);
-              Str(StringLiteral("four"), _, None);
-              Str(StringLiteral("five"), _, None);
+              Literal(Str(StringLiteral("four"), _, None), _, None);
+              Literal(Str(StringLiteral("five"), _, None), _, None);
               Name("$normalized_unique_name_1", _, None);
             ],
             _, None),

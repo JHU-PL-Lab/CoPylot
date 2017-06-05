@@ -35,10 +35,14 @@ and compound_expr =
 [@@deriving eq, ord, show, to_yojson]
 
 and simple_expr =
+    | Literal of literal * uid * uid option
+  | Name of identifier (* id *) * uid * uid option (* exception label *)
+[@@deriving eq, ord, show, to_yojson]
+
+and literal =
     | Num of number (* n *) * uid * uid option (* exception label *)
   | Str of str * uid * uid option (* exception label *)
   | Bool of bool * uid * uid option (* exception label *)
-  | Name of identifier (* id *) * uid * uid option (* exception label *)
 [@@deriving eq, ord, show, to_yojson]
 
 and boolop = And | Or
