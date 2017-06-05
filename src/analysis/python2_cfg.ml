@@ -2,10 +2,10 @@ open Batteries;;
 open Python2_normalized_ast;;
 
 type vertex =
-  | Prog_point of stmt
+  | Program_point of stmt
   | Start
   | End
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 ;;
 
 module Lexical_vertex =
@@ -85,7 +85,7 @@ struct
   (* TODO: Deal with stuff like if statements that have subordinate stmt lists *)
   let create_lexical_cfg (m : modl) =
     let stmt_list_to_vertex_list (lst : stmt list) : vertex list =
-      List.map (fun stmt -> Prog_point(stmt)) lst
+      List.map (fun stmt -> Program_point(stmt)) lst
     in
     let vertex_list_to_edge_list (lst : vertex list) : Lexical_cfg.edge list =
       List.map2

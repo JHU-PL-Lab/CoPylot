@@ -1,6 +1,7 @@
 open Batteries;;
 open Python2_normalized_ast;;
 open Pds_reachability_types_stack;;
+open Python2_cfg;;
 
 type answer =
   | Num of number
@@ -18,7 +19,8 @@ end;;
 module Answer_set = Set.Make(Answer);;
 
 type state =
-  | Program_point of stmt
+  | Cfg_node of vertex
+  | Value_node of answer
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
