@@ -8,6 +8,7 @@ open Python2_normalized_ast
 module Lift = Python2_ast_lifter
 module Simplify = Python2_ast_simplifier
 module Normalize = Python2_ast_normalizer
+open Uid_generation
 
 let string_of_modl m = Pp_utils.pp_to_string pp_modl m;;
 let equivalent_modl m1 m2 = equal_modl m1 m2;;
@@ -120,8 +121,9 @@ let gen_module_test (name : string) (prog : string)
         Simplify.reset_unique_name ();
         Simplify.simplify_modl abstract in
       Simplify.reset_unique_name ();
-      let actual = Normalize.normalize_modl simplified in
-      Normalize.reset_unique_name (); Normalize.reset_uid ();
+      let ctx = create_new_uid_context () in
+      let actual = Normalize.normalize_modl ctx simplified in
+      Normalize.reset_unique_name ();
       let distinct_uids = verify_unique_uids actual in
       match actual with
       | Module (body, _) ->
@@ -141,11 +143,12 @@ let expect_error_test
      let concrete = parse_from_string_safe (prog ^ "\n") in
      let abstract = Lift.lift_modl concrete in
      let simplified = Simplify.simplify_modl abstract in
+     let ctx = create_new_uid_context () in
      Simplify.reset_unique_name ();
      assert_raises
        expected
        (fun _ ->
-          Normalize.normalize_modl simplified)
+          Normalize.normalize_modl ctx simplified)
   )
 ;;
 
