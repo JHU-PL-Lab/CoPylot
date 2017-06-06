@@ -152,6 +152,16 @@ let expect_error_test
   )
 ;;
 
+let uid_test =
+  "uid_test">::
+  ( fun _ ->
+      let actual = Module([Assign("x", SimpleExpr(Literal(Num(Int(Zero), 1, None), 2, None), 3, None), 4, None);
+                           Assign("y", SimpleExpr(Literal(Num(Int(Pos), 5, None), 6, None), 7, None), 8, None);], 0) in
+      let map = Python2_uid_stmt_map.get_uid_hashtbl actual in
+      assert_equal (Assign("y", SimpleExpr(Literal(Num(Int(Pos), 5, None), 6, None), 7, None), 8, None)) (Uid_hashtbl.find map 8)
+  )
+;;
+
 let int_test = gen_module_test "int_test"
     "4"
     (function
@@ -1786,6 +1796,7 @@ let list_test = gen_module_test "list_test"
 let tests =
   "abstract_ast">:::
   [
+    uid_test;
     int_test;
     float_test;
     float_zero_test;

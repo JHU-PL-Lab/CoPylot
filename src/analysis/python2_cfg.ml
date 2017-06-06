@@ -67,7 +67,7 @@ struct
 
   let get_edges_to_add (curr : t) : Control_cfg.edge list =
     match curr with
-    | Cfg (lex, ctrl) -> ignore ctrl; (* FIXME *)
+    | Cfg (lex, ctrl) ->
       let rec collect_edges_from_vertex (v : vertex) : Control_cfg.edge list =
         let outgoing_edges = Lexical_cfg.edges_from v lex in
         let edges_to_add =
@@ -79,7 +79,8 @@ struct
         Enum.fold
           (fun lst v -> lst @ collect_edges_from_vertex v) edges_to_add successors
       in (* End definition of collect_edges_from_vertex *)
-      collect_edges_from_vertex Start
+      List.filter (fun e -> Control_cfg.has_edge e ctrl)
+        (collect_edges_from_vertex Start)
   ;;
 
   (* TODO: Deal with stuff like if statements that have subordinate stmt lists *)

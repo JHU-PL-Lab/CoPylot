@@ -38,7 +38,7 @@ struct
           | _ -> None)
     in
     Answer_set.of_enum values
-;;
+  ;;
 
   let rec build_cfg_and_pds (curr : t) : t =
     let edges_to_add = Cfg.get_edges_to_add curr.analysis_cfg in
@@ -58,6 +58,7 @@ struct
 
 end;;
 
+(* TODO: Take an option between uid and End *)
 let analyze (prog : modl) (prog_point : uid) (var : identifier) : Answer_set.t =
   let analysis = Analysis_result.create prog in
   let uid_to_stmt_map = get_uid_hashtbl prog in

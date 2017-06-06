@@ -100,7 +100,8 @@ Executable "test"
     pds-reachability,
     ppx_deriving.std,
     CoPylot.parser,
-    CoPylot.ast_simplification
+    CoPylot.ast_simplification,
+    CoPylot.analysis
 
 Test test
   Command: $test
