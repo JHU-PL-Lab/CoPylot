@@ -42,47 +42,6 @@ struct
     end
   ;;
 
-  let active_vertex _ _ = true;; (* TODO *)
-  let immediate_vertex _ = true;; (* TODO *)
-
-  (* TODO: Move rules to another file, probably *)
-  let start_rule (_ : t) (e : Lexical_cfg.edge) : Control_cfg.edge list =
-    match e with
-    | Lexical_cfg.Edge (Start, nxt) -> [Control_cfg.Edge(Start, nxt)]
-    | _ -> []
-  ;;
-
-  let immediate_rule (curr : t) (e : Lexical_cfg.edge) : Control_cfg.edge list =
-    match e with
-    | Lexical_cfg.Edge (v1, v2) ->
-      if (active_vertex v1 curr) && (immediate_vertex v1)
-      then
-        [Control_cfg.Edge(v1,v2)]
-      else
-        []
-  ;;
-
-  let apply_rules (curr : t) (e : Lexical_cfg.edge) : Control_cfg.edge list =
-    start_rule curr e @ immediate_rule curr e;;
-
-  let get_edges_to_add (curr : t) : Control_cfg.edge list =
-    match curr with
-    | Cfg (lex, ctrl) ->
-      let rec collect_edges_from_vertex (v : vertex) : Control_cfg.edge list =
-        let outgoing_edges = Lexical_cfg.edges_from v lex in
-        let edges_to_add =
-          Enum.fold (fun l1 l2 -> l1 @ l2) (* TODO: This makes me sad *)
-            []
-            (Enum.map (apply_rules curr) outgoing_edges) in
-        let successors = Lexical_cfg.succs v lex in
-        (* If there are cycles in the lexical cfg this will never end *)
-        Enum.fold
-          (fun lst v -> lst @ collect_edges_from_vertex v) edges_to_add successors
-      in (* End definition of collect_edges_from_vertex *)
-      List.filter (fun e -> not (Control_cfg.has_edge e ctrl))
-        (collect_edges_from_vertex Start)
-  ;;
-
   (* TODO: Deal with stuff like if statements that have subordinate stmt lists *)
   let create_lexical_cfg (m : modl) =
     let stmt_list_to_vertex_list (lst : stmt list) : vertex list =

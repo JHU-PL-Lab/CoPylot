@@ -77,6 +77,7 @@ Library "analysis"
     Python2_cfg,
     Python2_pds,
     Python2_analysis,
+    Python2_control_rules,
     Python2_pds_edge_functions
   BuildDepends:
     batteries,

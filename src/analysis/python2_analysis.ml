@@ -2,6 +2,7 @@ open Batteries;;
 open Python2_cfg;;
 open Python2_pds;;
 open Python2_normalized_ast;;
+open Python2_control_rules;;
 open Python2_pds_edge_functions;;
 open Python2_pds.Reachability.Stack_action.T;;
 open Python2_uid_stmt_map;;
@@ -41,12 +42,13 @@ struct
   ;;
 
   let rec build_cfg_and_pds (curr : t) : t =
-    let edges_to_add = Cfg.get_edges_to_add curr.analysis_cfg in
-    match edges_to_add with
-    | [] -> curr
-    | _ ->
-      let result = List.fold_left add_edge curr edges_to_add in
-      build_cfg_and_pds result
+    let edges_to_add = get_edges_to_add curr.analysis_cfg in
+    if Enum.is_empty edges_to_add then
+      curr
+    else
+    let result = Enum.fold add_edge curr edges_to_add in
+    build_cfg_and_pds result
+;;
 
   let create (prog : modl) : t =
     let cfg = Cfg.create prog in
