@@ -115,7 +115,6 @@ struct
 end;;
 
 module Reachability =
-  (*TODO: there appears to be a problem here with not having untargeted dynamic pops, and also with pretty printing*)
   Pds_reachability.Make
     (Spec)
     (Dph)

@@ -34,6 +34,8 @@ let apply_rules (curr : t) (e : Lexical_cfg.edge) : Control_cfg.edge Enum.t =
   in edges_to_add
 ;;
 
+(* Returns a list of edges which the rules say we should add to the Control
+   cfg, but which are not currently in it. *)
 let get_edges_to_add (curr : t) : Control_cfg.edge Enum.t =
   match curr with
   | Cfg (lex, ctrl) ->

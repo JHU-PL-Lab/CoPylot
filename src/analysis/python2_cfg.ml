@@ -30,10 +30,20 @@ module Lexical_cfg = Graph.Make(Lexical_vertex);;
 
 module Control_cfg = Graph.Make(Control_vertex);;
 
-(* TODO: Add a signature and, y'know, the rest of the functionality *)
-module Cfg =
+module type Cfg_sig =
+sig
+  type t = Cfg of Lexical_cfg.t * Control_cfg.t;;
+
+  val create: modl -> t
+
+  val add_control_edge: Control_cfg.edge -> t -> t
+
+end
+;;
+
+module Cfg : Cfg_sig =
 struct
-  type t = Cfg of Lexical_cfg.t * Control_cfg.t;; (* TODO: Make this a record? *)
+  type t = Cfg of Lexical_cfg.t * Control_cfg.t;;
 
   let add_control_edge (e : Control_cfg.edge) (curr : t) : t =
     begin
@@ -53,14 +63,13 @@ struct
         ([Start] @ lst)
         (lst @ [End])
     in
-    match m with
-    | Module (stmts, _) ->
-      let v_lst = stmt_list_to_vertex_list stmts in
-      let e_lst = vertex_list_to_edge_list v_lst in
-      List.fold_left
-        (fun gph e -> Lexical_cfg.add_edge e gph)
-        Lexical_cfg.empty
-        e_lst
+    let Module(stmts, _) = m in
+    let v_lst = stmt_list_to_vertex_list stmts in
+    let e_lst = vertex_list_to_edge_list v_lst in
+    List.fold_left
+      (fun gph e -> Lexical_cfg.add_edge e gph)
+      Lexical_cfg.empty
+      e_lst
   ;;
 
   let create (m : modl) : t =

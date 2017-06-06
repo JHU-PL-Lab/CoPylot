@@ -17,8 +17,10 @@ struct
 
   let add_edge (curr : t) (e : Control_cfg.edge) : t =
     let new_cfg = Cfg.add_control_edge e curr.analysis_cfg in
-    let new_pds = Python2_pds.Reachability.add_edge_function
-        (create_edge_function e) curr.analysis_pds in
+    let new_pds =
+      Python2_pds.Reachability.add_edge_function
+        (create_edge_function e)
+        curr.analysis_pds in
     { analysis_cfg = new_cfg; analysis_pds = new_pds }
 
   let query
@@ -29,6 +31,8 @@ struct
       analysis.analysis_pds
       |> Reachability.add_start_state start_state start_actions
       |> Reachability.fully_close
+      (* TODO: This is the only place we close, so we're doing a lot of
+         duplicate work. Would be better to close before calling query *)
     in
     let values =
       final_pds
@@ -46,9 +50,9 @@ struct
     if Enum.is_empty edges_to_add then
       curr
     else
-    let result = Enum.fold add_edge curr edges_to_add in
-    build_cfg_and_pds result
-;;
+      let result = Enum.fold add_edge curr edges_to_add in
+      build_cfg_and_pds result
+  ;;
 
   let create (prog : modl) : t =
     let cfg = Cfg.create prog in
@@ -56,11 +60,12 @@ struct
       Python2_pds.Reachability.empty ()
       |> Python2_pds.Reachability.add_edge_function (value_loop_edge_function)
     in
-    build_cfg_and_pds ({ analysis_cfg = cfg; analysis_pds = pds })
+    build_cfg_and_pds { analysis_cfg = cfg; analysis_pds = pds }
 
 end;;
 
-(* TODO: Take an option between uid and End *)
+(* TODO: Once we decide what the interface is, these should probably not be
+different functions *)
 let analyze_uid (prog : modl) (prog_point : uid) (var : identifier) : Answer_set.t =
   let analysis = Analysis_result.create prog in
   let uid_to_stmt_map = get_uid_hashtbl prog in

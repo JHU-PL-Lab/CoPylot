@@ -7,7 +7,6 @@ open Python2_pds.Dph.Untargeted_dynamic_pop_action;;
 module Ast = Python2_normalized_ast;;
 open Ast;;
 
-
 let literal_to_answer l =
   match l with
   | Ast.Num (n,_,_) -> Python2_pds.Num n
@@ -37,7 +36,7 @@ let create_edge_function (e : Control_cfg.edge) (state : Reachability.State.t)
             Program_point(Assign(id,SimpleExpr(Literal(v,_,_),_,_),_,_)) = a1
           in
           (* x = v *)
-          return ([Pop(Var(id));Push(Ans(literal_to_answer v))],
+          return ([Pop(Var(id)); Push(Ans(literal_to_answer v))],
                   Static_terminus(Cfg_node(a0)))
         end
         ;
@@ -50,5 +49,5 @@ let value_loop_edge_function (state : Reachability.State.t)
   : (Reachability.Stack_action.t list * Reachability.Terminus.t) Enum.t =
   let zero = Enum.empty in
   let%orzero Value_node(_) = state in
-  Enum.singleton ([Pop(Bottom)],Static_terminus(state))
+  Enum.singleton ([Pop(Bottom)], Static_terminus(state))
 ;;
