@@ -79,7 +79,7 @@ struct
         Enum.fold
           (fun lst v -> lst @ collect_edges_from_vertex v) edges_to_add successors
       in (* End definition of collect_edges_from_vertex *)
-      List.filter (fun e -> Control_cfg.has_edge e ctrl)
+      List.filter (fun e -> not (Control_cfg.has_edge e ctrl))
         (collect_edges_from_vertex Start)
   ;;
 

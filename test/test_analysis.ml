@@ -73,7 +73,7 @@ let first_test =
       assert_equal ~printer:dump (Python2_pds.Answer_set.singleton (Num(Int(Zero)))) (analyze actual 8 "x")
   )
 
-let test_cfg =
+let test_lex_cfg =
   "test_cfg">::
   ( fun _ ->
       let line1 = Assign("x", SimpleExpr(Literal(Num(Int(Zero), 1, None), 2, None), 3, None), 4, None) in
@@ -89,9 +89,29 @@ let test_cfg =
                    ) lex
   )
 
+let test_ctrl_cfg =
+  "test_ctrl_cfg">::
+  ( fun _ ->
+      let line1 = Assign("x", SimpleExpr(Literal(Num(Int(Zero), 1, None), 2, None), 3, None), 4, None) in
+      let line2 = Assign("y", SimpleExpr(Literal(Num(Int(Pos), 5, None), 6, None), 7, None), 8, None) in
+      let actual = Module([line1;
+                           line2;], 0) in
+      let analysis = Analysis_result.create actual in
+      let open Python2_analysis.Analysis_result in
+      let Python2_cfg.Cfg.Cfg(_, ctrl) = analysis.analysis_cfg in
+      let open Python2_cfg.Control_cfg in let open Python2_cfg in
+      assert_equal ~printer:dump
+        (empty
+         |> add_edge (Edge(Start, Program_point(line1)))
+         |> add_edge (Edge(Program_point(line1), Program_point(line2)))
+         |> add_edge (Edge(Program_point(line2), End))
+        ) ctrl
+  )
+
 let tests =
   "abstract_ast">:::
   [
     first_test;
-    test_cfg;
+    test_lex_cfg;
+    test_ctrl_cfg;
   ]
