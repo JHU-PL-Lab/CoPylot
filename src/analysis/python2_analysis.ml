@@ -21,8 +21,8 @@ struct
     { analysis_cfg = new_cfg; analysis_pds = new_pds }
 
   let query
-      (analysis : t) (prog_point : stmt) (var : identifier) : Answer_set.t =
-    let start_state = Cfg_node(Program_point(prog_point)) in
+      (analysis : t) (prog_point : vertex) (var : identifier) : Answer_set.t =
+    let start_state = Cfg_node(prog_point) in
     let start_actions = [Push Bottom; Push (Var(var))] in
     let final_pds =
       analysis.analysis_pds
@@ -59,9 +59,14 @@ struct
 end;;
 
 (* TODO: Take an option between uid and End *)
-let analyze (prog : modl) (prog_point : uid) (var : identifier) : Answer_set.t =
+let analyze_uid (prog : modl) (prog_point : uid) (var : identifier) : Answer_set.t =
   let analysis = Analysis_result.create prog in
   let uid_to_stmt_map = get_uid_hashtbl prog in
   let prog_point_stmt = Uid_generation.Uid_hashtbl.find uid_to_stmt_map prog_point in
-  Analysis_result.query analysis prog_point_stmt var
+  Analysis_result.query analysis (Program_point(prog_point_stmt)) var
+;;
+
+let analyze_end (prog : modl) (var : identifier) : Answer_set.t =
+  let analysis = Analysis_result.create prog in
+  Analysis_result.query analysis End var
 ;;

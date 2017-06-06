@@ -70,7 +70,7 @@ let first_test =
       let actual = Module([Assign("x", SimpleExpr(Literal(Num(Int(Zero), 1, None), 2, None), 3, None), 4, None);
                            Assign("y", SimpleExpr(Literal(Num(Int(Pos), 5, None), 6, None), 7, None), 8, None);], 0) in
       let open Python2_pds in
-      assert_equal ~printer:dump (Python2_pds.Answer_set.singleton (Num(Int(Zero)))) (analyze actual 8 "x")
+      assert_equal ~printer:dump (Python2_pds.Answer_set.singleton (Num(Int(Zero)))) (analyze_uid actual 8 "x")
   )
 
 let test_lex_cfg =
