@@ -3,7 +3,21 @@ open Python2_cfg;;
 open Cfg;;
 open Python2_normalized_ast;;
 
-let is_active (_ : vertex) (_ : Control_cfg.t) = true;; (* TODO *)
+(* TODO: This can be made much more efficient *)
+let is_active (v : vertex) (gph : Control_cfg.t) =
+  let rec breadth_first_search start seen : vertex list =
+    let seen = start::seen in
+    let neighbors = Control_cfg.succs start gph in
+    let unseen_neighbors =
+      Enum.filter (fun v -> not (List.mem v seen)) neighbors
+    in
+    let result =
+      unseen_neighbors
+      |> Enum.fold (fun s v -> breadth_first_search v s) seen
+    in result
+  in (* End definition of breadth_first_search *)
+  List.mem v (breadth_first_search Start [])
+;;
 
 let apply_rules (curr : t) (e : Lexical_cfg.edge) : Control_cfg.edge Enum.t =
   let Lexical_cfg.Edge (v1, v2) = e in
