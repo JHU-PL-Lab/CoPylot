@@ -97,7 +97,7 @@ let test_ctrl_cfg =
       let actual = Module([line1;
                            line2;], 0) in
       let analysis = Analysis_result.create actual in
-      let open Python2_analysis.Analysis_result in
+      let open Python2_analysis_result_structure in
       let Python2_cfg.Cfg.Cfg(_, ctrl) = analysis.analysis_cfg in
       let open Python2_cfg.Control_cfg in let open Python2_cfg in
       assert_equal ~printer:dump

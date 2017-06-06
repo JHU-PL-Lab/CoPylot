@@ -6,6 +6,7 @@ open Pds_reachability_types_stack;;
 open Python2_cfg;;
 
 type answer =
+  | Undefined 
   | Num of number
   | Str of str
   | Bool of bool
@@ -133,3 +134,26 @@ module Reachability =
 ;;
 
 type pds = Reachability.analysis;;
+
+let query_pds
+    (p : pds) (prog_point : vertex) (var : identifier) : Answer_set.t =
+  let start_state = Cfg_node(prog_point) in
+  let open Reachability.Stack_action.T in
+  let start_actions = [Push Bottom; Push (Var(var))] in
+  let final_pds =
+    p
+    |> Reachability.add_start_state start_state start_actions
+    |> Reachability.fully_close
+    (* TODO: This is the only place we close, so we're doing a lot of
+       duplicate work. Would be better to close before calling query *)
+  in
+  let values =
+    final_pds
+    |> Reachability.get_reachable_states start_state start_actions
+    |> Enum.filter_map
+      (function
+        | Value_node v -> Some v
+        | _ -> None)
+  in
+  Answer_set.of_enum values
+;;

@@ -14,7 +14,8 @@ let literal_to_answer l =
   | Ast.Bool (b,_,_) -> Python2_pds.Bool b
 ;;
 
-let create_edge_function (e : Control_cfg.edge) (state : Reachability.State.t)
+let create_edge_function
+    (e : Control_cfg.edge) (state : Reachability.State.t)
   : (Reachability.Stack_action.t list * Reachability.Terminus.t) Enum.t =
   let Control_cfg.Edge (a1,a0) = e in
   let zero = Enum.empty in
@@ -35,7 +36,6 @@ let create_edge_function (e : Control_cfg.edge) (state : Reachability.State.t)
           let%orzero
             Program_point(Assign(id,SimpleExpr(Literal(v,_,_),_,_),_,_)) = a1
           in
-          (* x = v *)
           return ([Pop(Var(id)); Push(Ans(literal_to_answer v))],
                   Static_terminus(Cfg_node(a0)))
         end
@@ -43,15 +43,21 @@ let create_edge_function (e : Control_cfg.edge) (state : Reachability.State.t)
         (* Rule 1b *)
         begin
           let%orzero
-            Program_point(Assign(id,SimpleExpr(Literal(_,_,_),_,_),_,_)) = a1
+            Program_point(Assign(id, SimpleExpr(Literal(_,_,_),_,_),_,_)) = a1
           in
-          (* x != x' *)
           return ([Pop_dynamic_targeted(Dph.Pop_then_push_any_variable_but(Var(id)))],
                   Static_terminus(Cfg_node(a1)))
         end
         ;
-
-
+        (* Variable Aliasing *)
+        begin
+          let%orzero
+            Program_point(Assign(id, SimpleExpr(Name(id2,_,_),_,_),_,_)) = a1
+          in (* TODO: Make sure id2 is bound *)
+          return ([Pop(Var(id)); Push(Var(id2))],
+                  Static_terminus(Cfg_node(a1)))
+        end
+        ;
       ]
   in transitions_to_add
 ;;

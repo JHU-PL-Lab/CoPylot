@@ -28,8 +28,7 @@ Library "utils"
   FindlibParent: CoPylot
   Path: src/utils
   Modules:
-    Graph,
-    Utils
+    Graph
   BuildDepends:
     batteries,
     jhupllib,
@@ -78,7 +77,8 @@ Library "analysis"
     Python2_pds,
     Python2_analysis,
     Python2_control_rules,
-    Python2_pds_edge_functions
+    Python2_pds_edge_functions,
+    Python2_analysis_result_structure
   BuildDepends:
     batteries,
     jhupllib,

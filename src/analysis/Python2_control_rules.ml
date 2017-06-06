@@ -1,7 +1,11 @@
 open Batteries;;
+open Jhupllib;;
+open Nondeterminism;;
 open Python2_cfg;;
-open Cfg;;
+open Python2_pds;;
 open Python2_normalized_ast;;
+open Python2_analysis_result_structure;;
+open Uid_generation;;
 
 (* TODO: This can be made much more efficient *)
 let is_active (v : vertex) (gph : Control_cfg.t) =
@@ -19,14 +23,15 @@ let is_active (v : vertex) (gph : Control_cfg.t) =
   List.mem v (breadth_first_search Start [])
 ;;
 
-let apply_rules (curr : t) (e : Lexical_cfg.edge) : Control_cfg.edge Enum.t =
+let apply_rules (curr : analysis_result) (e : Lexical_cfg.edge)
+  : Control_cfg.edge Enum.t =
+  let lookup_values = Python2_pds.query_pds curr.analysis_pds in
   let Lexical_cfg.Edge (v1, v2) = e in
-  let Cfg(_, ctrl) = curr in
+  let Cfg.Cfg(_, ctrl) = curr.analysis_cfg in
   let zero = Enum.empty in
   [%guard (is_active v1 ctrl)]; (* Never add an edge out of an inactive node *)
-  let open Option.Monad in
-  let zero () = None in
-  let edges_to_add = Enum.filter_map identity @@ List.enum
+  let open Nondeterminism_monad in
+  let edges_to_add = Enum.concat @@ Enum.map Nondeterminism_monad.enum @@ List.enum
       [
         (* Start Rule *)
         begin
@@ -44,15 +49,34 @@ let apply_rules (curr : t) (e : Lexical_cfg.edge) : Control_cfg.edge Enum.t =
           return (Control_cfg.Edge(v1, v2))
         end
         ;
+        (* Variable Aliasing *)
+        begin
+          let%orzero
+            Program_point(Assign(_, SimpleExpr(Name(id,_,_),_,_),_,except)) = v1
+          in
+          let%bind v =
+            pick_enum @@ Python2_pds.Answer_set.enum @@ lookup_values v1 id
+          in
+          match v with
+          | Undefined ->
+            begin
+              match except with
+              | None -> raise @@ Utils.Not_yet_implemented "Exception outside of try"
+              | Some (uid) ->
+                let handler = Uid_hashtbl.find curr.analysis_uid_map uid in
+                return @@ Control_cfg.Edge(v1, Program_point(handler))
+            end
+          | _ -> return (Control_cfg.Edge(v1, v2))
+        end
+        ;
       ]
   in edges_to_add
 ;;
 
 (* Returns a list of edges which the rules say we should add to the Control
    cfg, but which are not currently in it. *)
-let get_edges_to_add (curr : t) : Control_cfg.edge Enum.t =
-  match curr with
-  | Cfg (lex, ctrl) ->
+let get_edges_to_add (curr : analysis_result) : Control_cfg.edge Enum.t =
+  let Cfg.Cfg (lex, ctrl) = curr.analysis_cfg in
     let rec collect_edges_from_vertex (v : vertex) : Control_cfg.edge Enum.t =
       let outgoing_edges = Lexical_cfg.edges_from v lex in
       let new_edges_to_add = Enum.map (apply_rules curr) outgoing_edges in
