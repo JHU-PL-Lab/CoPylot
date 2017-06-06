@@ -40,6 +40,17 @@ let create_edge_function (e : Control_cfg.edge) (state : Reachability.State.t)
                   Static_terminus(Cfg_node(a0)))
         end
         ;
+        (* Rule 1b *)
+        begin
+          let%orzero
+            Program_point(Assign(id,SimpleExpr(Literal(_,_,_),_,_),_,_)) = a1
+          in
+          (* x != x' *)
+          return ([Pop_dynamic_targeted(Dph.Pop_then_push_any_variable_but(Var(id)))],
+                  Static_terminus(Cfg_node(a1)))
+        end
+        ;
+
 
       ]
   in transitions_to_add

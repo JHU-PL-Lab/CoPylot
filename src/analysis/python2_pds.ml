@@ -66,6 +66,7 @@ struct
   module Stack_element = Stack_element
   type targeted_dynamic_pop_action =
     | Pop_anything_but of stack_elt
+    | Pop_then_push_any_variable_but of stack_elt
     [@@deriving eq, ord, show, to_yojson]
   ;;
   module Targeted_dynamic_pop_action =
@@ -90,7 +91,7 @@ struct
     Terminus_constructor(State)(Untargeted_dynamic_pop_action)
   ;;
 
-  (* open Stack_action.T;; *)
+  open Stack_action.T;;
   open Terminus.T;;
   open Untargeted_dynamic_pop_action;;
 
@@ -101,6 +102,16 @@ struct
         Enum.empty ()
       else
         Enum.singleton []
+
+    | Pop_then_push_any_variable_but se ->
+    begin
+      match element with
+      | Var _ ->
+        if equal_stack_elt element se
+        then Enum.empty ()
+        else Enum.singleton [Push (element)]
+      | _ -> Enum.empty ()
+    end
   ;;
   let perform_untargeted_dynamic_pop element action =
     let open Nondeterminism_monad in
