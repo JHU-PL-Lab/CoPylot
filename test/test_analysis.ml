@@ -144,6 +144,15 @@ let reassign_midpoint_test =
       assert_equal ~printer:dump (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_uid actual 8 "x")
   )
 
+let alias_test =
+  "alias_test">::
+  ( fun _ ->
+      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None);
+                           Assign("y", SimpleExpr(Name("x", 5, None), 6, None), 7, None);], 0) in
+      let open Python2_pds in
+      assert_equal ~printer:dump (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_end actual "y")
+  )
+
 let tests =
   "analysis_ast">:::
   [
@@ -153,5 +162,6 @@ let tests =
     str_test;
     bool_test;
     reassign_test;
-    reassign_midpoint_test
+    reassign_midpoint_test;
+    alias_test;
   ]

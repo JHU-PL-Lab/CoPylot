@@ -53,7 +53,7 @@ let create_edge_function
         begin
           let%orzero
             Program_point(Assign(id, SimpleExpr(Name(id2,_,_),_,_),_,_)) = a1
-          in (* TODO: Make sure id2 is bound *)
+          in
           return ([Pop(Var(id)); Push(Var(id2))],
                   Static_terminus(Cfg_node(a1)))
         end
