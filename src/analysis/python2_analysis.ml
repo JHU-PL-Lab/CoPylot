@@ -3,6 +3,8 @@ open Python2_cfg;;
 open Python2_pds;;
 open Python2_normalized_ast;;
 open Python2_pds_edge_functions;;
+open Python2_pds.Reachability.Stack_action.T;;
+open Python2_uid_stmt_map;;
 
 module Analysis_result =
 struct
@@ -19,9 +21,24 @@ struct
     { analysis_cfg = new_cfg; analysis_pds = new_pds }
 
   let query
-      (analysis : t) (prog_point : uid) (var : identifier) : Answer_set.t =
-    (* Call closure *) ignore analysis; ignore prog_point; ignore var;
-    raise Utils.Not_yet_implemented;;
+      (analysis : t) (prog_point : stmt) (var : identifier) : Answer_set.t =
+    let start_state = Cfg_node(Program_point(prog_point)) in
+    let start_actions = [Push Bottom; Push (Var(var))] in
+    let final_pds =
+      analysis.analysis_pds
+      |> Reachability.add_start_state start_state start_actions
+      |> Reachability.fully_close
+    in
+    let values =
+      final_pds
+      |> Reachability.get_reachable_states start_state start_actions
+      |> Enum.filter_map
+        (function
+          | Value_node v -> Some v
+          | _ -> None)
+    in
+    Answer_set.of_enum values
+;;
 
   let rec build_cfg_and_pds (curr : t) : t =
     let edges_to_add = Cfg.get_edges_to_add curr.analysis_cfg in
@@ -43,5 +60,7 @@ end;;
 
 let analyze (prog : modl) (prog_point : uid) (var : identifier) : Answer_set.t =
   let analysis = Analysis_result.create prog in
-  Analysis_result.query analysis prog_point var
+  let uid_to_stmt_map = get_uid_hashtbl prog in
+  let prog_point_stmt = Uid_generation.Uid_hashtbl.find uid_to_stmt_map prog_point in
+  Analysis_result.query analysis prog_point_stmt var
 ;;

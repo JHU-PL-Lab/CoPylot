@@ -61,7 +61,8 @@ Library "ast_simplification"
     Python2_simplified_ast,
     Python2_ast_simplifier,
     Python2_normalized_ast,
-    Python2_ast_normalizer
+    Python2_ast_normalizer,
+    Python2_uid_stmt_map
   BuildDepends:
     batteries,
     jhupllib,
