@@ -108,10 +108,50 @@ let test_ctrl_cfg =
         ) ctrl
   )
 
+let str_test =
+  "str_test">::
+  ( fun _ ->
+      let actual = Module([Assign("x", SimpleExpr(Literal(Str(StringLiteral("a"), 1, None), 2, None), 3, None), 4, None);
+                           Assign("y", SimpleExpr(Literal(Num(Int(Pos), 5, None), 6, None), 7, None), 8, None);], 0) in
+      let open Python2_pds in
+      assert_equal ~printer:dump (Python2_pds.Answer_set.singleton (Str(StringLiteral("a")))) (analyze_uid actual 8 "x")
+  )
+
+let bool_test =
+  "bool_test">::
+  ( fun _ ->
+      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(false, 1, None), 2, None), 3, None), 4, None);
+                           Assign("y", SimpleExpr(Literal(Num(Int(Pos), 5, None), 6, None), 7, None), 8, None);], 0) in
+      let open Python2_pds in
+      assert_equal ~printer:dump (Python2_pds.Answer_set.singleton (Bool(false))) (analyze_uid actual 8 "x")
+  )
+
+let reassign_test =
+  "reassign_test">::
+  ( fun _ ->
+      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None);
+                           Assign("x", SimpleExpr(Literal(Bool(false, 5, None), 6, None), 7, None), 8, None);], 0) in
+      let open Python2_pds in
+      assert_equal ~printer:dump (Python2_pds.Answer_set.singleton (Bool(false))) (analyze_end actual "x")
+  )
+
+let reassign_midpoint_test =
+  "reassign_midpoint_test">::
+  ( fun _ ->
+      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None);
+                           Assign("x", SimpleExpr(Literal(Bool(false, 5, None), 6, None), 7, None), 8, None);], 0) in
+      let open Python2_pds in
+      assert_equal ~printer:dump (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_uid actual 8 "x")
+  )
+
 let tests =
-  "abstract_ast">:::
+  "analysis_ast">:::
   [
     first_test;
     test_lex_cfg;
     test_ctrl_cfg;
+    str_test;
+    bool_test;
+    reassign_test;
+    reassign_midpoint_test
   ]
