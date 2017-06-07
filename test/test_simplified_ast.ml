@@ -95,12 +95,18 @@ let float_zero_test = gen_stmt_test "float_zero_test"
 
 let unop_test = gen_stmt_test "unop_test_1"
     "+4"
-    (UnaryOp(UAdd, Num(Int(Pos), annot), annot))
+    (Call(
+        Attribute(Num(Int(Pos), annot), "__pos__", annot),
+        [],
+        annot))
 ;;
 
 let unop_not_test = gen_stmt_test "unop_not_test"
     "not x"
-    (UnaryOp(Not, Name("x", annot), annot))
+    (IfExp(Name("x", annot),
+           Bool(false, annot),
+           Bool(true, annot),
+           annot))
 ;;
 
 let boolop_and_test = gen_stmt_test "boolop_and_test"
@@ -141,19 +147,31 @@ let boolop_all_test = gen_stmt_test "boolop_all_test"
                  [
                    Name("a", annot);
                    Name("b", annot);
-                   UnaryOp(Not, Name("c", annot), annot);
+                   IfExp(Name("c", annot),
+                         Bool(false, annot),
+                         Bool(true, annot),
+                         annot);
+
                  ],
                  annot);
           BoolOp(And,
                  [
                    Name("d", annot);
-                   UnaryOp(Not, Name("c", annot), annot);
-                 ],
+                   IfExp(Name("c", annot),
+                         Bool(false, annot),
+                         Bool(true, annot),
+                         annot)                 ],
                  annot);
           BoolOp(And,
                  [
-                   UnaryOp(Not, Name("a", annot), annot);
-                   UnaryOp(Not, Name("b", annot), annot);
+                   IfExp(Name("a", annot),
+                         Bool(false, annot),
+                         Bool(true, annot),
+                         annot);
+                   IfExp(Name("b", annot),
+                         Bool(false, annot),
+                         Bool(true, annot),
+                         annot);
                  ],
                  annot);
         ],
@@ -317,7 +335,10 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
             "__setitem__",
             annot),
           [
-            BinOp(Num(Int(Pos), annot), Add, Num(Int(Pos), annot), annot);
+            Call(
+              Attribute(Num(Int(Pos), annot), "__add__", annot),
+              [Num(Int(Pos), annot)],
+              annot);
             Name("$simplified_unique_name_0", annot);
           ],
           annot
@@ -389,11 +410,10 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        BinOp(Name("x", annot),
-              Mult,
-              Num(Int(Neg), annot),
-              annot
-             ),
+        Call(Attribute(Name("x", annot), "__mul__", annot),
+             [Num(Int(Neg), annot)],
+             annot
+            ),
         annot
       );
       Assign(
@@ -560,11 +580,10 @@ let if_test = gen_module_test "if_test"
             [
               Assign(
                 "$simplified_unique_name_0",
-                BinOp(Name("x", annot),
-                      Mult,
-                      Num(Int(Neg), annot),
-                      annot
-                     ),
+
+                Call(Attribute(Name("x", annot), "__mul__", annot),
+                     [Num(Int(Neg), annot)],
+                     annot),
                 annot
               );
               Assign(
@@ -621,11 +640,9 @@ let while_test = gen_module_test "while_test"
         [
           Assign(
             "$simplified_unique_name_0",
-            BinOp(Name("x", annot),
-                  Add,
-                  Num(Int(Pos), annot),
-                  annot
-                 ),
+            Call(Attribute(Name("x", annot), "__add__", annot),
+                 [Num(Int(Pos), annot)],
+                 annot),
             annot
           );
           Assign(
@@ -834,10 +851,9 @@ let triangle_ast =
         [
           Assign(
             "$simplified_unique_name_2",
-            BinOp(Name("i", annot),
-                  Add,
-                  Name("count", annot),
-                  annot),
+            Call(Attribute(Name("i", annot), "__add__", annot),
+                 [Name("count", annot)],
+                 annot),
             annot);
           Assign(
             "i",
@@ -846,7 +862,9 @@ let triangle_ast =
           );
           Assign(
             "$simplified_unique_name_3",
-            BinOp(Name("count", annot), Add, Num(Int(Pos), annot), annot),
+            Call(Attribute(Name("count", annot), "__add__", annot),
+                 [Num(Int(Pos), annot)],
+                 annot),
             annot);
           Assign(
             "count",
@@ -899,7 +917,9 @@ let list_expr =
       Num(Int(Pos),annot);
       Str(StringLiteral("four"), annot);
       Str(StringLiteral("five"), annot);
-      BinOp(Num(Int(Pos),annot), Add, Num(Int(Pos),annot), annot);
+      Call(Attribute(Num(Int(Pos),annot), "__add__", annot),
+           [Num(Int(Pos), annot)],
+           annot);
     ],
     annot
   )
@@ -938,7 +958,8 @@ let list_tests =
     (gen_slice_test "slice_test_1" "[0]"
        (Num(Int(Zero),annot)));
     (gen_slice_test "slice_test2" "[5-2]"
-       (BinOp(Num(Int(Pos),annot), Sub, Num(Int(Pos), annot), annot)));
+       (Call(Attribute(Num(Int(Pos), annot), "__sub__", annot),
+             [Num(Int(Pos), annot)], annot)));
     (gen_slice_test "slice_test3" "[2:]"
        (Call(Name("slice", annot),
              [
@@ -983,49 +1004,47 @@ let list_tests =
 
 (* Tests of various binary operations *)
 let gen_binop_test (name : string) (prog : string) (lhs : 'a expr) (rhs : 'a expr) op =
-  gen_stmt_test name prog (BinOp(lhs, op, rhs, annot))
+  gen_stmt_test name prog (Call(Attribute(lhs, op, annot), [rhs], annot))
 ;;
 
 let binop_tests =
   [
     (gen_binop_test "add_int_test" "42 + 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) Add);
+       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__add__");
     (gen_binop_test "add_float_test" "42.0 + 9001.75"
-       (Num(Float(Pos), annot)) (Num(Float(Pos), annot)) Add);
+       (Num(Float(Pos), annot)) (Num(Float(Pos), annot)) "__add__");
     (gen_binop_test "add_int_float_test" "42 + -9001.5"
-       (Num(Int(Pos), annot)) (Num(Float(Neg), annot)) Add);
+       (Num(Int(Pos), annot)) (Num(Float(Neg), annot)) "__add__");
 
     (gen_binop_test "add_str_test" "'foo' + 'bar'"
-       (Str(StringLiteral("foo"), annot)) (Str(StringLiteral("bar"), annot)) Add);
+       (Str(StringLiteral("foo"), annot)) (Str(StringLiteral("bar"), annot)) "__add__");
     (gen_binop_test "add_int_str_test" "42 + 'foo'"
-       (Num(Int(Pos), annot)) (Str(StringLiteral("foo"), annot)) Add);
+       (Num(Int(Pos), annot)) (Str(StringLiteral("foo"), annot)) "__add__");
 
     (gen_binop_test "sub_int_test" "42 - 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) Sub);
+       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__sub__");
     (gen_binop_test "mult_int_test" "42 * 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) Mult);
+       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__mul__");
     (gen_binop_test "div_int_test" "42 / 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) Div);
+       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__div__");
     (gen_binop_test "mod_int_test" "42 % 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) Mod);
+       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__mod__");
     (gen_binop_test "pow_int_test" "42 ** 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) Pow);
+       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__pow__");
 
     (gen_binop_test "triple_binop_test" "(42 - 9001) + 17"
-       (BinOp(Num(Int(Pos), annot),
-              Sub,
-              Num(Int(Pos), annot),
-              annot))
+       (Call(Attribute(Num(Int(Pos), annot), "__sub__", annot),
+             [Num(Int(Pos), annot)],
+             annot))
        (Num(Int(Pos), annot))
-       Add);
+       "__add__");
 
     (gen_binop_test "order_of_operations_test" "1+2*3"
        (Num(Int(Pos), annot))
-       (BinOp(Num(Int(Pos), annot),
-              Mult,
-              Num(Int(Pos), annot),
-              annot))
-       Add);
+       (Call(Attribute(Num(Int(Pos), annot), "__mul__", annot),
+             [Num(Int(Pos), annot)],
+             annot))
+       "__add__");
   ]
 (* Run the tests *)
 

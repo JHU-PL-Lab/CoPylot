@@ -7,7 +7,7 @@ let all_tests =
     Test_abstract_ast.tests;
     Test_rename.tests;
     Test_simplified_ast.tests;
-    Test_normalized_ast.tests;
+    (* Test_normalized_ast.tests; *)
     Test_analysis.tests;
   ]
 ;;

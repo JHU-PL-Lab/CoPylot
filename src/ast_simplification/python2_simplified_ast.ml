@@ -25,8 +25,6 @@ and 'a stmt =
 
 and 'a expr =
     | BoolOp of boolop (* op *) * 'a expr list (* values *) * 'a
-  | BinOp of 'a expr (* left *) * operator (* op *) * 'a expr (* right *) * 'a
-  | UnaryOp of unaryop (* op *) * 'a expr (* operand *) * 'a
   | IfExp of 'a expr (* test *) * 'a expr (* body *) * 'a expr (* orelse *) * 'a
   | Compare of 'a expr (* left *) * cmpop list (* ops *) * 'a expr list (* comparators *) * 'a
   | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a
@@ -40,12 +38,6 @@ and 'a expr =
 [@@deriving eq, ord, show]
 
 and boolop = And | Or
-[@@deriving eq, ord, show]
-
-and operator = Add | Sub | Mult | Div | Mod | Pow
-[@@deriving eq, ord, show]
-
-and unaryop = Not | UAdd | USub
 [@@deriving eq, ord, show]
 
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn

@@ -384,15 +384,41 @@ and simplify_expr
                        annot)
 
   | Abstract.BinOp (left, op, right, annot) ->
-    Simplified.BinOp (simplify_expr left,
-                      simplify_operator op,
-                      simplify_expr right,
-                      annot)
+    Simplified.Call(
+      Simplified.Attribute(
+        simplify_expr left,
+        simplify_operator op,
+        annot),
+      [simplify_expr right],
+      annot)
 
   | Abstract.UnaryOp (op, operand, annot) ->
-    Simplified.UnaryOp (simplify_unaryop op,
-                        simplify_expr operand,
-                        annot)
+    begin
+      match op with
+      | Abstract.Not ->
+        Simplified.IfExp(
+          simplify_expr operand,
+          Simplified.Bool(false, annot),
+          Simplified.Bool(true, annot),
+          annot)
+
+      | Abstract.UAdd ->
+        Simplified.Call(
+          Simplified.Attribute(
+            simplify_expr operand,
+            "__pos__",
+            annot),
+          [],
+          annot)
+
+      | Abstract.USub -> Simplified.Call(
+          Simplified.Attribute(
+            simplify_expr operand,
+            "__neg__",
+            annot),
+          [],
+          annot)
+    end
 
   | Abstract.IfExp (test, body, orelse, annot) ->
     Simplified.IfExp (simplify_expr test,
@@ -489,18 +515,12 @@ and simplify_boolop b =
 
 and simplify_operator o =
   match o with
-  | Abstract.Add -> Simplified.Add
-  | Abstract.Sub -> Simplified.Sub
-  | Abstract.Mult -> Simplified.Mult
-  | Abstract.Div -> Simplified.Div
-  | Abstract.Mod -> Simplified.Mod
-  | Abstract.Pow -> Simplified.Pow
-
-and simplify_unaryop o =
-  match o with
-  | Abstract.Not -> Simplified.Not
-  | Abstract.UAdd -> Simplified.UAdd
-  | Abstract.USub -> Simplified.USub
+  | Abstract.Add -> "__add__"
+  | Abstract.Sub -> "__sub__"
+  | Abstract.Mult -> "__mul__"
+  | Abstract.Div -> "__div__"
+  | Abstract.Mod -> "__mod__"
+  | Abstract.Pow -> "__pow__"
 
 and simplify_cmpop o =
   match o with
