@@ -63,29 +63,17 @@ and collect_uids_stmt = function
       | None -> big_list
       | Some(e) -> (collect_uids_sexpr e) @ big_list
     end
-  | If (test, body, orelse, u, _)
-    -> let test_uid = collect_uids_sexpr test in
-    let body_uids = List.concat (List.map collect_uids_stmt body) in
-    let orelse_uids = List.concat (List.map collect_uids_stmt orelse) in
-    u::(test_uid @ body_uids @ orelse_uids)
   | Raise (value, u, _)
     -> u::(collect_uids_sexpr value)
   | Catch (_, u, _)
-    -> [u]
   | Pass (u, _)
-    -> [u]
   | Goto (_, u, _)
+  | GotoIfNot (_, _, u, _)
     -> [u]
   | SimpleExprStmt (value, u, _)
     -> u::(collect_uids_sexpr value)
 
 and collect_uids_cexpr = function
-  | BoolOp (left, _, right, u, _)
-  | BinOp (left, _, right, u, _)
-  | Compare (left, _, right, u, _)
-    -> u::((collect_uids_sexpr left) @ (collect_uids_sexpr right))
-  | UnaryOp (_, operand, u, _)
-    -> u::(collect_uids_sexpr operand)
   | Call (func, args, u, _)
     -> u::((collect_uids_sexpr func) @
            (List.concat (List.map collect_uids_sexpr args)))
@@ -107,6 +95,7 @@ and collect_uids_literal = function
   | Num (_, u, _)
   | Str (_, u, _)
   | Bool (_, u, _)
+  | Builtin (_, u, _)
     -> [u]
 ;;
 
@@ -192,16 +181,24 @@ let unop_test = gen_module_test "unop_test"
       |
         [
           Assign("$normalized_unique_name_0",
-                 UnaryOp(UAdd, Literal(Num(Int(Pos), _, None), _, None),
-                         _, None),
+                 Attribute(Literal(Num(Int(Pos), _, None), _, None),
+                           "__pos__",
+                           _, None),
                  _, None);
+
+          Assign("$normalized_unique_name_1",
+                 Call(Name("$normalized_unique_name_0", _, None),
+                      [],
+                      _, None),
+                 _, None);
+
           SimpleExprStmt(Name("$normalized_unique_name_0", _, None),
                          _, None);
         ] -> true
       | _ -> false)
 ;;
 
-let unop_not_test = gen_module_test "unop_not_test"
+(* let unop_not_test = gen_module_test "unop_not_test"
     "not x"
     (function
       | [
@@ -212,67 +209,77 @@ let unop_not_test = gen_module_test "unop_not_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;; *)
 
-let boolop_and_test = gen_module_test "boolop_and_test"
+(* let boolop_and_test = gen_module_test "boolop_and_test"
     "1+2 and x and -5"
     (function
       | [
         Assign("$normalized_unique_name_0",
-               BinOp(
-                 Literal(Num(Int(Pos), _, None), _, None),
-                 Add,
-                 Literal(Num(Int(Pos), _, None), _, None),
-                 _, None),
+               Attribute(Literal(Num(Int(Pos), _, None), _, None),
+                         "__add__",
+                         _, None),
                _, None);
 
-        If(Name("$normalized_unique_name_0", _, None),
-           [
-             Assign("$normalized_unique_name_1",
-                    SimpleExpr(Name("x", _, None), _, None),
-                    _, None);
-           ],
-           [
-             Assign("$normalized_unique_name_1",
-                    SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
-                    _, None);
-           ],
-           _, None);
-
-        Assign("$normalized_unique_name_2",
-               BoolOp(
-                 Name("$normalized_unique_name_0", _, None),
-                 And,
-                 Name("$normalized_unique_name_1", _, None),
-                 _, None),
+        Assign("$normalized_unique_name_1",
+               Call(Name("$normalized_unique_name_0", _, None),
+                    [Literal(Num(Int(Pos), _, None), _, None)],
+                    _, None),
                _, None);
 
-        If(Name("$normalized_unique_name_2", _, None),
-           [
-             Assign("$normalized_unique_name_3",
-                    SimpleExpr(Literal(Num(Int(Neg), _, None), _, None), _, None),
-                    _, None);
-           ],
-           [
-             Assign("$normalized_unique_name_3",
-                    SimpleExpr(Literal(Bool(false, _, None), _, None), _, None),
-                    _, None);
-           ],
-           _, None);
+        GotoIfNot(Name("$normalized_unique_name_2", _, None),
+                  orelse_uid1_jump,
+                  _, None);
+
+        Assign("$normalized_unique_name_3",
+               Attribute(Name("x", _, None),
+                         "__add__",
+                         _, None),
+               _, None);
 
         Assign("$normalized_unique_name_4",
-               BoolOp(
-                 Name("$normalized_unique_name_2", _, None),
-                 And,
-                 Name("$normalized_unique_name_3", _, None),
-                 _, None),
+               Call(Name("$normalized_unique_name_3", _, None),
+                    [Literal(Num(Int(Pos), _, None), _, None)],
+                    _, None),
                _, None);
 
-        SimpleExprStmt(Name("$normalized_unique_name_4", _, None), _, None);
+        (* Interior if *)
+        GotoIfNot(Name("$normalized_unique_name_5", _, None),
+                  orelse_uid2_jump,
+                  _, None);
+
+        Assign("$normalized_unique_name_6",
+               SimpleExpr(Literal(Num(Int(Neg), _, None), _, None),
+                          _, None),
+               _, None);
+
+        Goto(end_uid2_jump, _, None);
+
+        Pass(orelse_uid2, None);
+
+        Assign("$normalized_unique_name_6",
+               SimpleExpr(Name("$normalized_unique_name_5", _, None), _, None),
+               _, None);
+
+        Pass(end_uid2, None);
+        (* End interior if *)
+
+        Assign("$normalized_unique_name_7",
+               SimpleExpr(Name("$normalized_unique_name_6", _, None), _, None),
+               _, None);
+
+        Goto(end_uid1_jump2, _, None);
+
+        Pass(orelse_uid1, None);
+
+        Assign("$")
+
+
+
       ] -> true
       | _ -> false
     )
-;;
+;; *)
 
 let boolop_or_test = gen_module_test "boolop_or_test"
     "x or False or 0"

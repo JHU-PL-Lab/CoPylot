@@ -12,6 +12,7 @@ let literal_to_answer l =
   | Ast.Num (n,_,_) -> Python2_pds.Num n
   | Ast.Str (s,_,_) -> Python2_pds.Str s
   | Ast.Bool (b,_,_) -> Python2_pds.Bool b
+  | Ast.Builtin (_,_,_) -> raise @@ Jhupllib.Utils.Not_yet_implemented "Builtin answer type"
 ;;
 
 let create_edge_function

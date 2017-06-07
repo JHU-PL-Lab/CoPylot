@@ -42,6 +42,11 @@ let update_uid ctx annot (e : Normalized.simple_expr) =
           Normalized.Bool(b, get_next_uid ctx annot, except),
           get_next_uid ctx annot,
           ex)
+      | Normalized.Builtin (b, _, except) ->
+        Normalized.Literal(
+          Normalized.Builtin(b, get_next_uid ctx annot, except),
+          get_next_uid ctx annot,
+          ex)
     end
   | Normalized.Name (id, _, ex) -> Normalized.Name(id, get_next_uid ctx annot, ex)
 ;;
@@ -152,28 +157,38 @@ and normalize_stmt_full
 
   | Simplified.While (test, body, annot) ->
     let test_bindings, test_name =
-      (* It's nicer to have "if !test then goto end" as opposed to
-         "if test then pass else goto end" *)
-      normalize_expr ctx exception_target (Simplified.UnaryOp(Simplified.Not,
-                                                          test,
-                                                          annot)) in
+      normalize_expr ctx exception_target test
+    in
+    let test_bool_binding, test_bool_name =
+      gen_normalized_assignment ctx exception_target annot
+        (Normalized.Call(
+            Normalized.Literal(
+              Normalized.Builtin(Normalized.Builtin_bool,
+                                 get_next_uid ctx annot,
+                                 exception_target),
+              get_next_uid ctx annot,
+              exception_target),
+            [update_uid ctx annot test_name],
+            get_next_uid ctx annot,
+            exception_target))
+in
 
     let start_uid = get_next_uid ctx annot in (* Start label *)
     let end_uid = get_next_uid ctx annot in (* End label *)
-    let test_at_beginning =
-      Normalized.If(update_uid ctx annot test_name,
-                    [Normalized.Goto(end_uid, get_next_uid ctx annot,
-                                     exception_target)],
-                    [],
-                    get_next_uid ctx annot,
-                    exception_target) in
     let normalized_body =
       (map_and_concat
          (normalize_stmt_full ctx
             (Some(start_uid))
             (Some(end_uid))
             exception_target)
-         body) in
+         body)
+    in
+    let run_test =
+      Normalized.GotoIfNot(update_uid ctx annot test_bool_name,
+                           end_uid,
+                           get_next_uid ctx annot,
+                           exception_target)
+    in
     let start_stmt = Normalized.Pass(start_uid, exception_target) in
     let end_stmts =
       [
@@ -183,10 +198,19 @@ and normalize_stmt_full
       ] in
     [start_stmt] @
     test_bindings @
-    [test_at_beginning] @
+    test_bool_binding @
+    [run_test] @
     normalized_body @
     end_stmts
 
+  (* Turn "if test: <body> else: <orelse>" into
+     "if not test: goto orelse
+     <body>
+     goto end
+     label orelse
+     <orelse>
+     label end"
+  *)
   | Simplified.If (test, body, orelse, annot) ->
     let test_bindings, test_name =
       normalize_expr ctx exception_target test in
@@ -194,12 +218,41 @@ and normalize_stmt_full
       map_and_concat (normalize_stmt ctx exception_target) body in
     let normalized_orelse =
       map_and_concat (normalize_stmt ctx exception_target) orelse in
+
+    let test_bool_binding, test_bool_name =
+      gen_normalized_assignment ctx exception_target annot
+        (Normalized.Call(
+            Normalized.Literal(
+              Normalized.Builtin(Normalized.Builtin_bool,
+                                 get_next_uid ctx annot,
+                                 exception_target),
+              get_next_uid ctx annot,
+              exception_target),
+            [update_uid ctx annot test_name],
+            get_next_uid ctx annot,
+            exception_target))
+    in
+    let end_uid = get_next_uid ctx annot in
+    let end_label = Normalized.Pass(end_uid, exception_target) in
+    let goto_end_label =
+      Normalized.Goto(end_uid, get_next_uid ctx annot, exception_target) in
+    let orelse_uid = get_next_uid ctx annot in
+    let orelse_label = Normalized.Pass(orelse_uid, exception_target) in
+
     test_bindings @
-    [Normalized.If(update_uid ctx annot test_name,
-                   normalized_body,
-                   normalized_orelse,
-                   get_next_uid ctx annot,
-                   exception_target)]
+    test_bool_binding @
+    [Normalized.GotoIfNot(
+        update_uid ctx annot test_bool_name,
+        orelse_uid,
+        get_next_uid ctx annot,
+        exception_target)] @
+    normalized_body @
+    [
+      goto_end_label;
+      orelse_label
+    ] @
+    normalized_orelse @
+    [end_label]
 
   | Simplified.Raise (value, annot) ->
     let value_binding, value_result = normalize_expr ctx exception_target value in
@@ -312,120 +365,56 @@ and normalize_expr
 
      We do this by iteratively breaking down the statements like so:
      "a and b and c and ..." turns into
-     "test1 = a
-      if test1:
-        test2 = b
-     else
-       test2 = False
-     test3 = test1 and test2
-     test4 = test3 and c and ..."
-     We then apply the same process to break down the assignment to test4
-     and continue in this manner until we hit the end of the statement. *)
-  | Simplified.BoolOp (op, values, annot) ->
-    (* FIXME: Throw a useful error if values is empty. Not sure if that's
-       possible given how we generate these trees, but best to be safe. *)
-    let first_arg = List.hd values in
-    let first_arg_bindings, first_arg_result = normalize_expr ctx exception_target first_arg in
-    let remaining_args = List.tl values in
-    let norm_op = normalize_boolop op in
-    (* Performs the single step of decomposition described above *)
-    let combine
-        (prev : Normalized.stmt list * Normalized.simple_expr)
-        (next : 'a Simplified.expr)
-      : Normalized.stmt list * Normalized.simple_expr =
-      let next_tmp_name = gen_unique_name annot in
-      let bindings, result = normalize_expr ctx exception_target next in
-      let body, orelse =
-        match op with
-        | Simplified.And ->
-          bindings @ [
-            Normalized.Assign(
-              next_tmp_name,
-              Normalized.SimpleExpr(update_uid ctx annot result,
-                                    get_next_uid ctx annot,
-                                    exception_target),
-              get_next_uid ctx annot,
-              exception_target)],
 
-          [Normalized.Assign(
-              next_tmp_name,
-              Normalized.SimpleExpr(
-                Normalized.Literal(
-                  Normalized.Bool(false, get_next_uid ctx annot,
-                                  exception_target),
-                  get_next_uid ctx annot,
-                  exception_target),
-                get_next_uid ctx annot,
-                exception_target),
-              get_next_uid ctx annot,
-              exception_target)]
+     "if a then (b and c and ...) else a", except we make sure that
+     a is only evaluated once by storing a in a tmp variable after it's
+     evaluated.
 
-        | Simplified.Or ->
-          [Normalized.Assign(
-              next_tmp_name,
-              Normalized.SimpleExpr(
-                Normalized.Literal(
-                  Normalized.Bool(true, get_next_uid ctx annot,
-                                  exception_target),
-                  get_next_uid ctx annot,
-                  exception_target),
-                get_next_uid ctx annot,
-                exception_target),
-              get_next_uid ctx annot,
-              exception_target)],
-
-          bindings @ [
-            Normalized.Assign(
-              next_tmp_name,
-              Normalized.SimpleExpr(update_uid ctx annot result,
-                                    get_next_uid ctx annot,
-                                    exception_target),
-              get_next_uid ctx annot,
-              exception_target)]
-      in
-      let big_if = Normalized.If(update_uid ctx annot (snd prev),
-                                 body,
-                                 orelse,
-                                 get_next_uid ctx annot,
-                                 exception_target) in
-      let assignment, final_tmp_name =
-        gen_normalized_assignment ctx exception_target annot
-          (Normalized.BoolOp(
-              update_uid ctx annot (snd prev),
-              norm_op,
-              Normalized.Name(next_tmp_name, get_next_uid ctx annot,
+     To avoid duplicate code, we construct a simplified IfExp to represent
+     the above code, then recursively simplify that.
+  *)
+  | Simplified.BoolOp (op, operands, annot) ->
+    begin
+      match operands with
+      | [] -> failwith "No arguments to BoolOp"
+      | hd::[] -> normalize_expr ctx exception_target hd
+      | hd::tl ->
+        let test_bindings, test_result =
+          (normalize_expr ctx exception_target hd) in
+        let tmp_name = gen_unique_name annot in
+        let tmp_binding =
+          Normalized.Assign(tmp_name,
+                            Normalized.SimpleExpr(
+                              update_uid ctx annot test_result,
+                              get_next_uid ctx annot,
                               exception_target),
-              get_next_uid ctx annot,
-              exception_target)) in
-      let bindings = (fst prev) @ [big_if] @ assignment in
-      bindings, final_tmp_name
-    in (* End definition of combine *)
-    List.fold_left combine
-      (first_arg_bindings, update_uid ctx annot first_arg_result)
-      remaining_args
-
-  | Simplified.BinOp (left, op, right, annot) ->
-    let left_bindings, left_result = normalize_expr ctx exception_target left in
-    let right_bindings, right_result = normalize_expr ctx exception_target right in
-    let assignment, name =
-      gen_normalized_assignment ctx exception_target
-        annot
-        (Normalized.BinOp(update_uid ctx annot left_result,
-                          normalize_operator op,
-                          update_uid ctx annot right_result,
-                          get_next_uid ctx annot,
-                          exception_target)) in
-    let bindings = left_bindings @ right_bindings @ assignment in
-    bindings, name
-
-  | Simplified.UnaryOp (op, operand, annot) ->
-    let bindings, result = normalize_expr ctx exception_target operand in
-    let assignment, name = gen_normalized_assignment ctx exception_target annot
-        (Normalized.UnaryOp(normalize_unaryop op,
-                            update_uid ctx annot result,
                             get_next_uid ctx annot,
-                            exception_target)) in
-    bindings @ assignment, name
+                            exception_target)
+        in
+        let if_exp =
+          begin
+            match op with
+            | Simplified.And ->
+              Simplified.IfExp(
+                Simplified.Name(tmp_name, annot),
+                Simplified.BoolOp (op, tl, annot),
+                Simplified.Name(tmp_name, annot),
+                annot)
+            | Simplified.Or ->
+              Simplified.IfExp(
+                Simplified.Name(tmp_name, annot),
+                Simplified.Name(tmp_name, annot),
+                Simplified.BoolOp (op, tl, annot),
+                annot)
+          end
+        in
+        let bindings, result =
+          normalize_expr ctx exception_target if_exp
+        in
+        test_bindings @ [tmp_binding] @ bindings,
+        result
+
+    end
 
   | Simplified.IfExp (test, body, orelse, annot) ->
     (* Python allows expressions like x = 1 if test else 0. Of course,
@@ -450,6 +439,19 @@ and normalize_expr
     *)
     let tmp_name = gen_unique_name annot in
     let test_bindings, test_result = normalize_expr ctx exception_target test in
+    let test_bool_binding, test_bool_name =
+      gen_normalized_assignment ctx exception_target annot
+        (Normalized.Call(
+            Normalized.Literal(
+              Normalized.Builtin(Normalized.Builtin_bool,
+                                 get_next_uid ctx annot,
+                                 exception_target),
+              get_next_uid ctx annot,
+              exception_target),
+            [update_uid ctx annot test_result],
+            get_next_uid ctx annot,
+            exception_target))
+    in
     let body_bindings, body_result = normalize_expr ctx exception_target body in
     let body_bindings_full =
       body_bindings @ [
@@ -472,90 +474,91 @@ and normalize_expr
                           get_next_uid ctx annot,
                           exception_target)
       ] in
-    let big_if =
-      Normalized.If(update_uid ctx annot test_result,
-                    body_bindings_full,
-                    orelse_bindings_full,
-                    get_next_uid ctx annot,
-                    exception_target) in
+    let end_uid = get_next_uid ctx annot in
+    let end_stmt = Normalized.Pass(end_uid, exception_target) in
+    let goto_end_stmt =
+      Normalized.Goto(end_uid, get_next_uid ctx annot, exception_target) in
+    let orelse_uid = get_next_uid ctx annot in
+    let orelse_stmt = Normalized.Pass(end_uid, exception_target) in
 
-    test_bindings @ [big_if],
+    let run_test =
+      Normalized.GotoIfNot(
+        update_uid ctx annot test_bool_name,
+        orelse_uid,
+        get_next_uid ctx annot,
+        exception_target)
+    in
+
+    test_bindings @
+    test_bool_binding @
+    [run_test] @
+    body_bindings_full @
+    [
+      goto_end_stmt;
+      orelse_stmt;
+    ] @
+    orelse_bindings_full @
+    [end_stmt],
     Normalized.Name(tmp_name, get_next_uid ctx annot,
                     exception_target)
 
   | Simplified.Compare (left, ops, comparators, annot) ->
     (* "x < y < z" is equivalent to "x < y and y < z", except y is only
        evaluated once. We treat compare in almost exactly the same way
-       as we treat boolean operators (see above), but we also keep track
-       of the name we used to bind the last expression, rather than just the
-       result of the last comparison.
-       This lets us re-use the value of y we computed for x < y when we
-       compute y < z, which ensures that y is only evaluated once. *)
+       as we treat boolean operators.
+
+       Specifically, we turn "x < y < z < ..."
+
+       into
+
+       tmp1 = x
+       tmp2 = y
+       tmp3 = tmp1.__lt__(y)
+       if tmp3 then (tmp2 < z < ...) else tmp3*)
     let left_bindings, left_result = normalize_expr ctx exception_target left in
-    let normed_ops = List.map normalize_cmpop ops in
-    let combine
-        (prev : Normalized.stmt list (* Previous operations *) *
-                Normalized.simple_expr (* Result of previous op *) *
-                Normalized.simple_expr (* Name of previous expr *))
-        (next_op : Normalized.cmpop)
-        (next_expr : 'a Simplified.expr) =
-      (* Unpack the input tuple *)
-      let prev_stmts, prev_result, prev_expr = prev in
-      (* Normalize the next expression we might compare against. This
-         code will only be executed if the previous result is True.*)
-      let bindings, curr_expr = normalize_expr ctx exception_target next_expr in
-      (* Actually perform the comparison between the previous expression
-         and the one we just normalized.*)
-      let interior_assignment, curr_result = gen_normalized_assignment ctx exception_target annot
-          (Normalized.Compare(update_uid ctx annot prev_expr,
-                              next_op,
-                              update_uid ctx annot curr_expr,
-                              get_next_uid ctx annot,
-                              exception_target)) in
-      let big_if =
-        Normalized.If(update_uid ctx annot prev_result,
-                      bindings @ interior_assignment,
-                      [Normalized.Assign(
-                          id_of_name curr_result,
-                          Normalized.SimpleExpr(
-                            Normalized.Literal(
-                              Normalized.Bool(false, get_next_uid ctx annot,
-                                              exception_target),
-                              get_next_uid ctx annot,
-                              exception_target),
-                            get_next_uid ctx annot,
-                            exception_target),
-                          get_next_uid ctx annot,
-                          exception_target)
-                      ],
-                      get_next_uid ctx annot,
-                      exception_target) in
-      (* Generate our next value of "prev_result" *)
-      let exterior_assignment, next_result = gen_normalized_assignment ctx exception_target annot
-          (Normalized.BoolOp(update_uid ctx annot prev_result,
-                             Normalized.And,
-                             update_uid ctx annot curr_result,
+    begin
+      match ops with
+      | [] -> failwith "No operation given to comparison"
+      | hd::tl ->
+        let right_bindings, right_result =
+          normalize_expr ctx exception_target (List.hd comparators) in
+        let cmp_func_bindings, cmp_func_result =
+          gen_normalized_assignment ctx exception_target annot
+            (Normalized.Attribute(left_result,
+                                  normalize_cmpop hd,
+                                  get_next_uid ctx annot,
+                                  exception_target))
+        in
+        let cmp_bindings, cmp_result =
+          gen_normalized_assignment ctx exception_target annot
+            (Normalized.Call(cmp_func_result,
+                             [right_result],
                              get_next_uid ctx annot,
-                             exception_target)) in
-      (prev_stmts @ [big_if] @ exterior_assignment),
-      next_result,
-      update_uid ctx annot curr_expr
-    in (* End definition of combine *)
-    let stmts, result, _ =
-      List.fold_left2 combine
-        (
-          left_bindings,
-          Normalized.Literal(
-            Normalized.Bool(true, get_next_uid ctx annot,
-                            exception_target),
-            get_next_uid ctx annot,
-            exception_target),
-          update_uid ctx annot left_result
-        )
-        normed_ops
-        comparators
-    in
-    stmts, (update_uid ctx annot result)
+                             exception_target))
+        in
+        let all_bindings = left_bindings @
+                           right_bindings @
+                           cmp_func_bindings @
+                           cmp_bindings
+        in
+        begin
+          match tl with
+          | [] -> all_bindings, cmp_result
+          | _ ->
+            let if_exp =
+              Simplified.IfExp(
+                Simplified.Name(id_of_name cmp_result, annot),
+                Simplified.Compare(Simplified.Name(id_of_name right_result, annot),
+                                   tl,
+                                   List.tl comparators,
+                                   annot),
+                Simplified.Name(id_of_name cmp_result, annot),
+                annot)
+            in
+            let bindings, result = normalize_expr ctx exception_target if_exp in
+            all_bindings @ bindings, result
+        end
+    end
 
   | Simplified.Call (func, args, annot) ->
     let func_bindings, func_name = normalize_expr ctx exception_target func in
@@ -634,36 +637,16 @@ and normalize_expr_option ctx exception_target
   | None -> [], None
   | Some(bindings, result) -> bindings, Some(result)
 
-and normalize_boolop b =
-  match b with
-  | Simplified.And -> Normalized.And
-  | Simplified.Or -> Normalized.Or
-
-and normalize_operator o =
-  match o with
-  | Simplified.Add -> Normalized.Add
-  | Simplified.Sub -> Normalized.Sub
-  | Simplified.Mult -> Normalized.Mult
-  | Simplified.Div -> Normalized.Div
-  | Simplified.Mod -> Normalized.Mod
-  | Simplified.Pow -> Normalized.Pow
-
-and normalize_unaryop o =
-  match o with
-  | Simplified.Not -> Normalized.Not
-  | Simplified.UAdd -> Normalized.UAdd
-  | Simplified.USub -> Normalized.USub
-
 and normalize_cmpop o =
   match o with
-  | Simplified.Eq -> Normalized.Eq
-  | Simplified.NotEq -> Normalized.NotEq
-  | Simplified.Lt -> Normalized.Lt
-  | Simplified.LtE -> Normalized.LtE
-  | Simplified.Gt -> Normalized.Gt
-  | Simplified.GtE -> Normalized.GtE
-  | Simplified.In -> Normalized.In
-  | Simplified.NotIn -> Normalized.NotIn
+  | Simplified.Eq -> "__eq__"
+  | Simplified.NotEq -> "__ne__"
+  | Simplified.Lt -> "__lt__"
+  | Simplified.LtE -> "__le__"
+  | Simplified.Gt -> "__gt__"
+  | Simplified.GtE -> "__ge__"
+  | Simplified.In -> "__contains__"
+  | Simplified.NotIn -> failwith "the NotIn operator is not supported" (* TODO *)
 
 and normalize_sign s =
   match s with
