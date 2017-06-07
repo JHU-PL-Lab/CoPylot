@@ -363,7 +363,7 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
             annot),
           [
             Call(
-              Name("slice", annot),
+              Builtin(Builtin_slice, annot),
               [
                 Num(Int(Pos), annot);
                 Num(Int(Pos), annot);
@@ -961,7 +961,7 @@ let list_tests =
        (Call(Attribute(Num(Int(Pos), annot), "__sub__", annot),
              [Num(Int(Pos), annot)], annot)));
     (gen_slice_test "slice_test3" "[2:]"
-       (Call(Name("slice", annot),
+       (Call(Builtin(Builtin_slice, annot),
              [
                Num(Int(Pos), annot);
                Name("None", annot);
@@ -969,7 +969,7 @@ let list_tests =
              ],
              annot)));
     (gen_slice_test "slice_test4" "[:4]"
-       (Call(Name("slice", annot),
+       (Call(Builtin(Builtin_slice, annot),
              [
                Name("None", annot);
                Num(Int(Pos), annot);
@@ -977,7 +977,7 @@ let list_tests =
              ],
              annot)));
     (gen_slice_test "slice_test5" "[::3]"
-       (Call(Name("slice", annot),
+       (Call(Builtin(Builtin_slice, annot),
              [
                Name("None", annot);
                Name("None", annot);
@@ -985,7 +985,7 @@ let list_tests =
              ],
              annot)));
     (gen_slice_test "slice_test6" "[2:4]"
-       (Call(Name("slice", annot),
+       (Call(Builtin(Builtin_slice, annot),
              [
                Num(Int(Pos), annot);
                Num(Int(Pos), annot);
@@ -993,7 +993,7 @@ let list_tests =
              ],
              annot)));
     (gen_slice_test "slice_test7" "[2:4:-1]"
-       (Call(Name("slice", annot),
+       (Call(Builtin(Builtin_slice, annot),
              [
                Num(Int(Pos), annot);
                Num(Int(Pos), annot);

@@ -501,7 +501,7 @@ and simplify_slice
         exp_opt_to_slice_arg step;
       ] in
     Simplified.Call(
-      Simplified.Name("slice", annot),
+      Simplified.Builtin(Simplified.Builtin_slice, annot),
       args_list,
       annot
     )

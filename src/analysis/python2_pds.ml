@@ -6,7 +6,7 @@ open Pds_reachability_types_stack;;
 open Python2_cfg;;
 
 type answer =
-  | Undefined 
+  | Undefined
   | Num of number
   | Str of str
   | Bool of bool

@@ -35,6 +35,7 @@ and 'a expr =
   | Str of str * 'a
   | Bool of bool * 'a
   | Name of identifier (* id *) * 'a
+  | Builtin of builtin * 'a
 [@@deriving eq, ord, show]
 
 and boolop = And | Or
@@ -57,4 +58,9 @@ and number =
 and str =
     | StringAbstract
   | StringLiteral of string
+[@@deriving eq, ord, show]
+
+and builtin =
+    | Builtin_bool
+  | Builtin_slice
 [@@deriving eq, ord, show]

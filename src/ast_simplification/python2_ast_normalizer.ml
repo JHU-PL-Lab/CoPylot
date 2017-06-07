@@ -592,6 +592,13 @@ and normalize_expr
         get_next_uid ctx annot,
         exception_target))
 
+  | Simplified.Builtin (b, annot) ->
+    ([], Normalized.Literal(
+        Normalized.Builtin(normalize_builtin b, get_next_uid ctx annot,
+                        exception_target),
+        get_next_uid ctx annot,
+        exception_target))
+
   | Simplified.Attribute (obj, attr, annot) ->
     let obj_bindings, obj_result = normalize_expr ctx exception_target obj in
     let assignment, result = gen_normalized_assignment ctx exception_target annot
@@ -663,3 +670,8 @@ and normalize_str s =
   match s with
   | Simplified.StringAbstract -> Normalized.StringAbstract
   | Simplified.StringLiteral (s) -> Normalized.StringLiteral (s)
+
+and normalize_builtin b =
+  match b with
+  | Simplified.Builtin_bool -> Normalized.Builtin_bool
+| Simplified.Builtin_slice -> Normalized.Builtin_slice
