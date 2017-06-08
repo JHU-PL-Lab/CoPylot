@@ -25,6 +25,7 @@ let is_active (v : vertex) (gph : Control_cfg.t) =
 
 let apply_rules (curr : analysis_result) (e : Lexical_cfg.edge)
   : Control_cfg.edge Enum.t =
+  (* TODO: Get code from renormalization branch *)
   let lookup_values = Python2_pds.query_pds curr.analysis_pds in
   let Lexical_cfg.Edge (v1, v2) = e in
   let Cfg.Cfg(_, ctrl) = curr.analysis_cfg in

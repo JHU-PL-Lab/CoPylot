@@ -50,7 +50,7 @@ end;;
 
 (* TODO: Once we decide what the interface is, these should probably not be
    different functions *)
-let analyze_uid (prog : modl) (prog_point : uid) (var : identifier) : Answer_set.t =
+let analyze_uid (prog_point : uid) (prog : modl) (var : identifier) : Answer_set.t =
   let analysis = Analysis_result.create prog in
   let uid_to_stmt_map = get_uid_hashtbl prog in (* TODO: Redundant *)
   let prog_point_stmt = Uid_generation.Uid_hashtbl.find uid_to_stmt_map prog_point in

@@ -159,23 +159,53 @@ let int_test = gen_module_test "int_test"
     )
 ;;
 
-let float_test = gen_module_test "float_test"
+let simple_test = gen_module_test "simple_test"
+    "\n\
+y = 1\n\
+x = y"
+    (function
+      | [
+        Assign("$simplified_unique_name_0", SimpleExpr(Literal(Num(Int(Pos), _, None), _, None), _, None), _, None);
+        Assign("y", SimpleExpr(Name("$simplified_unique_name_0", _, None), _, None), _, None);
+        Assign("$simplified_unique_name_1", SimpleExpr(Name("y", _, None), _, None), _, None);
+        Assign("x", SimpleExpr(Name("$simplified_unique_name_1", _, None), _, None), _, None);
+      ] -> true
+      | _ -> false
+    )
+;;
+
+let simple_test2 = gen_module_test "simple_test2"
+    "\n\
+x = True\n\
+y = -1"
+    (function
+      | [
+        Assign("$simplified_unique_name_0", SimpleExpr(Literal(Bool(true, _, None), _, None), _, None), _, None);
+        Assign("x", SimpleExpr(Name("$simplified_unique_name_0", _, None), _, None), _, None);
+        Assign("$simplified_unique_name_1", SimpleExpr(Literal(Num(Int(Neg), _, None), _, None), _, None), _, None);
+        Assign("y", SimpleExpr(Name("$simplified_unique_name_1", _, None), _, None), _, None);
+      ] -> true
+      | _ -> false
+    )
+;;
+
+(* let float_test = gen_module_test "float_test"
     "1.7"
     (function
       | [SimpleExprStmt(Literal(Num(Float(Pos), _, None), _, None), _, None)] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let float_zero_test = gen_module_test "float_zero_test"
+   let float_zero_test = gen_module_test "float_zero_test"
     "0.0"
     (function
       | [SimpleExprStmt(Literal(Num(Float(Zero), _, None), _, None), _, None)] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let unop_test = gen_module_test "unop_test"
+   let unop_test = gen_module_test "unop_test"
     "+4"
     (function
       |
@@ -196,9 +226,9 @@ let unop_test = gen_module_test "unop_test"
                          _, None);
         ] -> true
       | _ -> false)
-;;
+   ;;
 
-(* let unop_not_test = gen_module_test "unop_not_test"
+   (* let unop_not_test = gen_module_test "unop_not_test"
     "not x"
     (function
       | [
@@ -211,7 +241,7 @@ let unop_test = gen_module_test "unop_test"
     )
    ;; *)
 
-(* let boolop_and_test = gen_module_test "boolop_and_test"
+   (* let boolop_and_test = gen_module_test "boolop_and_test"
     "1+2 and x and -5"
     (function
       | [
@@ -279,9 +309,9 @@ let unop_test = gen_module_test "unop_test"
       ] -> true
       | _ -> false
     )
-;; *)
+   ;; *)
 
-let boolop_or_test = gen_module_test "boolop_or_test"
+   let boolop_or_test = gen_module_test "boolop_or_test"
     "x or False or 0"
     (function
       | [
@@ -331,9 +361,9 @@ let boolop_or_test = gen_module_test "boolop_or_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let var_assign_test = gen_module_test "var_assign_test"
+   let var_assign_test = gen_module_test "var_assign_test"
     "x = 5"
     (function
       | [
@@ -349,9 +379,9 @@ let var_assign_test = gen_module_test "var_assign_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let var_double_assign_test = gen_module_test "var_double_assign_test"
+   let var_double_assign_test = gen_module_test "var_double_assign_test"
     "x = y = 5"
     (function
       | [
@@ -372,9 +402,9 @@ let var_double_assign_test = gen_module_test "var_double_assign_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
+   let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
     "i, j = (-1,f(-1))"
     (function
       | [
@@ -635,9 +665,9 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let assign_to_index_test = gen_module_test "assign_to_index_test"
+   let assign_to_index_test = gen_module_test "assign_to_index_test"
     "list[1+2] = 3"
     (function
       | [
@@ -680,9 +710,9 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let assign_to_slice_test = gen_module_test "assign_to_slice_test"
+   let assign_to_slice_test = gen_module_test "assign_to_slice_test"
     "list[1:2] = 3"
     (function
       | [
@@ -728,9 +758,9 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
+   let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
     "obj.member = 7"
     (function
       | [
@@ -764,9 +794,9 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let var_aug_assign_test = gen_module_test "var_aug_assign_test"
+   let var_aug_assign_test = gen_module_test "var_aug_assign_test"
     "x *= -5"
     (function
       | [
@@ -790,9 +820,9 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let var_cmp_test = gen_module_test "var_cmp_test"
+   let var_cmp_test = gen_module_test "var_cmp_test"
     "x <= 9000+1 > True"
     (function
       | [
@@ -868,9 +898,9 @@ let var_cmp_test = gen_module_test "var_cmp_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let funcdef_test = gen_module_test "funcdef_test"
+   let funcdef_test = gen_module_test "funcdef_test"
     "def test_function(arg1,arg2):\n\treturn arg1"
     (function
       | [
@@ -887,9 +917,9 @@ let funcdef_test = gen_module_test "funcdef_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let call_test = gen_module_test "call_test"
+   let call_test = gen_module_test "call_test"
     "func(1,x-1,get_arg('foo'))"
     (function
       | [
@@ -928,9 +958,9 @@ let call_test = gen_module_test "call_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let attribute_test = gen_module_test "attribute_test"
+   let attribute_test = gen_module_test "attribute_test"
     "obj.member_var"
     (function
       | [
@@ -948,9 +978,9 @@ let attribute_test = gen_module_test "attribute_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let attribute_call_test = gen_module_test "attribute_call_test"
+   let attribute_call_test = gen_module_test "attribute_call_test"
     "obj.member_func()"
     (function
       | [
@@ -976,9 +1006,9 @@ let attribute_call_test = gen_module_test "attribute_call_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let if_test = gen_module_test "if_test"
+   let if_test = gen_module_test "if_test"
     "if x > 1+1:\n\tx = foo()\nelif x < 0.0: error('x < 0')\nelse: pass"
     (function
       | [
@@ -1099,9 +1129,9 @@ let if_test = gen_module_test "if_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let print_test = gen_module_test "print_test"
+   let print_test = gen_module_test "print_test"
     "print 1,x(1+1),'foo'"
     (function
       | [
@@ -1133,9 +1163,9 @@ let print_test = gen_module_test "print_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let tuple_test = gen_module_test "tuple_test"
+   let tuple_test = gen_module_test "tuple_test"
     "(1,1+1,(2,f(2)),'foo')"
     (function
       | [
@@ -1184,9 +1214,9 @@ let tuple_test = gen_module_test "tuple_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;;
 
-let while_test = gen_module_test "while_test"
+   let while_test = gen_module_test "while_test"
     "while x < 9001:\n\tx = x+1"
     (function
       | [
@@ -1266,9 +1296,9 @@ let while_test = gen_module_test "while_test"
            (loop_end_jump == loop_end)
       | _ -> false
     )
-;;
+   ;;
 
-let break_test = gen_module_test "break_test"
+   let break_test = gen_module_test "break_test"
     "while x < 9001:\n\tbreak"
     (function
       | [
@@ -1330,9 +1360,9 @@ let break_test = gen_module_test "break_test"
            (loop_end_jump == loop_end)
       | _ -> false
     )
-;;
+   ;;
 
-let continue_test = gen_module_test "continue_test"
+   let continue_test = gen_module_test "continue_test"
     "while x < 9001:\n\tcontinue"
     (function
       | [
@@ -1394,19 +1424,19 @@ let continue_test = gen_module_test "continue_test"
            (loop_end_jump == loop_end)
       | _ -> false
     )
-;;
+   ;;
 
-let bad_break_test = expect_error_test "bad_break_test"
+   let bad_break_test = expect_error_test "bad_break_test"
     "break"
     (Failure("'break' outside loop"))
-;;
+   ;;
 
-let bad_continue_test = expect_error_test "bad_continue_test"
+   let bad_continue_test = expect_error_test "bad_continue_test"
     "continue"
     (Failure("'continue' not properly in loop"))
-;;
+   ;;
 
-let raise_test = gen_module_test "raise_test"
+   let raise_test = gen_module_test "raise_test"
     "raise ValueError"
     (function
       | [Raise(
@@ -1414,20 +1444,20 @@ let raise_test = gen_module_test "raise_test"
           _, None)] -> true
       | _ -> false
     )
-;;
+   ;;
 
 
-let try_block =
-  "try:" ^
-  "\n\tx = 5" ^
-  "\nexcept ValueError:" ^
-  "\n\tprint 'Error:', get_error()" ^
-  "\nexcept StopIteration as e:" ^
-  "\n\tprint e" ^
-  "\n"
-;;
+   let try_block =
+   "try:" ^
+   "\n\tx = 5" ^
+   "\nexcept ValueError:" ^
+   "\n\tprint 'Error:', get_error()" ^
+   "\nexcept StopIteration as e:" ^
+   "\n\tprint e" ^
+   "\n"
+   ;;
 
-let try_test = gen_module_test "try_test"
+   let try_test = gen_module_test "try_test"
     try_block
     (function
       | [
@@ -1580,20 +1610,20 @@ let try_test = gen_module_test "try_test"
            (catch_uid_check_2 == catch_uid)
       | _ -> false
     )
-;;
+   ;;
 
 
-let triangle_def =
-  "def triangle(n):" ^
-  "\n\tcount = 0" ^
-  "\n\ti=0" ^
-  "\n\twhile count < n:" ^
-  "\n\t\ti += count" ^
-  "\n\t\tcount = count + 1" ^
-  "\n\treturn i" ^
-  "\n"
-;;
-let big_test = gen_module_test "big_test"
+   let triangle_def =
+   "def triangle(n):" ^
+   "\n\tcount = 0" ^
+   "\n\ti=0" ^
+   "\n\twhile count < n:" ^
+   "\n\t\ti += count" ^
+   "\n\t\tcount = count + 1" ^
+   "\n\treturn i" ^
+   "\n"
+   ;;
+   let big_test = gen_module_test "big_test"
     (triangle_def ^ "\n[triangle(1),triangle(7)]")
     (function
       | [
@@ -1753,12 +1783,12 @@ let big_test = gen_module_test "big_test"
            (loop_end_jump == loop_end)
       | _ -> false
     )
-;;
+   ;;
 
-(* Tests of lists and slicing *)
-let list_str = "[1,2,f(3),'four','five',2+4]";;
+   (* Tests of lists and slicing *)
+   let list_str = "[1,2,f(3),'four','five',2+4]";;
 
-let list_test = gen_module_test "list_test"
+   let list_test = gen_module_test "list_test"
     list_str
     (function
       | [
@@ -1798,41 +1828,43 @@ let list_test = gen_module_test "list_test"
       ] -> true
       | _ -> false
     )
-;;
+   ;; *)
 
 let tests =
   "abstract_ast">:::
   [
     uid_test;
     int_test;
-    float_test;
-    float_zero_test;
-    unop_test;
-    unop_not_test;
-    boolop_and_test;
-    boolop_or_test;
-    var_assign_test;
-    var_double_assign_test;
-    var_assign_from_tuple_test;
-    assign_to_index_test;
-    assign_to_slice_test;
-    assign_to_attribute_test;
-    var_aug_assign_test;
-    var_cmp_test;
-    funcdef_test;
-    call_test;
-    attribute_test;
-    attribute_call_test;
-    if_test;
-    print_test;
-    tuple_test;
-    while_test;
-    break_test;
-    continue_test;
-    bad_break_test;
-    bad_continue_test;
-    raise_test;
-    try_test;
-    big_test;
-    list_test;
+    simple_test;
+    simple_test2;
+    (* float_test;
+       float_zero_test;
+       unop_test;
+       unop_not_test;
+       boolop_and_test;
+       boolop_or_test;
+       var_assign_test;
+       var_double_assign_test;
+       var_assign_from_tuple_test;
+       assign_to_index_test;
+       assign_to_slice_test;
+       assign_to_attribute_test;
+       var_aug_assign_test;
+       var_cmp_test;
+       funcdef_test;
+       call_test;
+       attribute_test;
+       attribute_call_test;
+       if_test;
+       print_test;
+       tuple_test;
+       while_test;
+       break_test;
+       continue_test;
+       bad_break_test;
+       bad_continue_test;
+       raise_test;
+       try_test;
+       big_test;
+       list_test; *)
   ]

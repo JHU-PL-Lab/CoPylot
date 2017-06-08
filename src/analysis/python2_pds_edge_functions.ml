@@ -1,4 +1,6 @@
 open Batteries;;
+open Jhupllib;;
+open Nondeterminism;;
 open Python2_cfg;;
 open Python2_pds;;
 open Python2_pds.Reachability.Stack_action.T;;
@@ -22,34 +24,30 @@ let create_edge_function
   let zero = Enum.empty in
   let%orzero Cfg_node(s) = state in
   [%guard (equal_vertex s a0)];
-  let open Option.Monad in
-  let zero () = None in
-  let transitions_to_add = Enum.filter_map identity @@ List.enum
+  let open Nondeterminism_monad in
+  let transitions_to_add = Enum.concat @@ Enum.map enum @@ List.enum
       [
         (* enum of pairs of (list of actions,terminus) *)
-        (* Rule 0a *)
+        (* Pop a value, go to the value state *)
         begin
           return ([],Dynamic_terminus(Goto_value_state))
         end
         ;
-        (* Rule 1a *)
+        (* Assignment to a variable from a literal *)
         begin
           let%orzero
             Program_point(Assign(id,SimpleExpr(Literal(v,_,_),_,_),_,_)) = a1
           in
-          return ([Pop(Var(id)); Push(Ans(literal_to_answer v))],
-                  Static_terminus(Cfg_node(a0)))
+          (* Assignment to target variable from literal *)
+          let relevant = ([Pop(Var(id)); Push(Ans(literal_to_answer v))],
+                          Static_terminus(Cfg_node(a0))) in
+          (* Assignment to irrelevant variable from literal *)
+          let irrelevant = ([Pop_dynamic_targeted(Dph.Pop_then_push_any_variable_but(Var(id)))],
+                            Static_terminus(Cfg_node(a1))) in
+          pick_enum @@ List.enum [relevant; irrelevant]
         end
         ;
-        (* Rule 1b *)
-        begin
-          let%orzero
-            Program_point(Assign(id, SimpleExpr(Literal(_,_,_),_,_),_,_)) = a1
-          in
-          return ([Pop_dynamic_targeted(Dph.Pop_then_push_any_variable_but(Var(id)))],
-                  Static_terminus(Cfg_node(a1)))
-        end
-        ;
+
         (* Variable Aliasing *)
         begin
           let%orzero
@@ -58,7 +56,7 @@ let create_edge_function
           return ([Pop(Var(id)); Push(Var(id2))],
                   Static_terminus(Cfg_node(a1)))
         end
-        ;
+        ; (* TODO: Alias to non-target variables *)
       ]
   in transitions_to_add
 ;;

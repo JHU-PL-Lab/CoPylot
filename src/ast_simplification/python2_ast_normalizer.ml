@@ -284,7 +284,7 @@ in
           | Some(exp) ->
             Simplified.Compare(
               Simplified.Call(
-                Simplified.Name("type", annot),
+                Simplified.Name("type", annot), (* TODO: This needs to be a builtin *)
                 [Simplified.Name(exception_name, annot)],
                 annot),
               [Simplified.Eq],
