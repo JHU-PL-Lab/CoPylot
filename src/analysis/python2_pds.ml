@@ -10,6 +10,7 @@ type answer =
   | Num of number
   | Str of str
   | Bool of bool
+  | Builtin of builtin
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
@@ -41,7 +42,6 @@ type stack_elt =
   | Bottom
   | Ans of answer
   | Var of identifier
-  (* TODO: Binops *)
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
