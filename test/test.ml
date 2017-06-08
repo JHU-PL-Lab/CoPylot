@@ -9,6 +9,7 @@ let all_tests =
     Test_simplified_ast.tests;
     (* Test_normalized_ast.tests; *)
     Test_analysis.tests;
+    Test_normalized_pp.tests;
   ]
 ;;
 
