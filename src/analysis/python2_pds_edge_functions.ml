@@ -28,9 +28,18 @@ let create_edge_function
   let transitions_to_add = Enum.concat @@ Enum.map enum @@ List.enum
       [
         (* enum of pairs of (list of actions,terminus) *)
+
         (* Pop a value, go to the value state *)
         begin
           return ([],Dynamic_terminus(Goto_value_state))
+        end
+        ;
+        (* If we're looking for a variable at the start node, it's undefined *)
+        begin
+          let%orzero
+            Start = a1
+          in
+          return ([], Dynamic_terminus(Pop_undefined_variable))
         end
         ;
         (* Assignment to a variable from a literal *)
@@ -38,25 +47,30 @@ let create_edge_function
           let%orzero
             Program_point(Assign(id,SimpleExpr(Literal(v,_,_),_,_),_,_)) = a1
           in
-          (* Assignment to target variable from literal *)
+          (* Assignment to target variable*)
           let relevant = ([Pop(Var(id)); Push(Ans(literal_to_answer v))],
                           Static_terminus(Cfg_node(a0))) in
-          (* Assignment to irrelevant variable from literal *)
+          (* Assignment to irrelevant variable *)
           let irrelevant = ([Pop_dynamic_targeted(Dph.Pop_then_push_any_variable_but(Var(id)))],
                             Static_terminus(Cfg_node(a1))) in
           pick_enum @@ List.enum [relevant; irrelevant]
         end
         ;
-
+        (* TODO: We have the exact same code here *)
         (* Variable Aliasing *)
         begin
           let%orzero
             Program_point(Assign(id, SimpleExpr(Name(id2,_,_),_,_),_,_)) = a1
           in
-          return ([Pop(Var(id)); Push(Var(id2))],
-                  Static_terminus(Cfg_node(a1)))
+          (* Alias to the variable we're looking for *)
+          let relevant =  ([Pop(Var(id)); Push(Var(id2))],
+                           Static_terminus(Cfg_node(a1))) in
+          (* Assignment to some other variable *)
+          let irrelevant = ([Pop_dynamic_targeted(Dph.Pop_then_push_any_variable_but(Var(id)))],
+                            Static_terminus(Cfg_node(a1))) in
+          pick_enum @@ List.enum [relevant; irrelevant]
         end
-        ; (* TODO: Alias to non-target variables *)
+        ;
       ]
   in transitions_to_add
 ;;

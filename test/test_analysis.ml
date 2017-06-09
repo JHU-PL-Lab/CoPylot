@@ -151,7 +151,15 @@ let bool_test =
       let open Python2_pds in
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Bool(false))) (analyze_end actual "x")
   )
-
+;;
+let undefined_test =
+  "undefined_test">::
+  ( fun _ ->
+      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(false, 1, None), 2, None), 3, None), 4, None)], 0) in
+      let open Python2_pds in
+      assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Undefined)) (analyze_end actual "y")
+  )
+;;
 let skip_test =
   "skip_test">::
   ( fun _ ->
@@ -210,8 +218,6 @@ let skip_and_alias_test =
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_end actual "x")
   )
 
-
-
 let tests =
   "analysis_ast">:::
   [
@@ -221,6 +227,7 @@ let tests =
     int_test;
     str_test;
     bool_test;
+    undefined_test;
     skip_test;
     reassign_test;
     reassign_midpoint_test;
