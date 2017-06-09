@@ -58,4 +58,5 @@ and str =
 and builtin =
     | Builtin_slice
   | Builtin_bool
+  | Builtin_type
 [@@deriving eq, ord, show, to_yojson]

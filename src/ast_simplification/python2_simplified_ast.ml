@@ -63,4 +63,5 @@ and str =
 and builtin =
     | Builtin_bool
   | Builtin_slice
+  | Builtin_type
 [@@deriving eq, ord, show]

@@ -171,7 +171,7 @@ and normalize_stmt_full
             [update_uid ctx annot test_name],
             get_next_uid ctx annot,
             exception_target))
-in
+    in
 
     let start_uid = get_next_uid ctx annot in (* Start label *)
     let end_uid = get_next_uid ctx annot in (* End label *)
@@ -284,7 +284,7 @@ in
           | Some(exp) ->
             Simplified.Compare(
               Simplified.Call(
-                Simplified.Name("type", annot), (* TODO: This needs to be a builtin *)
+                Simplified.Builtin(Simplified.Builtin_type, annot),
                 [Simplified.Name(exception_name, annot)],
                 annot),
               [Simplified.Eq],
@@ -595,7 +595,7 @@ and normalize_expr
   | Simplified.Builtin (b, annot) ->
     ([], Normalized.Literal(
         Normalized.Builtin(normalize_builtin b, get_next_uid ctx annot,
-                        exception_target),
+                           exception_target),
         get_next_uid ctx annot,
         exception_target))
 
@@ -674,4 +674,5 @@ and normalize_str s =
 and normalize_builtin b =
   match b with
   | Simplified.Builtin_bool -> Normalized.Builtin_bool
-| Simplified.Builtin_slice -> Normalized.Builtin_slice
+  | Simplified.Builtin_slice -> Normalized.Builtin_slice
+  | Simplified.Builtin_type -> Normalized.Builtin_type
