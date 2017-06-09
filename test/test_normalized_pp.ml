@@ -75,11 +75,59 @@ let funcdef_test = gen_module_test "funcdef_test"
     funcdef_pp
 ;;
 
+let for_loop =
+  "for i in [2,6]:" ^
+  "\n  if i < 3:" ^
+  "\n    print i"
+;;
 
+let for_loop_pp =
+  "10::$normalized_unique_name_0=PosPos" ^
+  "\n14::$normalized_unique_name_1=$normalized_unique_name_0.__iter__" ^
+  "\n18::$normalized_unique_name_2=$normalized_unique_name_1()" ^
+  "\n22::$normalized_unique_name_3=$normalized_unique_name_2.next" ^
+  "\n24::$simplified_unique_name_1=$normalized_unique_name_3" ^
+  "\n28::$simplified_unique_name_0=$simplified_unique_name_1" ^
+  "\n42:31:pass" ^
+  "\n40:31:$normalized_unique_name_4=bool()(true)" ^
+  "\n79:31:goto 43 if not $normalized_unique_name_4" ^
+  "\n47:31:$normalized_unique_name_5=$simplified_unique_name_0()" ^
+  "\n49:31:$simplified_unique_name_2=$normalized_unique_name_5" ^
+  "\n53:31:i=$simplified_unique_name_2" ^
+  "\n60:31:$normalized_unique_name_6=i.__lt__" ^
+  "\n63:31:$normalized_unique_name_7=$normalized_unique_name_6(Pos)" ^
+  "\n72:31:$normalized_unique_name_8=bool()($normalized_unique_name_7)" ^
+  "\n77:31:goto 76 if not $normalized_unique_name_8" ^
+  "\n66:31:print(i) > " ^
+  "\n75:31:goto 74" ^
+  "\n76:31:pass" ^
+  "\n74:31:pass" ^
+  "\n81:31:goto 42" ^
+  "\n43:31:pass" ^
+  "\n111::goto 32" ^
+  "\n31::catch($normalized_unique_name_9)" ^
+  "\n87::$normalized_unique_name_10=type($normalized_unique_name_9)" ^
+  "\n91::$normalized_unique_name_11=$normalized_unique_name_10.__eq__" ^
+  "\n94::$normalized_unique_name_12=$normalized_unique_name_11(StopIteration)" ^
+  "\n104::$normalized_unique_name_13=bool()($normalized_unique_name_12)" ^
+  "\n109::goto 108 if not $normalized_unique_name_13" ^
+  "\n96::pass" ^
+  "\n107::goto 106" ^
+  "\n108::pass" ^
+  "\n98::raise($normalized_unique_name_9)" ^
+  "\n106::pass" ^
+  "\n32::pass"
+
+
+let loop_test = gen_module_test "loop_test"
+    for_loop
+    for_loop_pp
+;;
 
 let tests =
   "normalized_pp">:::
   [
     int_test;
     funcdef_test;
+    loop_test;
   ]
