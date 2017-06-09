@@ -1,4 +1,6 @@
 open Batteries;;
+open Jhupllib;;
+open Nondeterminism;;
 open Python2_cfg;;
 open Python2_pds;;
 open Python2_pds.Reachability.Stack_action.T;;
@@ -9,10 +11,10 @@ open Ast;;
 
 let literal_to_answer l =
   match l with
-  | Ast.Num (n,_,_) -> Python2_pds.Num n
-  | Ast.Str (s,_,_) -> Python2_pds.Str s
-  | Ast.Bool (b,_,_) -> Python2_pds.Bool b
-  | Ast.Builtin (_,_,_) -> raise @@ Jhupllib.Utils.Not_yet_implemented "Builtin answer type"
+  | Ast.Num (n) -> Python2_pds.Num n
+  | Ast.Str (s) -> Python2_pds.Str s
+  | Ast.Bool (b) -> Python2_pds.Bool b
+  | Ast.Builtin (b) -> Python2_pds.Builtin b
 ;;
 
 let create_edge_function
@@ -22,41 +24,71 @@ let create_edge_function
   let zero = Enum.empty in
   let%orzero Cfg_node(s) = state in
   [%guard (equal_vertex s a0)];
-  let open Option.Monad in
-  let zero () = None in
-  let transitions_to_add = Enum.filter_map identity @@ List.enum
+  let open Nondeterminism_monad in
+  let transitions_to_add = Enum.concat @@ Enum.map enum @@ List.enum
       [
         (* enum of pairs of (list of actions,terminus) *)
-        (* Rule 0a *)
+
+        (* Pop a value, go to the value state *)
         begin
           return ([],Dynamic_terminus(Goto_value_state))
         end
         ;
-        (* Rule 1a *)
+        (* If we're looking for a variable at the start node, it's undefined *)
         begin
           let%orzero
-            Program_point(Assign(id,SimpleExpr(Literal(v,_,_),_,_),_,_)) = a1
+            Start = a1
           in
-          return ([Pop(Var(id)); Push(Ans(literal_to_answer v))],
-                  Static_terminus(Cfg_node(a0)))
+          return ([], Dynamic_terminus(Pop_undefined_variable))
         end
         ;
-        (* Rule 1b *)
+        (* Assignment to a variable from a literal *)
         begin
           let%orzero
-            Program_point(Assign(id, SimpleExpr(Literal(_,_,_),_,_),_,_)) = a1
+            Program_point({uid=_;
+                           exception_target=_;
+                           multi=_;
+                           body=Assign
+                               (id,{uid=_;
+                                   exception_target=_;
+                                   multi=_;
+                                   body=SimpleExpr({uid=_;
+                                                    exception_target=_;
+                                                    multi=_;
+                                                    body=Literal(v)})})}) = a1
           in
-          return ([Pop_dynamic_targeted(Dph.Pop_then_push_any_variable_but(Var(id)))],
-                  Static_terminus(Cfg_node(a1)))
+          (* Assignment to target variable*)
+          let relevant = ([Pop(Var(id)); Push(Ans(literal_to_answer v))],
+                          Static_terminus(Cfg_node(a0))) in
+          (* Assignment to irrelevant variable *)
+          let irrelevant = ([Pop_dynamic_targeted(Dph.Pop_then_push_any_variable_but(Var(id)))],
+                            Static_terminus(Cfg_node(a1))) in
+          pick_enum @@ List.enum [relevant; irrelevant]
         end
         ;
+        (* TODO: We have the exact same code here *)
         (* Variable Aliasing *)
         begin
           let%orzero
-            Program_point(Assign(id, SimpleExpr(Name(id2,_,_),_,_),_,_)) = a1
+            Program_point({uid=_;
+                           exception_target=_;
+                           multi=_;
+                           body=Assign
+                               (id,{uid=_;
+                                   exception_target=_;
+                                   multi=_;
+                                   body=SimpleExpr({uid=_;
+                                                    exception_target=_;
+                                                    multi=_;
+                                                    body=Name(id2)})})}) = a1
           in
-          return ([Pop(Var(id)); Push(Var(id2))],
-                  Static_terminus(Cfg_node(a1)))
+          (* Alias to the variable we're looking for *)
+          let relevant =  ([Pop(Var(id)); Push(Var(id2))],
+                           Static_terminus(Cfg_node(a1))) in
+          (* Assignment to some other variable *)
+          let irrelevant = ([Pop_dynamic_targeted(Dph.Pop_then_push_any_variable_but(Var(id)))],
+                            Static_terminus(Cfg_node(a1))) in
+          pick_enum @@ List.enum [relevant; irrelevant]
         end
         ;
       ]

@@ -27,19 +27,19 @@ and pp_list pp fmt lst =
 ;;
 
 
-
 let rec pp_modl fmt = function
   | Module (body, _) ->
     pp_lines pp_stmt fmt body
 
 (* The statements should have line number. *)
-and pp_stmt fmt = function
-  | Assign (target,value,uid,exc) ->
+and pp_stmt fmt {uid=uid;exception_target=exc;multi=_;body} =
+  match body with
+  | Assign (target,value) ->
     fprintf fmt "%a:%a=%a"
       pp_label (uid,exc)
       pp_id target
       pp_compound_expr value
-  | FunctionDef (name,args,body,uid,exc) ->
+  | FunctionDef (name,args,body) ->
     (* Python flavor FunctionDef: *)
     (* fprintf fmt "@[<4>%a:%a(%a):@\n%a@]" *)
     fprintf fmt "@[<4>%a:%a(%a){@\n%a@]@\n}"
@@ -47,69 +47,71 @@ and pp_stmt fmt = function
       pp_id name
       (pp_list pp_id) args
       (pp_lines pp_stmt) body
-  | Return (value,uid,exc) ->
+  | Return (value) ->
     fprintf fmt "%a:return(%a)"
       pp_label (uid,exc)
       (pp_option pp_simple_expr) value
-  | Print (dest,values,_,uid,exc) ->
+  | Print (dest,values,_) ->
     fprintf fmt "%a:print(%a) > %a"
       pp_label (uid,exc)
       (pp_list pp_simple_expr) values
       (pp_option pp_simple_expr) dest
-  | Raise (value,uid,exc) ->
+  | Raise (value) ->
     fprintf fmt "%a:raise(%a)"
       pp_label (uid,exc)
       pp_simple_expr value
-  | Catch (name,uid,exc) ->
+  | Catch (name) ->
     fprintf fmt "%a:catch(%a)"
       pp_label (uid,exc)
       pp_id name
-  | Pass (uid,exc) ->
+  | Pass ->
     fprintf fmt "%a:pass"
       pp_label (uid,exc)
-  | Goto (dest,uid,exc) ->
+  | Goto (dest) ->
     fprintf fmt "%a:goto %a"
       pp_label (uid,exc)
       pp_print_int dest
-  | GotoIfNot (test,dest,uid,exc) ->
+  | GotoIfNot (test,dest) ->
     fprintf fmt "%a:goto %a if not %a"
       pp_label (uid,exc)
       pp_print_int dest
       pp_simple_expr test
-  | SimpleExprStmt (value,uid,exc) ->
+  | SimpleExprStmt (value) ->
     fprintf fmt "%a:%a"
       pp_label (uid,exc)
       pp_simple_expr value
 
-and pp_compound_expr fmt = function
-  | Call (func,args,_,_) ->
+and pp_compound_expr fmt {uid=_;exception_target=_;multi=_;body} =
+  match body with
+  | Call (func,args) ->
     fprintf fmt "%a(%a)"
       pp_simple_expr func
       (pp_list pp_simple_expr) args
-  | Attribute (obj,attr,_,_) ->
+  | Attribute (obj,attr) ->
     fprintf fmt "%a.%a"
       pp_simple_expr obj
       pp_id attr
-  | List (lst,_,_) ->
+  | List (lst) ->
     fprintf fmt "@[%a@]"
       (pp_list pp_simple_expr) lst
-  | Tuple (lst,_,_) ->
+  | Tuple (lst) ->
     fprintf fmt "(%a)"
       (pp_list pp_simple_expr) lst
-  | SimpleExpr (se,_,_) -> pp_simple_expr fmt se
+  | SimpleExpr (se) -> pp_simple_expr fmt se
 
-and pp_simple_expr fmt = function
-  | Literal (l,_,_) -> pp_literal fmt l
-  | Name (id,_,_) -> pp_id fmt id
+and pp_simple_expr fmt {uid=_;exception_target=_;multi=_;body} =
+  match body with
+  | Literal (l) -> pp_literal fmt l
+  | Name (id) -> pp_id fmt id
 
 and pp_id fmt id =
   fprintf fmt "%s" id
 
 and pp_literal fmt = function
-  | Num (n,_,_) -> pp_num fmt n
-  | Str (s,_,_) -> pp_str fmt s
-  | Bool (b,_,_) -> pp_print_bool fmt b
-  | Builtin (bi,_,_) -> pp_builtin fmt bi
+  | Num (n) -> pp_num fmt n
+  | Str (s) -> pp_str fmt s
+  | Bool (b) -> pp_print_bool fmt b
+  | Builtin (bi) -> pp_builtin fmt bi
 
 and pp_num fmt = function
   | Int sgn -> pp_sign fmt sgn
@@ -127,6 +129,7 @@ and pp_sign fmt= function
 and pp_builtin fmt = function
   | Builtin_slice -> fprintf fmt "slice()"
   | Builtin_bool -> fprintf fmt "bool()"
+  | Builtin_type -> fprintf fmt "type()"
 
 
 and pp_label fmt (uid,exc) =

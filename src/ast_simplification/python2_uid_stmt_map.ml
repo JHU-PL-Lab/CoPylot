@@ -7,22 +7,22 @@ let rec get_uid_hashtbl (m : modl) =
     let tbl = collect_uids_stmt_lst (Uid_hashtbl.create 10) body in
     tbl
 
-and collect_uids_stmt (tbl : stmt Uid_hashtbl.t) (s : stmt) =
-  match s with
-  | Assign (_, _, u, _)
-  | Return (_, u, _)
-  | Print (_, _, _, u, _)
-  | Raise (_, u, _)
-  | Catch (_, u, _)
-  | Pass (u, _)
-  | Goto (_, u, _)
-  | GotoIfNot (_, u, _, _)
-  | SimpleExprStmt (_, u, _)
+and collect_uids_stmt (tbl : annotated_stmt Uid_hashtbl.t) {uid=u;exception_target=except;multi=in_loop;body} =
+  match body with
+  | Assign (_, _)
+  | Return (_)
+  | Print (_, _, _)
+  | Raise (_)
+  | Catch (_)
+  | Pass
+  | Goto (_)
+  | GotoIfNot (_)
+  | SimpleExprStmt (_)
     ->
-    Uid_hashtbl.add tbl u s; tbl
-  | FunctionDef (_, _, body, u, _) ->
-    let new_tbl = collect_uids_stmt_lst tbl body in
-    Uid_hashtbl.add new_tbl u s; new_tbl
+    Uid_hashtbl.add tbl u {uid=u;exception_target=except;multi=in_loop;body}; tbl
+  | FunctionDef (_, _, func_body) ->
+    let new_tbl = collect_uids_stmt_lst tbl func_body in
+    Uid_hashtbl.add new_tbl u {uid=u;exception_target=except;multi=in_loop;body}; new_tbl
 
 and collect_uids_stmt_lst tbl lst =
   List.fold_left collect_uids_stmt tbl lst

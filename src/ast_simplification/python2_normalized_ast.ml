@@ -5,41 +5,59 @@ type uid = int
 type identifier = string
 [@@deriving eq, ord, show, to_yojson]
 
+and 'a annotation =
+  {
+    uid: uid;
+    exception_target: uid option;
+    multi: bool;
+    body: 'a;
+  }
+[@@deriving eq, ord, show, to_yojson]
+
+and annotated_stmt = stmt annotation
+[@@deriving eq, ord, show, to_yojson]
+
+and annotated_cexpr = compound_expr annotation
+[@@deriving eq, ord, show, to_yojson]
+
+and annotated_sexpr = simple_expr annotation
+[@@deriving eq, ord, show, to_yojson]
+
 and modl =
-    | Module of stmt list (* body *) * uid
+    | Module of annotated_stmt list (* body *) * uid
 [@@deriving eq, ord, show, to_yojson]
 
 and stmt =
-    | Assign of identifier (* target *) * compound_expr (* value *) * uid * uid option (* exception label *)
-  | FunctionDef of identifier (* name *) * identifier list (* args *) * stmt list (* body *) * uid * uid option (* exception label *)
-  | Return of simple_expr option (* value *) * uid * uid option (* exception label *)
-  | Print of simple_expr option (* dest *) * simple_expr list (* values *) * bool (* nl *) * uid * uid option (* exception label *)
-  | Raise of simple_expr (* value *) * uid * uid option (* exception label *)
-  | Catch of identifier (* name *) * uid * uid option (* exception label *)
-  | Pass of uid * uid option (* exception label *)
-  | Goto of uid (* dest *) * uid * uid option (* exception label *)
-  | GotoIfNot of simple_expr (* test *) * uid (* dest *) * uid * uid option (* Jump iff test is falsey *)
-  | SimpleExprStmt of simple_expr (* value *) * uid * uid option (* exception label *)
+    | Assign of identifier (* target *) * annotated_cexpr (* value *)
+  | FunctionDef of identifier (* name *) * identifier list (* args *) * annotated_stmt list (* body *)
+  | Return of annotated_sexpr option (* value *)
+  | Print of annotated_sexpr option (* dest *) * annotated_sexpr list (* values *) * bool (* nl *)
+  | Raise of annotated_sexpr (* value *)
+  | Catch of identifier (* name *)
+  | Pass
+  | Goto of uid (* dest *)
+  | GotoIfNot of annotated_sexpr (* test *) * uid (* dest *) (* Jump iff test is falsey *)
+  | SimpleExprStmt of annotated_sexpr (* value *)
 [@@deriving eq, ord, show, to_yojson]
 
 and compound_expr =
-  | Call of simple_expr (* func *) * simple_expr list (* args *) * uid * uid option (* exception label *)
-  | Attribute of simple_expr (* object *) * identifier (* attr *) * uid * uid option (* exception label *)
-  | List of simple_expr list (* elts *)  * uid * uid option (* exception label *)
-  | Tuple of simple_expr list (* elts *)  * uid * uid option (* exception label *)
-  | SimpleExpr of simple_expr (* value*) * uid * uid option (* exception label *)
+  | Call of annotated_sexpr (* func *) * annotated_sexpr list (* args *)
+  | Attribute of annotated_sexpr (* object *) * identifier (* attr *)
+  | List of annotated_sexpr list (* elts *)
+  | Tuple of annotated_sexpr list (* elts *)
+  | SimpleExpr of annotated_sexpr (* value*)
 [@@deriving eq, ord, show, to_yojson]
 
 and simple_expr =
-    | Literal of literal * uid * uid option
-  | Name of identifier (* id *) * uid * uid option (* exception label *)
+    | Literal of literal
+  | Name of identifier (* id *)
 [@@deriving eq, ord, show, to_yojson]
 
 and literal =
-    | Num of number * uid * uid option (* exception label *)
-  | Str of str * uid * uid option (* exception label *)
-  | Bool of bool * uid * uid option (* exception label *)
-  | Builtin of builtin * uid * uid option (* exception label *)
+    | Num of number
+  | Str of str
+  | Bool of bool
+  | Builtin of builtin
 [@@deriving eq, ord, show, to_yojson]
 
 and sign = Pos | Neg | Zero
@@ -58,4 +76,5 @@ and str =
 and builtin =
     | Builtin_slice
   | Builtin_bool
+  | Builtin_type
 [@@deriving eq, ord, show, to_yojson]

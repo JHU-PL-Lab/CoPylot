@@ -25,6 +25,7 @@ let is_active (v : vertex) (gph : Control_cfg.t) =
 
 let apply_rules (curr : analysis_result) (e : Lexical_cfg.edge)
   : Control_cfg.edge Enum.t =
+  (* TODO: Get code from renormalization branch *)
   let lookup_values = Python2_pds.query_pds curr.analysis_pds in
   let Lexical_cfg.Edge (v1, v2) = e in
   let Cfg.Cfg(_, ctrl) = curr.analysis_cfg in
@@ -44,7 +45,20 @@ let apply_rules (curr : analysis_result) (e : Lexical_cfg.edge)
         (* Assignment from literal *)
         begin
           let%orzero
-            Program_point(Assign(_,SimpleExpr(Literal(_),_,_),_,_)) = v1
+            Program_point(
+              {uid=_;
+               exception_target=_;
+               multi=_;
+               body=Assign
+                   (
+                     _,{uid=_;
+                        exception_target=_;
+                        multi=_;
+                        body=SimpleExpr(
+                            {uid=_;
+                             exception_target=_;
+                             multi=_;
+                             body=Literal(_)})})}) = v1
           in
           return (Control_cfg.Edge(v1, v2))
         end
@@ -52,7 +66,20 @@ let apply_rules (curr : analysis_result) (e : Lexical_cfg.edge)
         (* Variable Aliasing *)
         begin
           let%orzero
-            Program_point(Assign(_, SimpleExpr(Name(id,_,_),_,_),_,except)) = v1
+            Program_point(
+              {uid=_;
+               exception_target=except;
+               multi=_;
+               body=Assign
+                   (
+                     _,{uid=_;
+                        exception_target=_;
+                        multi=_;
+                        body=SimpleExpr(
+                            {uid=_;
+                             exception_target=_;
+                             multi=_;
+                             body=Name(id)})})}) = v1
           in
           let%bind v =
             pick_enum @@ Python2_pds.Answer_set.enum @@ lookup_values v1 id
@@ -77,27 +104,27 @@ let apply_rules (curr : analysis_result) (e : Lexical_cfg.edge)
    cfg, but which are not currently in it. *)
 let get_edges_to_add (curr : analysis_result) : Control_cfg.edge Enum.t =
   let Cfg.Cfg (lex, ctrl) = curr.analysis_cfg in
-    let rec collect_edges_from_vertex (v : vertex) : Control_cfg.edge Enum.t =
-      let outgoing_edges = Lexical_cfg.edges_from v lex in
-      let new_edges_to_add = Enum.map (apply_rules curr) outgoing_edges in
-      let edges_to_add =
-        Enum.fold
-          Enum.append
-          (Enum.empty ())
-          new_edges_to_add
-      in
-      let successors = Lexical_cfg.succs v lex in
-      (* If there are cycles in the lexical cfg this will never end *)
-      let all_edges_to_add =
-        Enum.fold
-          (fun en v -> Enum.append en (collect_edges_from_vertex v))
-          edges_to_add
-          successors
-      in
-      all_edges_to_add
-    in (* End definition of collect_edges_from_vertex *)
-    (* Filter out edges that already exist *)
-    Enum.filter
-      (fun e -> not (Control_cfg.has_edge e ctrl))
-      (collect_edges_from_vertex Start)
+  let rec collect_edges_from_vertex (v : vertex) : Control_cfg.edge Enum.t =
+    let outgoing_edges = Lexical_cfg.edges_from v lex in
+    let new_edges_to_add = Enum.map (apply_rules curr) outgoing_edges in
+    let edges_to_add =
+      Enum.fold
+        Enum.append
+        (Enum.empty ())
+        new_edges_to_add
+    in
+    let successors = Lexical_cfg.succs v lex in
+    (* If there are cycles in the lexical cfg this will never end *)
+    let all_edges_to_add =
+      Enum.fold
+        (fun en v -> Enum.append en (collect_edges_from_vertex v))
+        edges_to_add
+        successors
+    in
+    all_edges_to_add
+  in (* End definition of collect_edges_from_vertex *)
+  (* Filter out edges that already exist *)
+  Enum.filter
+    (fun e -> not (Control_cfg.has_edge e ctrl))
+    (collect_edges_from_vertex Start)
 ;;

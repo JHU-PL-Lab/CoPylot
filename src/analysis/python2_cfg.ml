@@ -2,7 +2,7 @@ open Batteries;;
 open Python2_normalized_ast;;
 
 type vertex =
-  | Program_point of stmt
+  | Program_point of annotated_stmt
   | Start
   | End
 [@@deriving eq, ord, show, to_yojson]
@@ -54,7 +54,7 @@ struct
 
   (* TODO: Deal with stuff like if statements that have subordinate stmt lists *)
   let create_lexical_cfg (m : modl) =
-    let stmt_list_to_vertex_list (lst : stmt list) : vertex list =
+    let stmt_list_to_vertex_list (lst : annotated_stmt list) : vertex list =
       List.map (fun stmt -> Program_point(stmt)) lst
     in
     let vertex_list_to_edge_list (lst : vertex list) : Lexical_cfg.edge list =

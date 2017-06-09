@@ -90,6 +90,21 @@ Library "analysis"
     CoPylot.ast_simplification,
     CoPylot.utils
 
+Library "pyssembly_parser"
+  FindlibParent: CoPylot
+  Path: src/pyssembly_parser
+  Modules:
+    
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std,
+    ppx_deriving_yojson,
+    pds-reachability,
+    CoPylot.parser,
+    CoPylot.ast_simplification,
+    CoPylot.utils
+
 Executable "test"
   Path: test/
   MainIs: test.ml
