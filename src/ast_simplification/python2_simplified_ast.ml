@@ -12,9 +12,9 @@ and 'a stmt =
   | Print of 'a expr option (* dest *) * 'a expr list (* values *) * bool (* nl *) * 'a
   | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
-(* Raise is very complicated, with different behaviors based on the
-   number of arguments it recieves. For simplicity we require that
-   it take exactly one argument, which is the value to be raised. *)
+  (* Raise is very complicated, with different behaviors based on the
+     number of arguments it recieves. For simplicity we require that
+     it take exactly one argument, which is the value to be raised. *)
   | Raise of 'a expr (* value *) * 'a
   | TryExcept of 'a stmt list (* body *) * 'a excepthandler list (* handlers *) * 'a
   | Pass of 'a
@@ -65,3 +65,33 @@ and builtin =
   | Builtin_slice
   | Builtin_type
 [@@deriving eq, ord, show]
+
+let extract_stmt_annot = function
+  | Assign (_, _, a)
+  | FunctionDef (_,_,_,a)
+  | Return(_,a)
+  | Print(_,_,_,a)
+  | While(_,_,a)
+  | If(_,_,_,a)
+  | Raise(_,a)
+  | TryExcept(_,_,a)
+  | Pass(a)
+  | Break(a)
+  | Continue(a)
+  | Expr(_,a)
+    -> a
+
+let extract_expr_annot = function
+  | BoolOp (_,_,a)
+  | IfExp(_,_,_,a)
+  | Compare(_,_,_,a)
+  | Call(_,_,a)
+  | Attribute(_,_,a)
+  | List(_,a)
+  | Tuple(_,a)
+  | Num (_,a)
+  | Str(_,a)
+  | Bool(_,a)
+  | Name(_,a)
+  | Builtin(_,a)
+-> a

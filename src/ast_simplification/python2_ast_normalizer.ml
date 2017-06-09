@@ -22,54 +22,64 @@ let normalize_option func o =
   | Some(x) -> Some(func x)
 ;;
 
-let update_uid ctx annot (e : Normalized.simple_expr) =
-  match e with
-  | Normalized.Literal (l, _, ex) ->
-    begin
-      match l with
-      | Normalized.Num (n, _, except) ->
-        Normalized.Literal(
-          Normalized.Num(n, get_next_uid ctx annot, except),
-          get_next_uid ctx annot,
-          ex)
-      | Normalized.Str (s, _, except) ->
-        Normalized.Literal(
-          Normalized.Str(s, get_next_uid ctx annot, except),
-          get_next_uid ctx annot,
-          ex)
-      | Normalized.Bool (b, _, except) ->
-        Normalized.Literal(
-          Normalized.Bool(b, get_next_uid ctx annot, except),
-          get_next_uid ctx annot,
-          ex)
-      | Normalized.Builtin (b, _, except) ->
-        Normalized.Literal(
-          Normalized.Builtin(b, get_next_uid ctx annot, except),
-          get_next_uid ctx annot,
-          ex)
-    end
-  | Normalized.Name (id, _, ex) -> Normalized.Name(id, get_next_uid ctx annot, ex)
+let update_uid ctx annot (e : Normalized.annotated_sexpr) =
+  let open Normalized in
+  {
+    uid = get_next_uid ctx annot;
+    exception_target = e.exception_target;
+    multi = e.multi;
+    body = e.body;
+  }
 ;;
 
-let update_option_uid ctx annot (opt: Normalized.simple_expr option) =
+let update_option_uid ctx annot (opt: Normalized.annotated_sexpr option) =
   match opt with
   | None -> None
   | Some(e) -> Some(update_uid ctx annot e)
 ;;
 
-let id_of_name n =
-  match n with
-  | Normalized.Name (id, _, _) -> id
+let id_of_name (n : Normalized.annotated_sexpr) =
+  let open Normalized in
+  match n.body with
+  | Normalized.Name (id) -> id
   | _ -> failwith "Can only extract id from names"
 ;;
 
-(* Given a uid and a compound_expr, assigns that expr to a new, unique name.
+(* Given a uid and an annotated_cexpr, assigns that expr to a new, unique name.
    Returns the assignment statement (in a list) and the name used *)
-let gen_normalized_assignment ctx exception_target annot e =
+let gen_normalized_assignment ctx annot
+    (e : Normalized.annotated_cexpr) =
+  let open Normalized in
   let u = get_next_uid ctx annot in
   let name = gen_unique_name u in
-  let assignment = Normalized.Assign(name, e, u, exception_target) in
-  [assignment], Normalized.Name(name, get_next_uid ctx annot, exception_target)
+  let assignment = {
+    uid = u;
+    exception_target = e.exception_target;
+    multi = e.multi;
+    body = Assign(name, e);
+  }
+  in
+  [assignment], name
+;;
+
+let create_annotation_from_stmt ctx exception_target in_loop
+    (s : 'a Simplified.stmt) (e : 'b) =
+  {
+    Normalized.uid = get_next_uid ctx (Simplified.extract_stmt_annot s);
+    exception_target = exception_target;
+    multi = in_loop;
+    body = e;
+  }
+;;
+
+let create_annotation_from_expr ctx exception_target in_loop
+    (s : 'a Simplified.expr) (e : 'b) =
+  {
+    Normalized.uid = get_next_uid ctx (Simplified.extract_expr_annot s);
+    exception_target = exception_target;
+    multi = in_loop;
+    body = e;
+  }
 ;;
 
 (* Most normalize fuctions return a list of statements and the name of the
@@ -103,78 +113,74 @@ and normalize_stmt_full
     loop_end_uid
     exception_target
     (s : 'a Simplified.stmt)
-  : Normalized.stmt list =
+  : Normalized.annotated_stmt list =
+  let in_loop = (loop_start_uid != None) in
+  let annotate_stmt e : Normalized.annotated_stmt =
+    create_annotation_from_stmt ctx exception_target in_loop s e in
+  let annotate_cexpr e : Normalized.annotated_cexpr =
+    create_annotation_from_stmt ctx exception_target in_loop s e in
+  let annotate_sexpr e : Normalized.annotated_sexpr =
+    create_annotation_from_stmt ctx exception_target in_loop s e in
   match s with
-  | Simplified.FunctionDef (func_name, args, body, annot)->
+  | Simplified.FunctionDef (func_name, args, body, _)->
     (* Hopefully the args are just names so this won't do anything *)
     let normalized_body =
       map_and_concat (normalize_stmt ctx exception_target) body in
-    [Normalized.FunctionDef(func_name,
-                            args,
-                            normalized_body,
-                            get_next_uid ctx annot,
-                            exception_target)]
+    let annotated = annotate_stmt @@
+      Normalized.FunctionDef(func_name, args, normalized_body)
+    in
+    [annotated]
 
-  | Simplified.Return (value, annot) ->
+  | Simplified.Return (value, _) ->
     begin
       match value with
       | None ->
-        [Normalized.Return(
-            None,
-            get_next_uid ctx annot,
-            exception_target)]
+        [annotate_stmt @@ Normalized.Return(None)]
       | Some(x) ->
-        let bindings, result = normalize_expr ctx exception_target x in
+        let bindings, result = normalize_expr ctx in_loop exception_target x in
         bindings @
-        [Normalized.Return(
-            Some(update_uid ctx annot result),
-            get_next_uid ctx annot,
-            exception_target)]
+        [annotate_stmt @@ Normalized.Return(Some(result))]
     end
 
 
   | Simplified.Assign (target, value, annot) ->
-    let value_bindings, value_result = normalize_expr ctx exception_target value in
-    value_bindings @
-    [Normalized.Assign(
+    let value_bindings, value_result = normalize_expr ctx in_loop exception_target value in
+    let assign = annotate_stmt @@
+      Normalized.Assign(
         target,
-        Normalized.SimpleExpr(
-          update_uid ctx annot value_result,
-          get_next_uid ctx annot,
-          exception_target),
-        get_next_uid ctx annot,
-        exception_target)]
+        annotate_cexpr @@ Normalized.SimpleExpr(update_uid ctx annot value_result)
+      )
+    in
+    value_bindings @ [assign]
 
   | Simplified.Print (dest, values, nl, annot) ->
-    let dest_bindings, dest_result = normalize_expr_option ctx exception_target dest in
-    let value_bindings, value_results = normalize_expr_list ctx exception_target values in
+    let dest_bindings, dest_result = normalize_expr_option ctx in_loop exception_target dest in
+    let value_bindings, value_results = normalize_expr_list ctx in_loop exception_target values in
     let bindings = dest_bindings @ value_bindings in
-    bindings @ [Normalized.Print(update_option_uid ctx annot dest_result,
-                                 List.map (update_uid ctx annot) value_results,
-                                 nl,
-                                 get_next_uid ctx annot,
-                                 exception_target)]
+    let print = annotate_stmt @@
+      Normalized.Print(update_option_uid ctx annot dest_result,
+                       List.map (update_uid ctx annot) value_results,
+                       nl)
+    in
+    bindings @ [print]
 
   | Simplified.While (test, body, annot) ->
     let test_bindings, test_name =
-      normalize_expr ctx exception_target test
+      normalize_expr ctx in_loop exception_target test
     in
     let test_bool_binding, test_bool_name =
-      gen_normalized_assignment ctx exception_target annot
-        (Normalized.Call(
-            Normalized.Literal(
-              Normalized.Builtin(Normalized.Builtin_bool,
-                                 get_next_uid ctx annot,
-                                 exception_target),
-              get_next_uid ctx annot,
-              exception_target),
-            [update_uid ctx annot test_name],
-            get_next_uid ctx annot,
-            exception_target))
+      gen_normalized_assignment ctx annot @@
+      annotate_cexpr @@
+      Normalized.Call(
+        annotate_sexpr @@ Normalized.Literal(Normalized.Builtin(Normalized.Builtin_bool)),
+        [update_uid ctx annot test_name])
     in
 
-    let start_uid = get_next_uid ctx annot in (* Start label *)
-    let end_uid = get_next_uid ctx annot in (* End label *)
+    let open Normalized in
+    let start_stmt = annotate_stmt @@ Normalized.Pass in
+    let start_uid = start_stmt.uid in (* Start label *)
+    let end_stmt = annotate_stmt @@ Normalized.Pass in
+    let end_uid = end_stmt.uid in (* End label *)
     let normalized_body =
       (map_and_concat
          (normalize_stmt_full ctx
@@ -183,18 +189,14 @@ and normalize_stmt_full
             exception_target)
          body)
     in
-    let run_test =
-      Normalized.GotoIfNot(update_uid ctx annot test_bool_name,
-                           end_uid,
-                           get_next_uid ctx annot,
-                           exception_target)
+    let run_test = annotate_stmt @@
+      Normalized.GotoIfNot(annotate_sexpr @@ Normalized.Name(test_bool_name),
+                           end_uid)
     in
-    let start_stmt = Normalized.Pass(start_uid, exception_target) in
     let end_stmts =
       [
-        Normalized.Goto(start_uid, get_next_uid ctx annot,
-                        exception_target);
-        Normalized.Pass(end_uid, exception_target);
+        annotate_stmt @@ Normalized.Goto(start_uid);
+        end_stmt;
       ] in
     [start_stmt] @
     test_bindings @
@@ -213,39 +215,33 @@ and normalize_stmt_full
   *)
   | Simplified.If (test, body, orelse, annot) ->
     let test_bindings, test_name =
-      normalize_expr ctx exception_target test in
+      normalize_expr ctx in_loop exception_target test in
     let normalized_body =
       map_and_concat (normalize_stmt ctx exception_target) body in
     let normalized_orelse =
       map_and_concat (normalize_stmt ctx exception_target) orelse in
 
     let test_bool_binding, test_bool_name =
-      gen_normalized_assignment ctx exception_target annot
-        (Normalized.Call(
-            Normalized.Literal(
-              Normalized.Builtin(Normalized.Builtin_bool,
-                                 get_next_uid ctx annot,
-                                 exception_target),
-              get_next_uid ctx annot,
-              exception_target),
-            [update_uid ctx annot test_name],
-            get_next_uid ctx annot,
-            exception_target))
+      gen_normalized_assignment ctx annot @@
+      annotate_cexpr @@
+      Normalized.Call(
+        annotate_sexpr @@
+        Normalized.Literal(Normalized.Builtin(Normalized.Builtin_bool)),
+        [update_uid ctx annot test_name])
     in
-    let end_uid = get_next_uid ctx annot in
-    let end_label = Normalized.Pass(end_uid, exception_target) in
-    let goto_end_label =
-      Normalized.Goto(end_uid, get_next_uid ctx annot, exception_target) in
-    let orelse_uid = get_next_uid ctx annot in
-    let orelse_label = Normalized.Pass(orelse_uid, exception_target) in
+    let end_label = annotate_stmt @@ Normalized.Pass in
+    let open Normalized in
+    let end_uid = end_label.uid in
+    let goto_end_label = annotate_stmt @@ Normalized.Goto(end_uid) in
+    let orelse_label = annotate_stmt @@ Normalized.Pass in
+    let orelse_uid = orelse_label.uid in
 
     test_bindings @
     test_bool_binding @
-    [Normalized.GotoIfNot(
-        update_uid ctx annot test_bool_name,
-        orelse_uid,
-        get_next_uid ctx annot,
-        exception_target)] @
+    [annotate_stmt @@
+     Normalized.GotoIfNot(
+       annotate_sexpr @@ Normalized.Name(test_bool_name),
+       orelse_uid)] @
     normalized_body @
     [
       goto_end_label;
@@ -255,26 +251,24 @@ and normalize_stmt_full
     [end_label]
 
   | Simplified.Raise (value, annot) ->
-    let value_binding, value_result = normalize_expr ctx exception_target value in
+    let value_binding, value_result = normalize_expr ctx in_loop exception_target value in
     value_binding @
-    [Normalized.Raise(update_uid ctx annot value_result,
-                      get_next_uid ctx annot,
-                      exception_target)]
+    [annotate_stmt @@ Normalized.Raise(update_uid ctx annot value_result)]
 
   | Simplified.TryExcept (body, handlers, annot) ->
-    let handler_start_uid = get_next_uid ctx annot in
-    let handler_end_uid = get_next_uid ctx annot in
+    let open Normalized in
+    let handler_start_stmt = annotate_stmt Normalized.Pass in
+    let handler_start_uid = handler_start_stmt.uid in
+    let handler_end_stmt = annotate_stmt Normalized.Pass in
+    let handler_end_uid = handler_end_stmt.uid in
     let normalized_body =
       map_and_concat (normalize_stmt ctx (Some(handler_start_uid))) body in
     let exception_name = gen_unique_name annot in
-    let catch = Normalized.Catch(exception_name,
-                                 handler_start_uid,
-                                 exception_target) in
+    let catch = annotate_stmt @@ Normalized.Catch(exception_name) in
     let rec handlers_to_simplified_if handler_list =
       match handler_list with
       | [] -> (* If we run out of handlers, re-raise the current exception *)
-        Simplified.Raise(
-          Simplified.Name(exception_name, annot), annot)
+        Simplified.Raise(Simplified.Name(exception_name, annot), annot)
 
       | Simplified.ExceptHandler(typ, name, body, annot)::rest ->
         let if_test = (* Check if the exception matches this type *)
@@ -314,50 +308,51 @@ and normalize_stmt_full
         (handlers_to_simplified_if handlers)
     in
     let handler_body =
-      [catch] @
+      [handler_start_stmt; catch] @
       normalized_handlers @
-      [Normalized.Pass(handler_end_uid, exception_target)]
+      [handler_end_stmt]
     in
     normalized_body @
-    [Normalized.Goto(handler_end_uid,
-                     get_next_uid ctx annot,
-                     exception_target)] @
+    [annotate_stmt @@ Normalized.Goto(handler_end_uid)] @
     handler_body
 
-  | Simplified.Pass (annot) ->
-    [Normalized.Pass (get_next_uid ctx annot,
-                      exception_target)]
+  | Simplified.Pass _ ->
+    [annotate_stmt @@ Normalized.Pass]
 
-  | Simplified.Break (annot) ->
+  | Simplified.Break _ ->
     begin
       match loop_end_uid with
       | None -> failwith "'break' outside loop"
-      | Some(u) -> [Normalized.Goto(u, get_next_uid ctx annot,
-                                    exception_target)]
+      | Some(u) -> [annotate_stmt @@ Normalized.Goto(u)]
     end
 
-  | Simplified.Continue (annot) ->
+  | Simplified.Continue _ ->
     begin
       match loop_start_uid with
       | None -> failwith "'continue' not properly in loop"
-      | Some(u) -> [Normalized.Goto(u, get_next_uid ctx annot,
-                                    exception_target)]
+      | Some(u) -> [annotate_stmt @@ Normalized.Goto(u)]
     end
 
   | Simplified.Expr (e, annot) ->
-    let bindings, result = normalize_expr ctx exception_target e in
-    bindings @ [Normalized.SimpleExprStmt(update_uid ctx annot result,
-                                          get_next_uid ctx annot,
-                                          exception_target)]
+    let bindings, result = normalize_expr ctx in_loop exception_target e in
+    bindings @
+    [annotate_stmt @@ Normalized.SimpleExprStmt(update_uid ctx annot result)]
 
 (* Given a simplified expr, returns a list of statements, corresponding to
    the assignments necessary to compute it, and the name of the final
    variable that was bound *)
 and normalize_expr
     ctx
+    (in_loop : bool)
     exception_target
     (e : 'a Simplified.expr)
-  : Normalized.stmt list * Normalized.simple_expr =
+  : Normalized.annotated_stmt list * Normalized.annotated_sexpr =
+  let annotate_stmt ex : Normalized.annotated_stmt =
+    create_annotation_from_expr ctx exception_target in_loop e ex in
+  let annotate_cexpr ex : Normalized.annotated_cexpr =
+    create_annotation_from_expr ctx exception_target in_loop e ex in
+  let annotate_sexpr ex : Normalized.annotated_sexpr =
+    create_annotation_from_expr ctx exception_target in_loop e ex in
   match e with
   (* BoolOps are a tricky case because of short-circuiting. We need to
      make sure that when we evaluate "a and False and b", b is never
@@ -377,19 +372,16 @@ and normalize_expr
     begin
       match operands with
       | [] -> failwith "No arguments to BoolOp"
-      | hd::[] -> normalize_expr ctx exception_target hd
+      | hd::[] -> normalize_expr ctx in_loop exception_target hd
       | hd::tl ->
         let test_bindings, test_result =
-          (normalize_expr ctx exception_target hd) in
+          (normalize_expr ctx in_loop exception_target hd) in
         let tmp_name = gen_unique_name annot in
         let tmp_binding =
+          annotate_stmt @@
           Normalized.Assign(tmp_name,
-                            Normalized.SimpleExpr(
-                              update_uid ctx annot test_result,
-                              get_next_uid ctx annot,
-                              exception_target),
-                            get_next_uid ctx annot,
-                            exception_target)
+                            annotate_cexpr @@
+                            Normalized.SimpleExpr(update_uid ctx annot test_result))
         in
         let if_exp =
           begin
@@ -409,7 +401,7 @@ and normalize_expr
           end
         in
         let bindings, result =
-          normalize_expr ctx exception_target if_exp
+          normalize_expr ctx in_loop exception_target if_exp
         in
         test_bindings @ [tmp_binding] @ bindings,
         result
@@ -438,55 +430,40 @@ and normalize_expr
        do not run, but this still makes me sad.
     *)
     let tmp_name = gen_unique_name annot in
-    let test_bindings, test_result = normalize_expr ctx exception_target test in
+    let test_bindings, test_result = normalize_expr ctx in_loop exception_target test in
     let test_bool_binding, test_bool_name =
-      gen_normalized_assignment ctx exception_target annot
-        (Normalized.Call(
-            Normalized.Literal(
-              Normalized.Builtin(Normalized.Builtin_bool,
-                                 get_next_uid ctx annot,
-                                 exception_target),
-              get_next_uid ctx annot,
-              exception_target),
-            [update_uid ctx annot test_result],
-            get_next_uid ctx annot,
-            exception_target))
+      gen_normalized_assignment ctx annot @@
+      annotate_cexpr @@
+      Normalized.Call(
+        annotate_sexpr @@
+        Normalized.Literal(Normalized.Builtin(Normalized.Builtin_bool)),
+        [update_uid ctx annot test_result])
     in
-    let body_bindings, body_result = normalize_expr ctx exception_target body in
+    let body_bindings, body_result = normalize_expr ctx in_loop exception_target body in
     let body_bindings_full =
       body_bindings @ [
+        annotate_stmt @@
         Normalized.Assign(tmp_name,
-                          Normalized.SimpleExpr(
-                            update_uid ctx annot body_result,
-                            get_next_uid ctx annot,
-                            exception_target),
-                          get_next_uid ctx annot,
-                          exception_target)
+                          annotate_cexpr @@ Normalized.SimpleExpr(update_uid ctx annot body_result))
       ] in
-    let orelse_bindings, orelse_result = normalize_expr ctx exception_target orelse in
+    let orelse_bindings, orelse_result = normalize_expr ctx in_loop exception_target orelse in
     let orelse_bindings_full =
       orelse_bindings @ [
+        annotate_stmt @@
         Normalized.Assign(tmp_name,
-                          Normalized.SimpleExpr(
-                            update_uid ctx annot orelse_result,
-                            get_next_uid ctx annot,
-                            exception_target),
-                          get_next_uid ctx annot,
-                          exception_target)
+                          annotate_cexpr @@ Normalized.SimpleExpr(update_uid ctx annot orelse_result))
       ] in
-    let end_uid = get_next_uid ctx annot in
-    let end_stmt = Normalized.Pass(end_uid, exception_target) in
-    let goto_end_stmt =
-      Normalized.Goto(end_uid, get_next_uid ctx annot, exception_target) in
-    let orelse_uid = get_next_uid ctx annot in
-    let orelse_stmt = Normalized.Pass(end_uid, exception_target) in
+    let open Normalized in
+    let end_stmt = annotate_stmt @@ Normalized.Pass in
+    let end_uid = end_stmt.uid in
+    let goto_end_stmt = annotate_stmt @@ Normalized.Goto(end_uid) in
+    let orelse_stmt = annotate_stmt @@ Normalized.Pass in
+    let orelse_uid = orelse_stmt.uid in
 
-    let run_test =
+    let run_test = annotate_stmt @@
       Normalized.GotoIfNot(
-        update_uid ctx annot test_bool_name,
-        orelse_uid,
-        get_next_uid ctx annot,
-        exception_target)
+        annotate_sexpr @@ Normalized.Name(test_bool_name),
+        orelse_uid)
     in
 
     test_bindings @
@@ -499,8 +476,7 @@ and normalize_expr
     ] @
     orelse_bindings_full @
     [end_stmt],
-    Normalized.Name(tmp_name, get_next_uid ctx annot,
-                    exception_target)
+    annotate_sexpr @@ Normalized.Name(tmp_name)
 
   | Simplified.Compare (left, ops, comparators, annot) ->
     (* "x < y < z" is equivalent to "x < y and y < z", except y is only
@@ -515,26 +491,23 @@ and normalize_expr
        tmp2 = y
        tmp3 = tmp1.__lt__(y)
        if tmp3 then (tmp2 < z < ...) else tmp3*)
-    let left_bindings, left_result = normalize_expr ctx exception_target left in
+    let left_bindings, left_result = normalize_expr ctx in_loop exception_target left in
     begin
       match ops with
       | [] -> failwith "No operation given to comparison"
       | hd::tl ->
         let right_bindings, right_result =
-          normalize_expr ctx exception_target (List.hd comparators) in
+          normalize_expr ctx in_loop exception_target (List.hd comparators) in
         let cmp_func_bindings, cmp_func_result =
-          gen_normalized_assignment ctx exception_target annot
-            (Normalized.Attribute(left_result,
-                                  normalize_cmpop hd,
-                                  get_next_uid ctx annot,
-                                  exception_target))
+          gen_normalized_assignment ctx annot @@
+          annotate_cexpr @@
+          Normalized.Attribute(left_result, normalize_cmpop hd)
         in
         let cmp_bindings, cmp_result =
-          gen_normalized_assignment ctx exception_target annot
-            (Normalized.Call(cmp_func_result,
-                             [right_result],
-                             get_next_uid ctx annot,
-                             exception_target))
+          gen_normalized_assignment ctx annot @@
+          annotate_cexpr @@
+          Normalized.Call(annotate_sexpr @@ Normalized.Name(cmp_func_result),
+                          [right_result])
         in
         let all_bindings = left_bindings @
                            right_bindings @
@@ -543,103 +516,84 @@ and normalize_expr
         in
         begin
           match tl with
-          | [] -> all_bindings, cmp_result
+          | [] -> all_bindings, annotate_sexpr @@ Normalized.Name(cmp_result)
           | _ ->
             let if_exp =
               Simplified.IfExp(
-                Simplified.Name(id_of_name cmp_result, annot),
+                Simplified.Name(cmp_result, annot),
                 Simplified.Compare(Simplified.Name(id_of_name right_result, annot),
                                    tl,
                                    List.tl comparators,
                                    annot),
-                Simplified.Name(id_of_name cmp_result, annot),
+                Simplified.Name(cmp_result, annot),
                 annot)
             in
-            let bindings, result = normalize_expr ctx exception_target if_exp in
+            let bindings, result = normalize_expr ctx in_loop exception_target if_exp in
             all_bindings @ bindings, result
         end
     end
 
   | Simplified.Call (func, args, annot) ->
-    let func_bindings, func_name = normalize_expr ctx exception_target func in
-    let arg_bindings, arg_names = normalize_expr_list ctx exception_target args in
-    let assignment, name = gen_normalized_assignment ctx exception_target annot
-        (Normalized.Call(update_uid ctx annot func_name,
-                         List.map (update_uid ctx annot) arg_names,
-                         get_next_uid ctx annot,
-                         exception_target)) in
+    let func_bindings, func_name = normalize_expr ctx in_loop exception_target func in
+    let arg_bindings, arg_names = normalize_expr_list ctx in_loop exception_target args in
+    let assignment, name = gen_normalized_assignment ctx annot @@
+      annotate_cexpr @@
+      Normalized.Call(update_uid ctx annot func_name,
+                      List.map (update_uid ctx annot) arg_names) in
     let bindings = func_bindings @ arg_bindings @ assignment in
-    bindings, name
+    bindings, annotate_sexpr @@ Normalized.Name(name)
 
-  | Simplified.Num (n, annot) ->
-    ([], Normalized.Literal(
-        Normalized.Num(normalize_number n, get_next_uid ctx annot,
-                       exception_target),
-        get_next_uid ctx annot,
-        exception_target))
+  | Simplified.Num (n, _) ->
+    ([],
+     annotate_sexpr @@ Normalized.Literal(Normalized.Num(normalize_number n)))
 
-  | Simplified.Str (s, annot) ->
-    ([], Normalized.Literal(
-        Normalized.Str(normalize_str s, get_next_uid ctx annot,
-                       exception_target),
-        get_next_uid ctx annot,
-        exception_target))
+  | Simplified.Str (s, _) ->
+    ([],
+     annotate_sexpr @@ Normalized.Literal(Normalized.Str(normalize_str s)))
 
-  | Simplified.Bool (b, annot) ->
-    ([], Normalized.Literal(
-        Normalized.Bool(b, get_next_uid ctx annot,
-                        exception_target),
-        get_next_uid ctx annot,
-        exception_target))
+  | Simplified.Bool (b, _) ->
+    ([],
+     annotate_sexpr @@ Normalized.Literal(Normalized.Bool(b)))
 
-  | Simplified.Builtin (b, annot) ->
-    ([], Normalized.Literal(
-        Normalized.Builtin(normalize_builtin b, get_next_uid ctx annot,
-                           exception_target),
-        get_next_uid ctx annot,
-        exception_target))
+  | Simplified.Builtin (b, _) ->
+    ([],
+     annotate_sexpr @@ Normalized.Literal(Normalized.Builtin(normalize_builtin b)))
 
   | Simplified.Attribute (obj, attr, annot) ->
-    let obj_bindings, obj_result = normalize_expr ctx exception_target obj in
-    let assignment, result = gen_normalized_assignment ctx exception_target annot
-        (Normalized.Attribute(update_uid ctx annot obj_result,
-                              attr,
-                              get_next_uid ctx annot,
-                              exception_target)) in
-    obj_bindings @ assignment, result
+    let obj_bindings, obj_result = normalize_expr ctx in_loop exception_target obj in
+    let assignment, result = gen_normalized_assignment ctx annot @@
+      annotate_cexpr @@
+      Normalized.Attribute(update_uid ctx annot obj_result, attr) in
+    obj_bindings @ assignment, annotate_sexpr @@ Normalized.Name(result)
 
-  | Simplified.Name (id, annot) ->
-    ([], Normalized.Name(id, get_next_uid ctx annot,
-                         exception_target))
+  | Simplified.Name (id, _) ->
+    ([],
+     annotate_sexpr @@ Normalized.Name(id))
 
   | Simplified.List (elts, annot) ->
-    let bindings, results = normalize_expr_list ctx exception_target elts in
+    let bindings, results = normalize_expr_list ctx in_loop exception_target elts in
     let assignment, name =
-      gen_normalized_assignment ctx exception_target annot
-        (Normalized.List(List.map (update_uid ctx annot) results,
-                         get_next_uid ctx annot,
-                         exception_target)) in
-    bindings @ assignment, name
+      gen_normalized_assignment ctx annot @@
+      annotate_cexpr @@ Normalized.List(List.map (update_uid ctx annot) results) in
+    bindings @ assignment, annotate_sexpr @@ Normalized.Name(name)
 
   | Simplified.Tuple (elts, annot) ->
-    let bindings, results = normalize_expr_list ctx exception_target elts in
+    let bindings, results = normalize_expr_list ctx in_loop exception_target elts in
     let assignment, name =
-      gen_normalized_assignment ctx exception_target annot
-        (Normalized.Tuple(List.map (update_uid ctx annot) results,
-                          get_next_uid ctx annot,
-                          exception_target)) in
-    bindings @ assignment, name
+      gen_normalized_assignment ctx annot @@
+      annotate_cexpr @@ Normalized.Tuple(List.map (update_uid ctx annot) results) in
+    bindings @ assignment, annotate_sexpr @@ Normalized.Name(name)
 
 (* Given a list of exprs, returns a list containing all of their
    bindings and a list containing all of the relevant variable names *)
-and normalize_expr_list ctx exception_target (lst : 'a Simplified.expr list) =
-  normalize_list (normalize_expr ctx exception_target) lst
+and normalize_expr_list ctx in_loop exception_target (lst : 'a Simplified.expr list) =
+  normalize_list (normalize_expr ctx in_loop exception_target) lst
 
-and normalize_expr_option ctx exception_target
+and normalize_expr_option ctx in_loop exception_target
     (o : 'a Simplified.expr option)
-  : Normalized.stmt list * Normalized.simple_expr option =
+  : Normalized.annotated_stmt list * Normalized.annotated_sexpr option =
   let normalized_opt =
-    normalize_option (normalize_expr ctx exception_target) o in
+    normalize_option (normalize_expr ctx in_loop exception_target) o in
   match normalized_opt with
   | None -> [], None
   | Some(bindings, result) -> bindings, Some(result)

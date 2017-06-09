@@ -7,7 +7,7 @@ let rec get_uid_hashtbl (m : modl) =
     let tbl = collect_uids_stmt_lst (Uid_hashtbl.create 10) body in
     tbl
 
-and collect_uids_stmt (tbl : stmt Uid_hashtbl.t) (s : stmt) =
+and collect_uids_stmt (tbl : stmt Uid_hashtbl.t) (s : stmt annotation) =
   match s with
   | Assign (_, _, u, _)
   | Return (_, u, _)
