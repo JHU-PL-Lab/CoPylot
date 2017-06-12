@@ -85,7 +85,7 @@ let funcdef =
 ;;
 
 let funcdef_pp =
-  "  11:    :F:  def f() {" ^
+    "  11:    :F:  def f() {" ^
   "\n   4:    :F:    $simp0 = f;" ^
   "\n   8:    :F:    f$1_x = $simp0;" ^
   "\n  10:    :F:    return n;" ^
@@ -113,9 +113,9 @@ let for_loop_pp =
   "\n  18:    :F:  $norm3 = $norm2.next;" ^
   "\n  22:    :F:  $simp1 = $norm3;" ^
   "\n  26:    :F:  $simp0 = $simp1;" ^
-  "\n  34:  27:F:  pass;" ^
-  "\n  33:  27:F:  $norm4 = bool(true);" ^
-  "\n  69:  27:F:  goto 35 if not $norm4;" ^
+  "\n  34:  27:T:  pass;" ^
+  "\n  33:  27:T:  $norm4 = bool(true);" ^
+  "\n  69:  27:T:  goto 35 if not $norm4;" ^
   "\n  39:  27:T:  $norm5 = $simp0();" ^
   "\n  43:  27:T:  $simp2 = $norm5;" ^
   "\n  47:  27:T:  i = $simp2;" ^
@@ -123,12 +123,12 @@ let for_loop_pp =
   "\n  54:  27:T:  $norm7 = $norm6(Int+);" ^
   "\n  62:  27:T:  $norm8 = bool($norm7);" ^
   "\n  67:  27:T:  goto 65 if not $norm8;" ^
-  "\n  58:  27:F:  print i;" ^
+  "\n  58:  27:T:  print i;" ^
   "\n  64:  27:T:  goto 63;" ^
   "\n  65:  27:T:  pass;" ^
   "\n  63:  27:T:  pass;" ^
-  "\n  70:  27:F:  goto 34;" ^
-  "\n  35:  27:F:  pass;" ^
+  "\n  70:  27:T:  goto 34;" ^
+  "\n  35:  27:T:  pass;" ^
   "\n  99:    :F:  goto 28;" ^
   "\n  27:    :F:  pass;" ^
   "\n  71:    :F:  catch $norm9;" ^

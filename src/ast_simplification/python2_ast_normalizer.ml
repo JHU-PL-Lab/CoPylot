@@ -107,12 +107,7 @@ let normalize_list normalize_func lst =
 let rec normalize_modl ctx m : Normalized.modl =
   match m with
   | Simplified.Module (body, annot) ->
-    Normalized.Module(map_and_concat (normalize_stmt ctx None) body, get_next_uid ctx annot)
-
-(* We need some additional arguments when we're inside a loop,
-   so that Break and Continue know what to do. These are only neded in that
-   special case, though, so it's convenient to hide them in other cases. *)
-and normalize_stmt ctx e s = normalize_stmt_full ctx None None e s
+    Normalized.Module(map_and_concat (normalize_stmt_full ctx None None None) body, get_next_uid ctx annot)
 
 and normalize_stmt_full
     ctx
@@ -121,7 +116,16 @@ and normalize_stmt_full
     exception_target
     (s : 'a Simplified.stmt)
   : Normalized.annotated_stmt list =
-  let in_loop = (loop_start_uid != None) in
+  let in_loop = begin
+    match loop_start_uid with
+    | None -> false
+    | Some _ -> true
+  end in
+  (* We need some additional arguments when we're inside a loop,
+     so that Break and Continue know what to do. These are only neded in that
+     special case, though, so it's convenient to hide them *)
+  let normalize_stmt ctx e s =
+    normalize_stmt_full ctx loop_start_uid loop_end_uid e s in
   let annotate_stmt e : Normalized.annotated_stmt =
     create_annotation_from_stmt ctx exception_target in_loop s e in
   let annotate_cexpr e : Normalized.annotated_cexpr =
@@ -172,8 +176,17 @@ and normalize_stmt_full
     bindings @ [print]
 
   | Simplified.While (test, body, annot) ->
+    (* We want to always mark stmts created here as possible executed multiple
+       times, so override annotate_* to do that for us *)
+    let annotate_stmt e : Normalized.annotated_stmt =
+      create_annotation_from_stmt ctx exception_target true s e in
+    let annotate_cexpr e : Normalized.annotated_cexpr =
+      create_annotation_from_stmt ctx exception_target true s e in
+    let annotate_sexpr e : Normalized.annotated_sexpr =
+      create_annotation_from_stmt ctx exception_target true s e in
+
     let test_bindings, test_name =
-      normalize_expr ctx in_loop exception_target test
+      normalize_expr ctx true exception_target test
     in
     let test_bool_binding, test_bool_name =
       gen_normalized_assignment ctx annot @@
@@ -204,7 +217,8 @@ and normalize_stmt_full
       [
         annotate_stmt @@ Normalized.Goto(start_uid);
         end_stmt;
-      ] in
+      ]
+    in
     [start_stmt] @
     test_bindings @
     test_bool_binding @
