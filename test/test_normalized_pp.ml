@@ -50,9 +50,31 @@ let gen_module_test (name : string) (prog : string)
   )
 ;;
 
-let int_test = gen_module_test "int_test"
-    "4"
-    "3::Int+"
+let literal_tests =
+  [
+    gen_module_test "int+_test" "4" "   3:    :F:  Int+;";
+    gen_module_test "int0_test" "0" "   3:    :F:  Int0;";
+    gen_module_test "int-_test" "-4" "   3:    :F:  Int-;";
+
+    gen_module_test "float+_test" "4.0" "   3:    :F:  Float+;";
+    gen_module_test "float0_test" "0.0" "   3:    :F:  Float0;";
+    gen_module_test "float-_test" "-4.0" "   3:    :F:  Float-;";
+
+    gen_module_test "string_test" "'foo'" "   3:    :F:  \"foo\";";
+
+    gen_module_test "bool_true_test" "True" "   3:    :F:  true;";
+    gen_module_test "bool_false_test" "False" "   3:    :F:  false;";
+  ]
+;;
+
+let list_test = gen_module_test "list_test"
+    "[1,0.0,'foo']"
+    "   3:  0:F:  [Int+, Float0, \"foo\"];"
+;;
+
+let tuple_test = gen_module_test "list_test"
+    "(1,0.0,'foo')"
+    "   3:  0:F:  (Int+, Float0, \"foo\");"
 ;;
 
 let funcdef =
@@ -63,14 +85,14 @@ let funcdef =
 ;;
 
 let funcdef_pp =
-  "11::f() {" ^
-  "\n    4::$simp0 = f" ^
-  "\n    8::f$1_x = $simp0" ^
-  "\n    10::return n" ^
-  "\n}" ^
-  "\n15::$norm0 = f()" ^
-  "\n19::$simp1 = $norm0" ^
-  "\n23::x = $simp1"
+  "  11:    :F:  def f() {" ^
+  "\n   4:    :F:    $simp0 = f;" ^
+  "\n   8:    :F:    f$1_x = $simp0;" ^
+  "\n  10:    :F:    return n;" ^
+  "\n};" ^
+  "\n  15:    :F:  $norm0 = f();" ^
+  "\n  19:    :F:  $simp1 = $norm0;" ^
+  "\n  23:    :F:  x = $simp1;"
 ;;
 
 let funcdef_test = gen_module_test "funcdef_test"
@@ -85,43 +107,42 @@ let for_loop =
 ;;
 
 let for_loop_pp =
-  "6::$norm0 = [Int-, Int+]" ^
-  "\n10::$norm1 = $norm0.__iter__" ^
-  "\n14::$norm2 = $norm1()" ^
-  "\n18::$norm3 = $norm2.next" ^
-  "\n22::$simp1 = $norm3" ^
-  "\n26::$simp0 = $simp1" ^
-  "\n34:27:pass" ^
-  "\n33:27:$norm4 = bool(true)" ^
-  "\n69:27:goto 35 if not $norm4" ^
-  "\n39:27:$norm5 = $simp0()" ^
-  "\n43:27:$simp2 = $norm5" ^
-  "\n47:27:i = $simp2" ^
-  "\n51:27:$norm6 = i.__lt__" ^
-  "\n54:27:$norm7 = $norm6(Int+)" ^
-  "\n62:27:$norm8 = bool($norm7)" ^
-  "\n67:27:goto 65 if not $norm8" ^
-  "\n58:27:print i" ^
-  "\n64:27:goto 63" ^
-  "\n65:27:pass" ^
-  "\n63:27:pass" ^
-  "\n70:27:goto 34" ^
-  "\n35:27:pass" ^
-  "\n99::goto 28" ^
-  "\n27::pass" ^
-  "\n71::catch $norm9" ^
-  "\n77::$norm10 = type($norm9)" ^
-  "\n81::$norm11 = $norm10.__eq__" ^
-  "\n84::$norm12 = $norm11(StopIteration)" ^
-  "\n93::$norm13 = bool($norm12)" ^
-  "\n98::goto 96 if not $norm13" ^
-  "\n86::pass" ^
-  "\n95::goto 94" ^
-  "\n96::pass" ^
-  "\n89::raise $norm9" ^
-  "\n94::pass" ^
-  "\n28::pass"
-
+    "   6:    :F:  $norm0 = [Int-, Int+];" ^
+  "\n  10:    :F:  $norm1 = $norm0.__iter__;" ^
+  "\n  14:    :F:  $norm2 = $norm1();" ^
+  "\n  18:    :F:  $norm3 = $norm2.next;" ^
+  "\n  22:    :F:  $simp1 = $norm3;" ^
+  "\n  26:    :F:  $simp0 = $simp1;" ^
+  "\n  34:  27:F:  pass;" ^
+  "\n  33:  27:F:  $norm4 = bool(true);" ^
+  "\n  69:  27:F:  goto 35 if not $norm4;" ^
+  "\n  39:  27:T:  $norm5 = $simp0();" ^
+  "\n  43:  27:T:  $simp2 = $norm5;" ^
+  "\n  47:  27:T:  i = $simp2;" ^
+  "\n  51:  27:T:  $norm6 = i.__lt__;" ^
+  "\n  54:  27:T:  $norm7 = $norm6(Int+);" ^
+  "\n  62:  27:T:  $norm8 = bool($norm7);" ^
+  "\n  67:  27:T:  goto 65 if not $norm8;" ^
+  "\n  58:  27:F:  print i;" ^
+  "\n  64:  27:T:  goto 63;" ^
+  "\n  65:  27:T:  pass;" ^
+  "\n  63:  27:T:  pass;" ^
+  "\n  70:  27:F:  goto 34;" ^
+  "\n  35:  27:F:  pass;" ^
+  "\n  99:    :F:  goto 28;" ^
+  "\n  27:    :F:  pass;" ^
+  "\n  71:    :F:  catch $norm9;" ^
+  "\n  77:    :F:  $norm10 = type($norm9);" ^
+  "\n  81:    :F:  $norm11 = $norm10.__eq__;" ^
+  "\n  84:    :F:  $norm12 = $norm11(StopIteration);" ^
+  "\n  93:    :F:  $norm13 = bool($norm12);" ^
+  "\n  98:    :F:  goto 96 if not $norm13;" ^
+  "\n  86:    :F:  pass;" ^
+  "\n  95:    :F:  goto 94;" ^
+  "\n  96:    :F:  pass;" ^
+  "\n  89:    :F:  raise $norm9;" ^
+  "\n  94:    :F:  pass;" ^
+  "\n  28:    :F:  pass;"
 
 let loop_test = gen_module_test "loop_test"
     for_loop
@@ -130,8 +151,8 @@ let loop_test = gen_module_test "loop_test"
 
 let tests =
   "normalized_pp">:::
+  literal_tests @
   [
-    int_test;
     funcdef_test;
     loop_test;
   ]
