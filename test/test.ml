@@ -12,6 +12,7 @@ let all_tests =
 
     Test_normalized_pp.tests;
     Test_analysis_integration.tests;
+    Test_pys_parser.tests;
 
   ]
 ;;
