@@ -12,6 +12,7 @@ let gen_module_test (name : string) (pyssembly : string)
   name>::
   ( fun _ ->
       let actual = parse_from_string pyssembly in
+      Python2_pys_utils.reset_uid ();
       assert_equal ~printer:string_of_modl ~cmp:equivalent_modl
         (Module(expected, 0)) actual
   )
@@ -22,6 +23,7 @@ let gen_stmt_test (name : string) (pyssembly : string)
   name>::
   ( fun _ ->
       let actual = parse_stmt_from_string pyssembly in
+      Python2_pys_utils.reset_uid ();
       assert_equal ~printer:string_of_modl ~cmp:equivalent_modl
         (Module([expected], 0)) (Module([actual], 0))
   )
@@ -32,6 +34,7 @@ let gen_cexpr_test (name : string) (pyssembly : string)
   name>::
   ( fun _ ->
       let actual = parse_cexpr_from_string pyssembly in
+      Python2_pys_utils.reset_uid ();
       assert_equal ~printer:string_of_modl ~cmp:equivalent_modl
         (Module([{uid=1;
                   exception_target=None;
@@ -49,6 +52,7 @@ let gen_sexpr_test (name : string) (pyssembly : string)
   name>::
   ( fun _ ->
       let actual = parse_sexpr_from_string pyssembly in
+      Python2_pys_utils.reset_uid ();
       assert_equal ~printer:string_of_modl ~cmp:equivalent_modl
         (Module([{uid=1;
                   exception_target=None;
