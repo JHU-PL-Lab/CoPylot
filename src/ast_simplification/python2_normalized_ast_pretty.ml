@@ -129,7 +129,7 @@ and pp_exc fmt = function
   | Some(n) -> fprintf fmt "%4d" n
 
 and pp_label fmt (uid,exc,multi) =
-  fprintf fmt "%4d:%a:%a"
+  fprintf fmt "@%4d:%a:%a"
     uid
     pp_exc exc
     pp_multi multi
