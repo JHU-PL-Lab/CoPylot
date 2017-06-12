@@ -278,14 +278,15 @@ and normalize_stmt_full
 
   | Simplified.TryExcept (body, handlers, annot) ->
     let open Normalized in
-    let handler_start_stmt = annotate_stmt Normalized.Pass in
-    let handler_start_uid = handler_start_stmt.uid in
-    let handler_end_stmt = annotate_stmt Normalized.Pass in
-    let handler_end_uid = handler_end_stmt.uid in
-    let normalized_body =
-      map_and_concat (normalize_stmt ctx (Some(handler_start_uid))) body in
     let exception_name = gen_unique_name annot in
     let catch = annotate_stmt @@ Normalized.Catch(exception_name) in
+    let handler_start_uid = catch.uid in
+    let handler_end_stmt = annotate_stmt Normalized.Pass in
+    let handler_end_uid = handler_end_stmt.uid in
+
+    let normalized_body =
+      map_and_concat (normalize_stmt ctx (Some(handler_start_uid))) body in
+
     let rec handlers_to_simplified_if handler_list =
       match handler_list with
       | [] -> (* If we run out of handlers, re-raise the current exception *)
@@ -329,7 +330,7 @@ and normalize_stmt_full
         (handlers_to_simplified_if handlers)
     in
     let handler_body =
-      [handler_start_stmt; catch] @
+      [catch] @
       normalized_handlers @
       [handler_end_stmt]
     in
