@@ -37,10 +37,13 @@ let gen_module_test (name : string) (prog : string)
       let simplified =
         (* Occasionally a test will fail; resetting here might help *)
         Simplify.reset_unique_name ();
+        Simplify.toggle_short_names true;
         Simplify.simplify_modl renamed in
       Simplify.reset_unique_name ();
       let ctx = create_new_uid_context () in
-      let actual = Normalize.normalize_modl ctx simplified in
+      let actual =
+        Normalize.toggle_short_names true;
+        Normalize.normalize_modl ctx simplified in
       Normalize.reset_unique_name ();
       let pyssembly = pp_to_string pp_modl actual in
       assert_equal ~printer:(fun x -> x) ~cmp:String.equal expected pyssembly
@@ -49,25 +52,25 @@ let gen_module_test (name : string) (prog : string)
 
 let int_test = gen_module_test "int_test"
     "4"
-    "3::Pos"
+    "3::Int+"
 ;;
 
 let funcdef =
   "def f():" ^
-  "\n  x=f" ^
+  "\n  x = f" ^
   "\n  return n" ^
-  "\nx=f()"
+  "\nx = f()"
 ;;
 
 let funcdef_pp =
-  "11::f(){" ^
-  "\n    4::$simplified_unique_name_0=f" ^
-  "\n    8::f$1_x=$simplified_unique_name_0" ^
-  "\n    10::return(n)" ^
+  "11::f() {" ^
+  "\n    4::$simp0 = f" ^
+  "\n    8::f$1_x = $simp0" ^
+  "\n    10::return n" ^
   "\n}" ^
-  "\n15::$normalized_unique_name_0=f()" ^
-  "\n19::$simplified_unique_name_1=$normalized_unique_name_0" ^
-  "\n23::x=$simplified_unique_name_1"
+  "\n15::$norm0 = f()" ^
+  "\n19::$simp1 = $norm0" ^
+  "\n23::x = $simp1"
 ;;
 
 let funcdef_test = gen_module_test "funcdef_test"
@@ -76,29 +79,29 @@ let funcdef_test = gen_module_test "funcdef_test"
 ;;
 
 let for_loop =
-  "for i in [2,6]:" ^
+  "for i in [-1,1]:" ^
   "\n  if i < 3:" ^
   "\n    print i"
 ;;
 
 let for_loop_pp =
-  "6::$normalized_unique_name_0=PosPos" ^
-  "\n10::$normalized_unique_name_1=$normalized_unique_name_0.__iter__" ^
-  "\n14::$normalized_unique_name_2=$normalized_unique_name_1()" ^
-  "\n18::$normalized_unique_name_3=$normalized_unique_name_2.next" ^
-  "\n22::$simplified_unique_name_1=$normalized_unique_name_3" ^
-  "\n26::$simplified_unique_name_0=$simplified_unique_name_1" ^
+  "6::$norm0 = [Int-, Int+]" ^
+  "\n10::$norm1 = $norm0.__iter__" ^
+  "\n14::$norm2 = $norm1()" ^
+  "\n18::$norm3 = $norm2.next" ^
+  "\n22::$simp1 = $norm3" ^
+  "\n26::$simp0 = $simp1" ^
   "\n34:27:pass" ^
-  "\n33:27:$normalized_unique_name_4=bool()(true)" ^
-  "\n69:27:goto 35 if not $normalized_unique_name_4" ^
-  "\n39:27:$normalized_unique_name_5=$simplified_unique_name_0()" ^
-  "\n43:27:$simplified_unique_name_2=$normalized_unique_name_5" ^
-  "\n47:27:i=$simplified_unique_name_2" ^
-  "\n51:27:$normalized_unique_name_6=i.__lt__" ^
-  "\n54:27:$normalized_unique_name_7=$normalized_unique_name_6(Pos)" ^
-  "\n62:27:$normalized_unique_name_8=bool()($normalized_unique_name_7)" ^
-  "\n67:27:goto 65 if not $normalized_unique_name_8" ^
-  "\n58:27:print(i) > " ^
+  "\n33:27:$norm4 = bool(true)" ^
+  "\n69:27:goto 35 if not $norm4" ^
+  "\n39:27:$norm5 = $simp0()" ^
+  "\n43:27:$simp2 = $norm5" ^
+  "\n47:27:i = $simp2" ^
+  "\n51:27:$norm6 = i.__lt__" ^
+  "\n54:27:$norm7 = $norm6(Int+)" ^
+  "\n62:27:$norm8 = bool($norm7)" ^
+  "\n67:27:goto 65 if not $norm8" ^
+  "\n58:27:print i" ^
   "\n64:27:goto 63" ^
   "\n65:27:pass" ^
   "\n63:27:pass" ^
@@ -106,16 +109,16 @@ let for_loop_pp =
   "\n35:27:pass" ^
   "\n99::goto 28" ^
   "\n27::pass" ^
-  "\n71::catch($normalized_unique_name_9)" ^
-  "\n77::$normalized_unique_name_10=type()($normalized_unique_name_9)" ^
-  "\n81::$normalized_unique_name_11=$normalized_unique_name_10.__eq__" ^
-  "\n84::$normalized_unique_name_12=$normalized_unique_name_11(StopIteration)" ^
-  "\n93::$normalized_unique_name_13=bool()($normalized_unique_name_12)" ^
-  "\n98::goto 96 if not $normalized_unique_name_13" ^
+  "\n71::catch $norm9" ^
+  "\n77::$norm10 = type($norm9)" ^
+  "\n81::$norm11 = $norm10.__eq__" ^
+  "\n84::$norm12 = $norm11(StopIteration)" ^
+  "\n93::$norm13 = bool($norm12)" ^
+  "\n98::goto 96 if not $norm13" ^
   "\n86::pass" ^
   "\n95::goto 94" ^
   "\n96::pass" ^
-  "\n89::raise($normalized_unique_name_9)" ^
+  "\n89::raise $norm9" ^
   "\n94::pass" ^
   "\n28::pass"
 

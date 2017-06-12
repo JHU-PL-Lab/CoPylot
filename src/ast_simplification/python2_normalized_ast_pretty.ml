@@ -14,18 +14,13 @@ and pp_option pp fmt = function
   | Some x -> pp fmt x
 
 and pp_list pp fmt lst =
-  let first = ref true in
   let rec loop pp fmt = function
     | [] -> ()
     | [x] -> pp fmt x
     | x :: rest ->
-      if !first = true
-      then (first:=false;
-            fprintf fmt "%a%a" pp x (loop pp) rest)
-      else fprintf fmt ", %a%a" pp x (loop pp) rest
+        fprintf fmt "%a, %a" pp x (loop pp) rest
   in loop pp fmt lst
 ;;
-
 
 let rec pp_modl fmt = function
   | Module (body, _) ->
@@ -35,33 +30,33 @@ let rec pp_modl fmt = function
 and pp_stmt fmt {uid=uid;exception_target=exc;multi=_;body} =
   match body with
   | Assign (target,value) ->
-    fprintf fmt "%a:%a=%a"
+    fprintf fmt "%a:%a = %a"
       pp_label (uid,exc)
       pp_id target
       pp_compound_expr value
   | FunctionDef (name,args,body) ->
     (* Python flavor FunctionDef: *)
     (* fprintf fmt "@[<4>%a:%a(%a):@\n%a@]" *)
-    fprintf fmt "@[<4>%a:%a(%a){@\n%a@]@\n}"
+    fprintf fmt "@[<4>%a:%a(%a) {@\n%a@]@\n}"
     pp_label (uid,exc)
       pp_id name
       (pp_list pp_id) args
       (pp_lines pp_stmt) body
   | Return (value) ->
-    fprintf fmt "%a:return(%a)"
+    fprintf fmt "%a:return %a"
       pp_label (uid,exc)
       (pp_option pp_simple_expr) value
-  | Print (dest,values,_) ->
-    fprintf fmt "%a:print(%a) > %a"
+  | Print (_,values,_) ->
+    fprintf fmt "%a:print %a" (* TODO: print dest if relevant *)
       pp_label (uid,exc)
       (pp_list pp_simple_expr) values
-      (pp_option pp_simple_expr) dest
+      (* (pp_option pp_simple_expr) dest *)
   | Raise (value) ->
-    fprintf fmt "%a:raise(%a)"
+    fprintf fmt "%a:raise %a"
       pp_label (uid,exc)
       pp_simple_expr value
   | Catch (name) ->
-    fprintf fmt "%a:catch(%a)"
+    fprintf fmt "%a:catch %a"
       pp_label (uid,exc)
       pp_id name
   | Pass ->
@@ -92,7 +87,7 @@ and pp_compound_expr fmt {uid=_;exception_target=_;multi=_;body} =
       pp_simple_expr obj
       pp_id attr
   | List (lst) ->
-    fprintf fmt "@[%a@]"
+    fprintf fmt "[%a]"
       (pp_list pp_simple_expr) lst
   | Tuple (lst) ->
     fprintf fmt "(%a)"
@@ -114,22 +109,22 @@ and pp_literal fmt = function
   | Builtin (bi) -> pp_builtin fmt bi
 
 and pp_num fmt = function
-  | Int sgn -> pp_sign fmt sgn
-  | Float sgn -> pp_sign fmt sgn
+  | Int sgn -> fprintf fmt "Int%a" pp_sign sgn
+  | Float sgn -> fprintf fmt "Float%a" pp_sign sgn
 
 and pp_str fmt = function
   | StringAbstract -> fprintf fmt "StringAbstract"
   | StringLiteral s -> fprintf fmt "\"%s\"" (String.escaped s)
 
 and pp_sign fmt= function
-  | Pos -> fprintf fmt "Pos"
-  | Neg -> fprintf fmt "Neg"
-  | Zero -> fprintf fmt "Zero"
+  | Pos -> fprintf fmt "+"
+  | Neg -> fprintf fmt "-"
+  | Zero -> fprintf fmt "0"
 
 and pp_builtin fmt = function
-  | Builtin_slice -> fprintf fmt "slice()"
-  | Builtin_bool -> fprintf fmt "bool()"
-  | Builtin_type -> fprintf fmt "type()"
+  | Builtin_slice -> fprintf fmt "slice"
+  | Builtin_bool -> fprintf fmt "bool"
+  | Builtin_type -> fprintf fmt "type"
 
 
 and pp_label fmt (uid,exc) =
