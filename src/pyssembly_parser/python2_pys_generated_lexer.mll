@@ -15,7 +15,7 @@
 *)
 
 let digit = ['0'-'9']
-let identifier = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '$']*
+let identifier = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '$' '+' '-']*
 
 
 rule token = parse
@@ -28,6 +28,10 @@ rule token = parse
   | ['1'-'9'] digit* as u { UID (int_of_string u) }
   | 'T' { LOOP (true) }
   | 'F' { LOOP (false) }
+
+  | "@s" {ANNOT_SEXPR}
+  | "@c" {ANNOT_CEXPR}
+  | '@' {ANNOT_STMT}
 
   | '(' { LPAREN }
   | ')' { RPAREN }
@@ -54,11 +58,13 @@ rule token = parse
       | "slice" -> BI_SLICE
       | "bool" -> BI_BOOL
       | "type" -> BI_TYPE
-      | "int" -> INT
-      | "float" -> FLOAT
-      | "true" | "false" -> BOOL (id)
-      | "pos" -> SGN (Pos)
-      | "neg" -> SGN (Neg)
-      | "zero" -> SGN (Zero)
+      | "true" -> BOOL (true)
+      | "false" -> BOOL (false)
+      | "Int+" -> NUM (Int(Pos))
+      | "Int-" -> NUM (Int(Neg))
+      | "Int0" -> NUM (Int(Zero))
+      | "Float+" -> NUM (Float(Pos))
+      | "Float-" -> NUM (Float(Neg))
+      | "Float0" -> NUM (Float(Zero))
       | _ -> NAME (id)
     }

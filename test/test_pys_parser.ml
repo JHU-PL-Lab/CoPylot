@@ -63,30 +63,30 @@ let gen_sexpr_test (name : string) (pyssembly : string)
 
 (* Test begins *)
 let int_test = gen_sexpr_test "int_test"
-    "1::F: int pos"
-    {uid=1;
+    "Int+"
+    {uid= -1;
      exception_target=None;
      multi=false;
      body=Literal(Num(Int(Pos)))}
 ;;
 
 let assign_test = gen_stmt_test "assign_test"
-    "1::F: a = 2::F:3::F: int pos;"
+    "@1::F: a = Int+;"
     {uid=1;
      exception_target=None;
      multi=false;
-     body=Assign("a",{uid=2;
+     body=Assign("a",{uid= -2;
                       exception_target=None;
                       multi=false;
                       body=SimpleExpr(
-                          {uid=3;
+                          {uid= -1;
                            exception_target=None;
                            multi=false;
                            body=Literal(Num(Int(Pos)))})})}
 ;;
 
 let empty_funcdef_test = gen_stmt_test "empty_funcdef_test"
-    "1::F: def f() = {};"
+    "@1::F: def f() = {};"
     {uid=1;
      exception_target=None;
      multi=false;
@@ -96,7 +96,7 @@ let empty_funcdef_test = gen_stmt_test "empty_funcdef_test"
 ;;
 
 let funcdef_test = gen_stmt_test "funcdef_test"
-    "1::F: def f(a,b) = {2::F: return 3::F: a;};"
+    "@1::F: def f(a,b) = {@2::F: return @s 3::F: a;};"
     {uid=1;
      exception_target=None;
      multi=false;
@@ -113,19 +113,19 @@ let funcdef_test = gen_stmt_test "funcdef_test"
 ;;
 
 let print_test = gen_stmt_test "print_test"
-    "1::F: print 2::F: int pos, 3::F: a > 4::F: \"a\" ;"
-    {uid=1;
+    "@1::F: print Int+, a > \"a\";"
+    {uid= 1;
      exception_target=None;
      multi=false;
-     body=Print(Some{uid=4;
+     body=Print(Some{uid= -3;
                      exception_target=None;
                      multi=false;
                      body=Literal(Str(StringLiteral "a"))},
-                [{uid=2;
+                [{uid= -1;
                   exception_target=None;
                   multi=false;
                   body=Literal(Num(Int(Pos)))};
-                 {uid=3;
+                 {uid= -2;
                   exception_target=None;
                   multi=false;
                   body=Name("a")}
@@ -134,11 +134,11 @@ let print_test = gen_stmt_test "print_test"
 ;;
 
 let goto_test = gen_module_test "goto_test"
-    "1::T: goto 2; 2::T: gotoifn 3::T: true 1;"
+    "@1::T: goto 2; @2::T: gotoifn @s 3::T: true 1;"
     [{ uid = 1;
        exception_target = None;
        multi = true;
-       body = (Python2_normalized_ast.Goto 2) };
+       body = (Goto 2) };
      { uid = 2;
        exception_target = None;
        multi = true;
@@ -146,6 +146,77 @@ let goto_test = gen_module_test "goto_test"
                          exception_target = None;
                          multi = true;
                          body =(Literal(Bool true))},1) }
+    ]
+;;
+
+let call_attribute_test = gen_module_test "call_attribute_test"
+    "@1::F: var = f(a,b); @2::F: a = var.__add__; "
+    [{ uid = 1; exception_target = None; multi = false;
+       body =
+         (Assign("var", { uid = -4;
+                          exception_target = None;
+                          multi = false;
+                          body = (Call ( { uid = -1;
+                                           exception_target = None;
+                                           multi = false;
+                                           body = (Name "f") },
+                                         [{ uid = -2;
+                                            exception_target = None;
+                                            multi = false;
+                                            body = (Name "a") };
+                                          { uid = -3;
+                                            exception_target = None;
+                                            multi = false;
+                                            body = (Name "b") }
+                                         ]
+                                       ))}))};
+     { uid = 2;
+       exception_target = None;
+       multi = false;
+       body =(Assign ("a",{ uid = -6;
+                            exception_target = None;
+                            multi = false;
+                            body = (Attribute ({ uid = -5;
+                                                 exception_target = None;
+                                                 multi = false;
+                                                 body = (Name "var") },
+                                               "__add__"))}))}
+    ]
+;;
+
+let list_tuple_test = gen_module_test "list_tuple_test"
+    "@1::F: var = [Int+,Int+,Float-]; tpl = (Float0,Int0); "
+    [{ uid = 1; exception_target = None; multi = false;
+       body =
+         (Assign ("var",{ uid = -4;
+                          exception_target = None;
+                          multi = false;
+                          body = (List[{ uid = -1;
+                                         exception_target = None;
+                                         multi = false;
+                                         body = (Literal(Num(Int Pos)))};
+                                       { uid = -2;
+                                         exception_target = None;
+                                         multi = false;
+                                         body = (Literal(Num(Int Pos)))};
+                                       { uid = -3;
+                                         exception_target = None;
+                                         multi = false;
+                                         body = (Literal(Num(Float Neg)))}
+                                      ])}))};
+     { uid = -8; exception_target = None;
+       multi = false;
+       body = (Assign ("tpl", { uid = -7;
+                                exception_target = None;
+                                multi = false;
+                                body = (Tuple [{ uid = -5;
+                                                 exception_target = None;
+                                                 multi = false;
+                                                 body = (Literal(Num(Float Zero)))};
+                                               { uid = -6;
+                                                 exception_target = None;
+                                                 multi = false;
+                                                 body = (Literal(Num(Int Zero)))}])}))}
     ]
 ;;
 
@@ -158,4 +229,6 @@ let tests =
     funcdef_test;
     print_test;
     goto_test;
+    call_attribute_test;
+    list_tuple_test;
   ]
