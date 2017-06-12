@@ -80,10 +80,36 @@ let stmt_tests =
   ]
 ;;
 
-let gen_operator_test (name : string) (opstring : string) (opfunc : string ) =
+let unop_plus_test = gen_module_test "unop_plus_test"
+    "+x"
+    ("   4:    :F:  $norm0 = x.__pos__;" ^
+     "\n   8:    :F:  $norm1 = $norm0();" ^
+     "\n  11:    :F:  $norm1;")
+;;
+
+let unop_minus_test = gen_module_test "unop_minus_test"
+    "-x"
+    ("   4:    :F:  $norm0 = x.__neg__;" ^
+     "\n   8:    :F:  $norm1 = $norm0();" ^
+     "\n  11:    :F:  $norm1;")
+;;
+
+let unop_not_test = gen_module_test "unop_not_test"
+    "not x"
+    ("   5:    :F:  $norm1 = bool(x);" ^
+     "\n  18:    :F:  goto 16 if not $norm1;" ^
+     "\n   9:    :F:  $norm0 = false;" ^
+     "\n  15:    :F:  goto 14;" ^
+     "\n  16:    :F:  pass;" ^
+     "\n  13:    :F:  $norm0 = true;" ^
+     "\n  14:    :F:  pass;" ^
+     "\n  21:    :F:  $norm0;")
+;;
+
+let gen_binop_test (name : string) (opstring : string) (opfunc : string ) =
   gen_module_test name ("x" ^ opstring ^ "1")
     begin
-        "   4:    :F:  $norm0 = x." ^ opfunc ^ ";" ^
+      "   4:    :F:  $norm0 = x." ^ opfunc ^ ";" ^
       "\n  10:    :F:  $norm1 = $norm0(Int+);" ^
       "\n  13:    :F:  $norm1;"
     end
@@ -91,14 +117,37 @@ let gen_operator_test (name : string) (opstring : string) (opfunc : string ) =
 
 let operator_tests =
   [
-    gen_operator_test "add_test" "+" "__add__";
-    gen_operator_test "sub_test" "-" "__sub__";
-    gen_operator_test "mul_test" "*" "__mul__";
-    gen_operator_test "div_test" "/" "__div__";
-    gen_operator_test "mod_test" "%" "__mod__";
-    gen_operator_test "pow_test" "**" "__pow__";
+    unop_plus_test;
+    unop_minus_test;
+    unop_not_test;
+    gen_binop_test "add_test" "+" "__add__";
+    gen_binop_test "sub_test" "-" "__sub__";
+    gen_binop_test "mul_test" "*" "__mul__";
+    gen_binop_test "div_test" "/" "__div__";
+    gen_binop_test "mod_test" "%" "__mod__";
+    gen_binop_test "pow_test" "**" "__pow__";
 
   ]
+;;
+
+let list_test = gen_module_test "list_test"
+    "[1,0.0,'foo']"
+    ("   8:    :F:  $norm0 = [Int+, Float0, \"foo\"];" ^
+     "\n  11:    :F:  $norm0;")
+;;
+
+let tuple_test = gen_module_test "tuple_test"
+    "(1,0.0,'foo')"
+    ("   8:    :F:  $norm0 = (Int+, Float0, \"foo\");" ^
+     "\n  11:    :F:  $norm0;")
+;;
+
+let slice_test = gen_module_test "slice_test"
+    "list[1:2]"
+    ("   4:    :F:  $norm0 = list.__getitem__;" ^
+     "\n  15:    :F:  $norm1 = slice(Int+, Int+, None);" ^
+     "\n  20:    :F:  $norm2 = $norm0($norm1);" ^
+     "\n  23:    :F:  $norm2;")
 ;;
 
 let if_pp =
@@ -194,16 +243,6 @@ let tryexcept_test = gen_module_test "tryexcept_test"
     tryexcept_pp
 ;;
 
-let list_test = gen_module_test "list_test"
-    "[1,0.0,'foo']"
-    "   3:  0:F:  [Int+, Float0, \"foo\"];"
-;;
-
-let tuple_test = gen_module_test "list_test"
-    "(1,0.0,'foo')"
-    "   3:  0:F:  (Int+, Float0, \"foo\");"
-;;
-
 let funcdef =
   "def f():" ^
   "\n  x = f" ^
@@ -282,6 +321,9 @@ let tests =
   stmt_tests @
   operator_tests @
   [
+    list_test;
+    tuple_test;
+    slice_test;
     if_test;
     ifexp_test;
     tryexcept_test;
