@@ -13,6 +13,10 @@ open Python2_normalized_ast
 open Python2_normalized_ast_pretty
 open Uid_generation
 
+(* TODO: Currently this has all the same tests as test_normalized_ast,
+   and so is redundant. It should be changed to more properly unit test just
+   the pretty-printer, which means it should take a module to print directly.
+   Of course, this is a pain to type out manually so I haven't done it. *)
 let string_of_modl m = Pp_utils.pp_to_string pp_modl m;;
 let equivalent_modl m1 m2 = equal_modl m1 m2;;
 
