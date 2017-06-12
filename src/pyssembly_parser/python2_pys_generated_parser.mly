@@ -1,13 +1,12 @@
 %{
   open Python2_normalized_ast
-
+  open Python2_pys_utils
 %}
 
 /* literals */
 %token <string> NAME
-%token INT
-%token FLOAT
-%token <string> BOOL
+%token <Python2_normalized_ast.number> NUM
+%token <bool> BOOL
 /*%token <string> STR*/
 
 /* keywords */
@@ -24,6 +23,11 @@
 %token BI_BOOL
 %token BI_TYPE
 
+/* annotations */
+%token ANNOT_SEXPR
+%token ANNOT_CEXPR
+%token ANNOT_STMT
+
 /* symbols */
 %token  EQ
 %token  GE
@@ -38,7 +42,7 @@
 %token  SEMICOLON
 %token  DOT
 %token  COMMA
-%token <Python2_normalized_ast.sign> SGN
+/*%token <Python2_normalized_ast.sign> SGN*/
 %token  END
 
 /* other */
@@ -63,20 +67,35 @@ file_input:
 
 stmt_input:
   /*1:2:true:<stmt>;*/
-  | UID COLON except COLON LOOP COLON stmt SEMICOLON END
-    { {uid=$1;exception_target=$3;multi=$5;body=$7} }
+  | stmt_annot stmt SEMICOLON END
+    { let () = reset_uid () in $1 $2 }
 
 cexpr_input:
-  | UID COLON except COLON LOOP COLON cexpr END
-    { {uid=$1;exception_target=$3;multi=$5;body=$7} }
+  | cexpr_annot cexpr END
+    { let () = reset_uid () in $1 $2 }
 
 sexpr_input:
-  | sexpr END { $1 }
+  | sexpr END { let () = reset_uid () in $1 }
+
+stmt_annot:
+  | ANNOT_STMT UID COLON except COLON LOOP COLON
+    { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
+  | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
+
+cexpr_annot:
+  | ANNOT_CEXPR UID COLON except COLON LOOP COLON
+    { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
+  | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
+
+sexpr_annot:
+  | ANNOT_SEXPR UID COLON except COLON LOOP COLON
+    { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
+  | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
 
 stmt_list:
   | { [] }
-  | UID COLON except COLON LOOP COLON stmt SEMICOLON stmt_list
-    { {uid=$1;exception_target=$3;multi=$5;body=$7} :: $9 }
+  | stmt_annot stmt SEMICOLON stmt_list
+    { $1 $2 :: $4 }
 
 stmt:
   | assign {$1}
@@ -118,8 +137,8 @@ lst:
   | sexpr COMMA lst { $1::$3 }
 
 cexpr_wrapper:
-  | UID COLON except COLON LOOP COLON cexpr
-    { {uid=$1;exception_target=$3;multi=$5;body=$7} }
+  | cexpr_annot cexpr
+    { $1 $2 }
 
 
 cexpr:
@@ -131,22 +150,18 @@ cexpr:
 
 
 sexpr:
-  | UID COLON except COLON LOOP COLON literal
-    { {uid=$1;exception_target=$3;multi=$5;body=Literal($7)} }
-  | UID COLON except COLON LOOP COLON NAME
-    { {uid=$1;exception_target=$3;multi=$5;body=Name($7)} }
+  | sexpr_annot literal
+    { $1 (Literal($2)) }
+  | sexpr_annot NAME
+    { $1 (Name($2)) }
 
 literal:
-  | number { Num($1) }
+  | NUM { Num($1) }
   | QUOTE NAME QUOTE { Str(StringLiteral($2)) }
-  | BOOL { Bool(bool_of_string $1) }
+  | BOOL { Bool($1) }
   | BI_SLICE { Builtin(Builtin_slice) }
   | BI_BOOL { Builtin(Builtin_bool) }
   | BI_TYPE { Builtin(Builtin_type) }
-
-number:
-  | INT SGN { Int($2) }
-  | FLOAT SGN { Float($2) }
 
 except:
   | {None}
