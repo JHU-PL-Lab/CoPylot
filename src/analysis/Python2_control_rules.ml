@@ -46,19 +46,15 @@ let apply_rules (curr : analysis_result) (e : Lexical_cfg.edge)
         begin
           let%orzero
             Program_point(
-              {uid=_;
-               exception_target=_;
-               multi=_;
-               body=Assign
-                   (
-                     _,{uid=_;
-                        exception_target=_;
-                        multi=_;
-                        body=SimpleExpr(
-                            {uid=_;
-                             exception_target=_;
-                             multi=_;
-                             body=Literal(_)})})}) = v1
+              {body=
+                 Assign(_,
+                        {body=
+                           SimpleExpr(
+                             {body=
+                                Literal(_)
+                             ;_})
+                        ;_})
+              ;_}) = v1
           in
           return (Control_cfg.Edge(v1, v2))
         end

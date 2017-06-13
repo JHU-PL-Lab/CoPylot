@@ -3,14 +3,21 @@ module Simplified = Python2_simplified_ast
 exception Identifier_Only
 
 let name_counter = ref 0;;
+let use_shortened_names = ref false;;
 
 let gen_unique_name _ =
   let count = !name_counter in
   name_counter := count + 1;
-  "$simplified_unique_name_" ^ string_of_int count
+  let prefix = if !use_shortened_names
+    then
+      "$simp"
+    else
+      "$simplified_unique_name_"
+  in prefix ^ string_of_int count
 ;;
 
 let reset_unique_name () = name_counter := 0;;
+let toggle_short_names (b : bool) = use_shortened_names := b;;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)

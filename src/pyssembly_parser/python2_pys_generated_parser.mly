@@ -68,14 +68,14 @@ file_input:
 stmt_input:
   /*1:2:true:<stmt>;*/
   | stmt_annot stmt SEMICOLON END
-    { let () = reset_uid () in $1 $2 }
+    { $1 $2 }
 
 cexpr_input:
   | cexpr_annot cexpr END
-    { let () = reset_uid () in $1 $2 }
+    { $1 $2 }
 
 sexpr_input:
-  | sexpr END { let () = reset_uid () in $1 }
+  | sexpr END { $1 }
 
 stmt_annot:
   | ANNOT_STMT UID COLON except COLON LOOP COLON
