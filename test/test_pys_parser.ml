@@ -220,6 +220,79 @@ let list_tuple_test = gen_module_test "list_tuple_test"
     ]
 ;;
 
+let builtin_test = gen_module_test "builtin_test"
+    "a = type(Float+); def f(x) = {y = bool(x); return y; }; b = slice(Int0,Int+);"
+    [{ uid = -16;
+       exception_target = None;
+       multi = false;
+       body =(Assign ("a",{ uid = -3;
+                            exception_target = None;
+                            multi = false;
+                            body =(Call ({ uid = -1;
+                                           exception_target = None;
+                                           multi = false;
+                                           body =(Literal(Builtin Builtin_type))},
+                                         [{ uid = -2;
+                                            exception_target = None;
+                                            multi = false;
+                                            body = (Literal(Num(Float Pos)))}]))
+                          }))};
+     { uid = -15;
+       exception_target = None;
+       multi = false;
+       body =(FunctionDef ("f", ["x"],
+                           [{ uid = -9;
+                              exception_target = None;
+                              multi = false;
+                              body =(Assign ("y",{ uid = -6;
+                                                   exception_target = None;
+                                                   multi = false;
+                                                   body =(Call ({ uid = -4;
+                                                                  exception_target = None;
+                                                                  multi = false;
+                                                                  body =(Literal(Builtin Builtin_bool))
+                                                                },
+                                                                [{ uid = -5;
+                                                                   exception_target = None;
+                                                                   multi = false;
+                                                                   body = (Name "x") }]))}))
+                            };
+                            { uid = -8;
+                              exception_target = None;
+                              multi = false;
+                              body =(Return(Some { uid = -7;
+                                                   exception_target = None;
+                                                   multi = false;
+                                                   body = (Name "y") }))}
+                           ]))};
+     { uid = -14;
+       exception_target = None;
+       multi = false;
+       body = (Assign ("b",{ uid = -13;
+                             exception_target = None;
+                             multi = false;
+                             body =(Call ({ uid = -10;
+                                            exception_target = None;
+                                            multi = false;
+                                            body =(Literal(Builtin Builtin_slice))},
+                                          [{ uid = -11;
+                                             exception_target = None;
+                                             multi = false;
+                                             body =
+                                               (Literal(Num (Int Zero)))
+                                           };
+                                           { uid = -12;
+                                             exception_target = None;
+                                             multi = false;
+                                             body = (Literal(Num (Int Pos)))}
+                                          ]))
+                           }))
+     }]
+;;
+
+
+
+
 let tests =
   "pys_parser">:::
   [
@@ -231,4 +304,5 @@ let tests =
     goto_test;
     call_attribute_test;
     list_tuple_test;
+    builtin_test;
   ]

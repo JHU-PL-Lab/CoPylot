@@ -63,7 +63,7 @@
 
 %%
 file_input:
-  | stmt_list END { Module ($1,0) }
+  | stmt_list END { let () = reset_uid () in Module ($1,0) }
 
 stmt_input:
   /*1:2:true:<stmt>;*/
