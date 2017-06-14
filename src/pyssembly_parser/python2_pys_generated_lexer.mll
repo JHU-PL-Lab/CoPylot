@@ -29,8 +29,7 @@ rule token = parse
   | 'T' { LOOP (true) }
   | 'F' { LOOP (false) }
 
-  | "@s" {ANNOT_SEXPR}
-  | "@c" {ANNOT_CEXPR}
+  | "@e" {ANNOT_CEXPR}
   | '@' {ANNOT_STMT}
 
   | '(' { LPAREN }

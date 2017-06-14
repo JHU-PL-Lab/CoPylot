@@ -45,14 +45,14 @@ and pp_stmt indent fmt {uid=uid;exception_target=exc;multi=multi;body} =
         (pp_lines (pp_stmt (indent ^ "  "))) body
     | Return (value) ->
       fprintf fmt "return %a"
-        (pp_option pp_simple_expr) value
+        (pp_option pp_id) value
     | Print (_,values,_) ->
       fprintf fmt "print %a" (* TODO: print dest if relevant *)
-        (pp_list pp_simple_expr) values
+        (pp_list pp_id) values
     (* (pp_option pp_simple_expr) dest *)
     | Raise (value) ->
       fprintf fmt "raise %a"
-        pp_simple_expr value
+        pp_id value
     | Catch (name) ->
       fprintf fmt "catch %a"
         pp_id name
@@ -64,10 +64,9 @@ and pp_stmt indent fmt {uid=uid;exception_target=exc;multi=multi;body} =
     | GotoIfNot (test,dest) ->
       fprintf fmt "goto %a if not %a"
         pp_print_int dest
-        pp_simple_expr test
-    | SimpleExprStmt (value) ->
-      fprintf fmt "%a"
-        pp_simple_expr value
+        pp_id test
+    | NameStmt (name) ->
+      pp_id name
   end;
   fprintf fmt "%s" ";"
 
@@ -75,24 +74,21 @@ and pp_compound_expr fmt {uid=_;exception_target=_;multi=_;body} =
   match body with
   | Call (func,args) ->
     fprintf fmt "%a(%a)"
-      pp_simple_expr func
-      (pp_list pp_simple_expr) args
+      pp_id func
+      (pp_list pp_id) args
   | Attribute (obj,attr) ->
     fprintf fmt "%a.%a"
-      pp_simple_expr obj
+      pp_id obj
       pp_id attr
   | List (lst) ->
     fprintf fmt "[%a]"
-      (pp_list pp_simple_expr) lst
+      (pp_list pp_id) lst
   | Tuple (lst) ->
     fprintf fmt "(%a)"
-      (pp_list pp_simple_expr) lst
-  | SimpleExpr (se) -> pp_simple_expr fmt se
-
-and pp_simple_expr fmt {uid=_;exception_target=_;multi=_;body} =
-  match body with
+      (pp_list pp_id) lst
   | Literal (l) -> pp_literal fmt l
   | Name (id)   -> pp_id fmt id
+
 
 and pp_id fmt id =
   fprintf fmt "%s" id

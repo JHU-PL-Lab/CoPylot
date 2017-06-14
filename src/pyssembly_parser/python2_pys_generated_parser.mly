@@ -55,11 +55,9 @@
 %start stmt_input
 %type <Python2_normalized_ast.annotated_stmt> stmt_input
 
-%start cexpr_input
-%type <Python2_normalized_ast.annotated_cexpr> cexpr_input
+%start expr_input
+%type <Python2_normalized_ast.annotated_expr> expr_input
 
-%start sexpr_input
-%type <Python2_normalized_ast.annotated_sexpr> sexpr_input
 
 %%
 file_input:
@@ -70,12 +68,9 @@ stmt_input:
   | stmt_annot stmt SEMICOLON END
     { let () = reset_uid () in $1 $2 }
 
-cexpr_input:
-  | cexpr_annot cexpr END
+expr_input:
+  | expr_annot expr END
     { let () = reset_uid () in $1 $2 }
-
-sexpr_input:
-  | sexpr END { let () = reset_uid () in $1 }
 
 %inline
 stmt_annot:
@@ -84,14 +79,8 @@ stmt_annot:
   | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
 
 %inline
-cexpr_annot:
-  | ANNOT_CEXPR UID COLON except COLON LOOP COLON
-    { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
-  | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
-
-%inline
-sexpr_annot:
-  | ANNOT_SEXPR UID COLON except COLON LOOP COLON
+expr_annot:
+  | ANNOT_EXPR UID COLON except COLON LOOP COLON
     { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
   | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
 
@@ -105,58 +94,48 @@ stmt:
   | funcdef {$1}
   | return {$1}
   | print {$1}
-  | RAISE sexpr { Raise($2) }
+  | RAISE NAME { Raise($2) }
   | CATCH NAME { Catch($2) }
   | PASS { Pass }
-  | GOTO UID IFN sexpr { GotoIfNot($4,$2) }
+  | GOTO UID IFN NAME { GotoIfNot($4,$2) }
   | GOTO UID { Goto($2) }
-  | sexpr { SimpleExprStmt($1) }
+  | NAME { NameStmt($1) }
 
 assign:
-  /*<name> = <cexpr>*/
-  | NAME EQ cexpr_wrapper { Assign($1,$3) }
+  /*<name> = <expr>*/
+  | NAME EQ expr_wrapper { Assign($1,$3) }
 
 funcdef:
   /*<name>(<params>){<stmt_list>}*/
-  | DEF NAME LPAREN id_lst RPAREN EQ LBRACE stmt_list RBRACE
+  | DEF NAME LPAREN lst RPAREN EQ LBRACE stmt_list RBRACE
     { FunctionDef($2,$4,$8) }
 
 return:
   | RETURN { Return(None) }
-  | RETURN sexpr { Return(Some($2)) }
+  | RETURN NAME { Return(Some($2)) }
 
 print:
-  | PRINT lst GE sexpr { Print(Some($4),$2,false) }
+  | PRINT lst GE NAME { Print(Some($4),$2,false) }
   | PRINT lst { Print(None,$2,false) }
-
-id_lst:
-  | { [] }
-  | NAME { [$1] }
-  | NAME COMMA id_lst { $1::$3 }
 
 lst:
   | { [] }
-  | sexpr { [$1] }
-  | sexpr COMMA lst { $1::$3 }
+  | NAME { [$1] }
+  | NAME COMMA lst { $1::$3 }
 
-cexpr_wrapper:
-  | cexpr_annot cexpr
+expr_wrapper:
+  | expr_annot expr
     { $1 $2 }
 
 
-cexpr:
-  | sexpr LPAREN lst RPAREN { Call($1,$3) }
-  | sexpr DOT NAME { Attribute($1,$3) }
+expr:
+  | NAME LPAREN lst RPAREN { Call($1,$3) }
+  | NAME DOT NAME { Attribute($1,$3) }
   | LBRACK lst RBRACK { List($2) }
   | LPAREN lst RPAREN { Tuple($2) }
-  | sexpr { SimpleExpr($1) }
+  | literal { Literal($1) }
+  | NAME { Name($1) }
 
-
-sexpr:
-  | sexpr_annot literal
-    { $1 (Literal($2)) }
-  | sexpr_annot NAME
-    { $1 (Name($2)) }
 
 literal:
   | NUM { Num($1) }
