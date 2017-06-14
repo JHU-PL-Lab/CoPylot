@@ -106,6 +106,21 @@ Library "pyssembly_parser"
     CoPylot.ast_simplification,
     CoPylot.utils
 
+Library "pyssembly_interpreter"
+  FindlibParent: CoPylot
+  Path: src/pyssembly_interpreter
+  Modules:
+    Python2_pys_interpreter_types,
+    Python2_pys_interpreter_utils,
+    Python2_pys_interpreter
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std,
+    ppx_deriving_yojson,
+    pds-reachability,
+    CoPylot.ast_simplification
+
 Executable "test"
   Path: test/
   MainIs: test.ml

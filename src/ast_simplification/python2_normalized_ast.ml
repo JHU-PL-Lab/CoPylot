@@ -6,21 +6,18 @@ type identifier = string
 [@@deriving eq, ord, show, to_yojson]
 
 and 'a annotation =
-  {
-    uid: uid;
-    exception_target: uid option;
-    multi: bool;
-    body: 'a;
-  }
+    {
+      uid: uid;
+      exception_target: uid option;
+      multi: bool;
+      body: 'a;
+    }
 [@@deriving eq, ord, show, to_yojson]
 
 and annotated_stmt = stmt annotation
 [@@deriving eq, ord, show, to_yojson]
 
-and annotated_cexpr = compound_expr annotation
-[@@deriving eq, ord, show, to_yojson]
-
-and annotated_sexpr = simple_expr annotation
+and annotated_expr = expr annotation
 [@@deriving eq, ord, show, to_yojson]
 
 and modl =
@@ -28,28 +25,24 @@ and modl =
 [@@deriving eq, ord, show, to_yojson]
 
 and stmt =
-    | Assign of identifier (* target *) * annotated_cexpr (* value *)
+    | Assign of identifier (* target *) * annotated_expr (* value *)
   | FunctionDef of identifier (* name *) * identifier list (* args *) * annotated_stmt list (* body *)
-  | Return of annotated_sexpr option (* value *)
-  | Print of annotated_sexpr option (* dest *) * annotated_sexpr list (* values *) * bool (* nl *)
-  | Raise of annotated_sexpr (* value *)
+  | Return of identifier option (* value *)
+  | Print of identifier option (* dest *) * identifier list (* values *) * bool (* nl *)
+  | Raise of identifier (* value *)
   | Catch of identifier (* name *)
   | Pass
   | Goto of uid (* dest *)
-  | GotoIfNot of annotated_sexpr (* test *) * uid (* dest *) (* Jump iff test is falsey *)
-  | SimpleExprStmt of annotated_sexpr (* value *)
+  | GotoIfNot of identifier (* test *) * uid (* dest *) (* Jump iff test is falsey *)
+  | NameStmt of identifier
 [@@deriving eq, ord, show, to_yojson]
 
-and compound_expr =
-  | Call of annotated_sexpr (* func *) * annotated_sexpr list (* args *)
-  | Attribute of annotated_sexpr (* object *) * identifier (* attr *)
-  | List of annotated_sexpr list (* elts *)
-  | Tuple of annotated_sexpr list (* elts *)
-  | SimpleExpr of annotated_sexpr (* value*)
-[@@deriving eq, ord, show, to_yojson]
-
-and simple_expr =
-    | Literal of literal
+and expr =
+    | Call of identifier (* func *) * identifier list (* args *)
+  | Attribute of identifier (* object *) * identifier (* attr *)
+  | List of identifier list (* elts *)
+  | Tuple of identifier list (* elts *)
+  | Literal of literal
   | Name of identifier (* id *)
 [@@deriving eq, ord, show, to_yojson]
 
