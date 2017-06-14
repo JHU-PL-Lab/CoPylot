@@ -18,7 +18,7 @@
 %token CATCH
 %token PASS
 %token GOTO
-%token GOTOIFN
+%token IFN
 %token BI_SLICE
 %token BI_BOOL
 %token BI_TYPE
@@ -68,25 +68,28 @@ file_input:
 stmt_input:
   /*1:2:true:<stmt>;*/
   | stmt_annot stmt SEMICOLON END
-    { $1 $2 }
+    { let () = reset_uid () in $1 $2 }
 
 cexpr_input:
   | cexpr_annot cexpr END
-    { $1 $2 }
+    { let () = reset_uid () in $1 $2 }
 
 sexpr_input:
-  | sexpr END { $1 }
+  | sexpr END { let () = reset_uid () in $1 }
 
+%inline
 stmt_annot:
   | ANNOT_STMT UID COLON except COLON LOOP COLON
     { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
   | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
 
+%inline
 cexpr_annot:
   | ANNOT_CEXPR UID COLON except COLON LOOP COLON
     { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
   | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
 
+%inline
 sexpr_annot:
   | ANNOT_SEXPR UID COLON except COLON LOOP COLON
     { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
@@ -105,8 +108,8 @@ stmt:
   | RAISE sexpr { Raise($2) }
   | CATCH NAME { Catch($2) }
   | PASS { Pass }
+  | GOTO UID IFN sexpr { GotoIfNot($4,$2) }
   | GOTO UID { Goto($2) }
-  | GOTOIFN sexpr UID { GotoIfNot($2,$3) }
   | sexpr { SimpleExprStmt($1) }
 
 assign:

@@ -15,7 +15,7 @@
 *)
 
 let digit = ['0'-'9']
-let identifier = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '$' '+' '-']*
+let identifier = ['a'-'z' 'A'-'Z' '_' '$'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '$' '+' '-']*
 
 
 rule token = parse
@@ -54,7 +54,7 @@ rule token = parse
       | "catch" -> CATCH
       | "pass" -> PASS
       | "goto" -> GOTO
-      | "gotoifn" -> GOTOIFN
+      | "ifnot" -> IFN
       | "slice" -> BI_SLICE
       | "bool" -> BI_BOOL
       | "type" -> BI_TYPE

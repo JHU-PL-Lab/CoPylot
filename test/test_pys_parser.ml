@@ -138,7 +138,7 @@ let print_test = gen_stmt_test "print_test"
 ;;
 
 let goto_test = gen_module_test "goto_test"
-    "@1::T: goto 2; @2::T: gotoifn @s 3::T: true 1;"
+    "@1::T: goto 2; @2::T: goto 1 ifnot @s3::T: true;"
     [{ uid = 1;
        exception_target = None;
        multi = true;
@@ -294,7 +294,96 @@ let builtin_test = gen_module_test "builtin_test"
      }]
 ;;
 
+let notx =
+  "@   5:    :F:  $norm1 = bool(x);" ^
+  "\n@  18:    :F:  goto 16 ifnot $norm1;" ^
+  "\n@   9:    :F:  $norm0 = false;" ^
+  "\n@  15:    :F:  goto 14;" ^
+  "\n@  16:    :F:  pass;" ^
+  "\n@  13:    :F:  $norm0 = true;" ^
+  "\n@  14:    :F:  pass;" ^
+  "\n@  21:    :F:  $norm0;"
+;;
 
+let notx_test = gen_module_test "notx_test" notx
+    [{ uid = 5; exception_target = None; multi = false;
+       body =
+         (Assign ("$norm1",
+                  { uid = -3;
+                    exception_target = None;
+                    multi = false;
+                    body =
+                      (Call (
+                          { uid = -1;
+                            exception_target = None;
+                            multi = false;
+                            body =
+                              (Literal(Builtin Builtin_bool))
+                          },
+                          [{ uid = -2;
+                             exception_target = None;
+                             multi = false;
+                             body = (Name "x") }
+                          ]
+                        ))
+                  }
+                 ))
+     };
+     { uid = 18; exception_target = None;
+       multi = false;
+       body = (GotoIfNot (
+           { uid = -4;
+             exception_target = None;
+             multi = false;
+             body = (Name "$norm1") },16))
+     };
+     { uid = 9;
+       exception_target = None;
+       multi = false;
+       body =
+         (Assign ("$norm0",
+                  { uid = -6;
+                    exception_target = None;
+                    multi = false;
+                    body = (SimpleExpr
+                              { uid = -5;
+                                exception_target = None;
+                                multi = false;
+                                body =(Literal (Bool false))
+                              })
+                  }
+                 ))
+     };
+     { uid = 15; exception_target = None;
+       multi = false; body = (Goto 14) };
+     { uid = 16; exception_target = None;
+       multi = false; body = Pass };
+     { uid = 13; exception_target = None;
+       multi = false;
+       body =
+         (Assign ("$norm0",
+                  { uid = -8; exception_target = None;
+                    multi = false;
+                    body =
+                      (SimpleExpr
+                         { uid = -7; exception_target = None;
+                           multi = false;
+                           body =
+                             (Literal
+                                (Bool true))
+                         })
+                  }
+                 ))
+     };
+     { uid = 14; exception_target = None;
+       multi = false; body = Pass };
+     { uid = 21; exception_target = None;
+       multi = false; body =(SimpleExprStmt
+            { uid = -9; exception_target = None;
+              multi = false; body = (Name "$norm0") })
+     }
+    ]
+;;
 
 
 let tests =
@@ -309,4 +398,5 @@ let tests =
     call_attribute_test;
     list_tuple_test;
     builtin_test;
+    notx_test;
   ]
