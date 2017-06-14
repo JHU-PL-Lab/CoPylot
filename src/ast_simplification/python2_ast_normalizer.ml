@@ -29,30 +29,7 @@ let normalize_option func o =
   | Some(x) -> Some(func x)
 ;;
 
-(* let update_uid ctx annot (e : Normalized.annotated_sexpr) =
-   let open Normalized in
-   {
-    uid = get_next_uid ctx annot;
-    exception_target = e.exception_target;
-    multi = e.multi;
-    body = e.body;
-   }
-   ;;
-
-   let update_option_uid ctx annot (opt: Normalized.annotated_sexpr option) =
-   match opt with
-   | None -> None
-   | Some(e) -> Some(update_uid ctx annot e)
-   ;; *)
-
-(* let id_of_name (n : Normalized.annotated_sexpr) =
-   let open Normalized in
-   match n.body with
-   | Normalized.Name (id) -> id
-   | _ -> failwith "Can only extract id from names"
-   ;; *)
-
-(* Given a uid and an annotated_cexpr, assigns that expr to a new, unique name.
+(* Given a uid and an annotated_expr, assigns that expr to a new, unique name.
    Returns the assignment statement (in a list) and the name used *)
 let gen_normalized_assignment ctx annot
     (e : Normalized.annotated_expr) =
@@ -69,6 +46,8 @@ let gen_normalized_assignment ctx annot
   [assignment], name
 ;;
 
+(* Normalizes the input "test" expr and then calls the builtin bool function
+   on it. Returns the bindings to do this and the name of the result. *)
 let normalize_and_call_bool ctx annot normalizer annotator test =
   let test_bindings, test_name = normalizer test in
   let builtin_bool_binding, builtin_bool_name =

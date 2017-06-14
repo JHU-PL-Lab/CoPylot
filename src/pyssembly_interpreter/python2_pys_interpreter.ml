@@ -14,10 +14,7 @@ let step_program (prog : program) : program =
       match s.body with
       | Assign (id,
                 {body =
-                   SimpleExpr(
-                     {body =
-                        Literal(l)
-                     ; _})
+                   Literal(l)
                 ; _}) ->
         let lval = literal_to_value l in
         let new_heap, new_memloc = allocate_memory prog.heap lval in
@@ -27,10 +24,7 @@ let step_program (prog : program) : program =
 
       | Assign (id,
                 {body =
-                   SimpleExpr(
-                     {body =
-                        Name(id2)
-                     ; _})
+                   Name(id2)
                 ; _}) ->
         let memloc = lookup id2 prog.env prog.parents prog.eta in
         begin

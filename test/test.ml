@@ -12,7 +12,7 @@ let all_tests =
 
     (* Test_normalized_pp.tests; *) (* TODO: Redundant with normalized_ast.tests *)
     Test_analysis_integration.tests;
-    Test_pys_parser.tests;
+    (* Test_pys_parser.tests; *)
 
   ]
 ;;
