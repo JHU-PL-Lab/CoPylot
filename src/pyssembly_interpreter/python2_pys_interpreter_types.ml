@@ -7,6 +7,16 @@ type label =
 [@@deriving eq, ord, show]
 ;;
 
+(* A location in memory. Corresponds to "m" in the grammar. *)
+type memloc = Memloc of int
+[@@deriving eq, ord, show]
+;;
+
+(* Etas serve to identify various binding sets. *)
+type eta = Eta of int
+[@@deriving eq, ord, show]
+;;
+
 (* A list of statements to be executed, all in the same scope.
    Correponds to "S" in the grammar *)
 module Body : sig
@@ -27,16 +37,16 @@ module Body : sig
   (* Return the uid of the next statement in the list, or End if none.
      WARNING: this is not necessarily the next statement to be executed if
      the first statement is a Goto or GotoIfNot statement.*)
-  val get_next_label: t -> uid -> label
+  val get_next_label: t -> label -> label option
 end =
 struct
-  module Uid_ord =
+  module Label_ord =
   struct
-    type t = uid
-    let compare = compare_uid
+    type t = label
+    let compare = compare_label
   end
-  module Uid_map = Map.Make(Uid_ord);;
-  type order_map = label Uid_map.t;;
+  module Label_map = Map.Make(Label_ord);;
+  type order_map = label Label_map.t;;
 
   type t = { stmts: annotated_stmt list; order: order_map};;
 
@@ -44,7 +54,8 @@ struct
   let equal t1 t2 = List.eq equal_annotated_stmt t1.stmts t2.stmts;;
   let pp fmt t1 = List.iter (pp_annotated_stmt fmt) t1.stmts;; (* TODO: Not sure this works *)
 
-  let get_first_uid b = let fst = List.hd b.stmts in fst.uid;;
+  let get_first_uid b =
+    let fst = List.hd b.stmts in fst.uid;;
 
   let get_stmt (b : t) (u : uid) = List.find (fun s -> (s.uid = u)) b.stmts;;
 
@@ -52,61 +63,22 @@ struct
     let labels = List.map (fun s -> Uid(s.uid)) stmts in
     let lexical_map =
       List.fold_left2
-        (fun (map : order_map) (s : annotated_stmt) (lab : label) : order_map ->
-           Uid_map.add s.uid lab map)
-        Uid_map.empty
-        stmts
+        (fun (map : order_map) l1 l2 : order_map ->
+           Label_map.add l1 l2 map)
+        Label_map.empty
+        labels
         ((List.tl labels) @ [End])
     in
     {stmts = stmts; order = lexical_map}
   ;;
 
-  let get_next_label (b : t) (u : uid) = Uid_map.find u b.order;;
+  let get_next_label (b : t) (l : label) =
+    try
+      let next = Label_map.find l b.order in
+      Some(next)
+    with
+    | Not_found -> None;;
 end
-;;
-
-(* A single stack frame, composed of the code to execute and the uid of the
-   stmt to execute next. Corresponds to "t" in the grammar. *)
-module Stack_frame =
-struct
-  type t = { curr_uid: uid; body: Body.t }
-  [@@deriving eq, ord, show]
-  ;;
-
-  (* Get the statement pointed to by the current uid, which should be the
-     next statement we execute *)
-  let active_stmt (frame : t) = Body.get_stmt frame.body frame.curr_uid;;
-
-  (* Change the currently active uid *)
-  let update_uid (frame : t) (new_uid : uid) : t =
-    { curr_uid = new_uid; body = frame.body };;
-
-  (* Create a new stack frame from a statement body *)
-  let create (body : Body.t) : t =
-    let start_uid = Body.get_first_uid body in
-    { curr_uid = start_uid; body = body}
-  ;;
-
-end
-;;
-
-(* Exactly what it says on the tin. Corresponds to "T" in the grammar. *)
-module Stack =
-struct
-  type t = Stack_frame.t list
-  [@@deriving eq, ord, show]
-  ;;
-end
-;;
-
-(* A location in memory. Corresponds to "m" in the grammar. *)
-type memloc = Memloc of int
-[@@deriving eq, ord, show]
-;;
-
-(* Etas serve to identify various binding sets. *)
-type eta = Eta of int
-[@@deriving eq, ord, show]
 ;;
 
 (* The possible values in the program. Corresponds to "v" in the grammar. *)
@@ -119,8 +91,74 @@ type value =
 [@@deriving eq, ord, show]
 ;;
 
-(* We represent our various sets of maps as different types of hashtable. *)
+(* A single stack frame, composed of the code to execute and the uid of the
+   stmt to execute next. Corresponds to "t" in the grammar. *)
+module Stack_frame : sig
+  type t
+  val compare: t -> t -> int
+  val equal: t -> t -> bool
+  val pp: Format.formatter -> t -> unit
 
+  (* Get the statement pointed to by the current uid, which should be the
+     next statement we execute *)
+  val active_stmt: t -> annotated_stmt option
+  val get_next_label: t -> label
+
+  (* Advance the frame to the specified label *)
+  val advance: t -> label -> t
+
+  (* Create a new stack frame from a statement body *)
+  val create: Body.t -> t
+
+end =
+struct
+  type t = { curr_label: label; body: Body.t }
+  [@@deriving eq, ord, show]
+  ;;
+  ignore @@ show;; (* The fact that we need this is definitely a bug *)
+
+  let active_stmt (frame : t) =
+    match frame.curr_label with
+    | End -> None
+    | Uid u -> Some(Body.get_stmt frame.body u);;
+
+  let get_next_label (frame : t) =
+    let next = Body.get_next_label frame.body frame.curr_label in
+    match next with
+    | None -> failwith "Can't move past end of stack frame"
+    | Some(l) -> l
+;;
+
+  let advance (frame : t) (new_label : label) : t =
+    { curr_label = new_label; body = frame.body };;
+
+  let create (body : Body.t) : t =
+    let start_uid = Body.get_first_uid body in
+    { curr_label = Uid(start_uid); body = body }
+  ;;
+
+end
+;;
+
+(* Exactly what it says on the tin. Corresponds to "T" in the grammar. *)
+module Program_stack =
+struct
+  type t = Stack_frame.t list
+  [@@deriving eq, ord, show]
+  ;;
+
+  let pop (s : t) : Stack_frame.t * t = List.hd s, List.tl s;;
+
+  let push (s : t) (frame : Stack_frame.t) : t = frame :: s;;
+
+  let top (s : t) : Stack_frame.t = List.hd s;;
+
+  let empty = [];;
+  let is_empty (s : t) = (s = []);;
+
+  let singleton (frame : Stack_frame.t) = [frame];;
+end
+;;
 (* A variable binding (x,m) indicates that the variable x is bound to
    memory location m. These correspond to "B" in the grammar *)
 module Bindings : sig
@@ -131,7 +169,7 @@ module Bindings : sig
   val update_binding: t -> identifier -> memloc -> t
 
   (* Get the memory location bound to the current variable, if any *)
-  val get_memloc: t -> identifier -> memloc
+  val get_memloc: t -> identifier -> memloc option
 
   val empty: t
   val singleton: identifier -> memloc -> t
@@ -148,7 +186,13 @@ struct
 
   let update_binding prev id mem = Var_map.add id mem prev;;
 
-  let get_memloc map id = Var_map.find id map;;
+  let get_memloc map id =
+    try
+      let m = Var_map.find id map in
+      Some(m)
+    with
+    | Not_found -> None
+  ;;
 
   let empty = Var_map.empty;;
 
@@ -169,7 +213,7 @@ module Heap: sig
   val update_binding: t -> memloc -> value -> t
 
   (* Get the value bound to the given location in memory, if there is one. *)
-  val get_value: t -> memloc -> value
+  val get_value: t -> memloc -> value option
 
   val empty: t
   val singleton: memloc -> value -> t
@@ -194,7 +238,12 @@ struct
     let new_max = max heap.maxval mem_val in
     { map = new_map; maxval = new_max };;
 
-  let get_value heap mem = Memloc_map.find mem heap.map;;
+  let get_value heap mem =
+  try
+    let v = Memloc_map.find mem heap.map in
+    Some(v)
+  with
+  | Not_found -> None;;
 
   let empty = { map = Memloc_map.empty; maxval = 0 };;
 
@@ -212,7 +261,9 @@ module Environment : sig
 
   val update_binding: t -> eta -> Bindings.t -> t
 
-  val get_binding: t-> eta -> Bindings.t
+  val get_binding: t -> eta -> Bindings.t
+
+  val get_unbound_eta: t -> eta
 
   val empty: t
   val singleton: eta -> Bindings.t -> t
@@ -225,15 +276,29 @@ struct
   end
   module Eta_map = Map.Make(Eta_ord);;
 
-  type t = Bindings.t Eta_map.t;;
+  type t = { map: Bindings.t Eta_map.t; maxval: int };;
 
-  let update_binding prev eta b = Eta_map.add eta b prev;;
+  let update_binding prev eta b =
+    let newmap = Eta_map.add eta b prev.map in
+    let Eta(etaval) = eta in
+    let new_maxval = max etaval prev.maxval in
+    { map = newmap; maxval = new_maxval };;
 
-  let get_binding map eta = Eta_map.find eta map;;
+  let get_binding env eta =
+    try
+      let b = Eta_map.find eta env.map in
+      b
+    with
+    | _ -> failwith "No binding found in environment";;
 
-  let empty = Eta_map.empty;;
+  let get_unbound_eta env = Eta(env.maxval + 1);;
 
-  let singleton eta b = Eta_map.singleton eta b;;
+  let empty = { map = Eta_map.empty; maxval = 0 };;
+
+  let singleton eta b =
+    let map = Eta_map.singleton eta b in
+    let Eta(etaval) = eta in
+    { map = map; maxval = etaval };;
 end;;
 
 (* The parents map holds the relationship between etas; children search their
@@ -245,7 +310,7 @@ module Parents : sig
   val add_parent: t -> eta -> eta -> t
 
   (* Retrieve the parent of the input eta, if any *)
-  val get_parent: t -> eta -> eta
+  val get_parent: t -> eta -> eta option
 
   val empty: t
   val singleton: eta -> eta -> t
@@ -262,9 +327,23 @@ struct
 
   let add_parent prev child parent = Eta_map.add child parent prev;;
 
-  let get_parent map child = Eta_map.find child map;;
+  let get_parent map child =
+    try
+      let parent = Eta_map.find child map in
+      Some(parent)
+    with
+    | Not_found -> None;;
 
   let empty = Eta_map.empty;;
 
   let singleton child parent = Eta_map.singleton child parent;;
 end;;
+
+type program =
+  {
+    stack: Program_stack.t;
+    heap: Heap.t;
+    env: Environment.t;
+    parents: Parents.t;
+    eta: eta
+  }
