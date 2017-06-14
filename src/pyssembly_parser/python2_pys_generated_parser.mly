@@ -24,8 +24,7 @@
 %token BI_TYPE
 
 /* annotations */
-%token ANNOT_SEXPR
-%token ANNOT_CEXPR
+%token ANNOT_EXPR
 %token ANNOT_STMT
 
 /* symbols */

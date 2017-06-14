@@ -49,10 +49,7 @@ let apply_rules (curr : analysis_result) (e : Lexical_cfg.edge)
               {body=
                  Assign(_,
                         {body=
-                           SimpleExpr(
-                             {body=
-                                Literal(_)
-                             ;_})
+                           Literal(_)
                         ;_})
               ;_}) = v1
           in
@@ -71,11 +68,7 @@ let apply_rules (curr : analysis_result) (e : Lexical_cfg.edge)
                      _,{uid=_;
                         exception_target=_;
                         multi=_;
-                        body=SimpleExpr(
-                            {uid=_;
-                             exception_target=_;
-                             multi=_;
-                             body=Name(id)})})}) = v1
+                        body=Name(id)})}) = v1
           in
           let%bind v =
             pick_enum @@ Python2_pds.Answer_set.enum @@ lookup_values v1 id

@@ -52,10 +52,7 @@ let create_edge_function
                                (id,{uid=_;
                                    exception_target=_;
                                    multi=_;
-                                   body=SimpleExpr({uid=_;
-                                                    exception_target=_;
-                                                    multi=_;
-                                                    body=Literal(v)})})}) = a1
+                                   body=Literal(v)})}) = a1
           in
           (* Assignment to target variable*)
           let relevant = ([Pop(Var(id)); Push(Ans(literal_to_answer v))],
@@ -77,10 +74,7 @@ let create_edge_function
                                (id,{uid=_;
                                    exception_target=_;
                                    multi=_;
-                                   body=SimpleExpr({uid=_;
-                                                    exception_target=_;
-                                                    multi=_;
-                                                    body=Name(id2)})})}) = a1
+                                   body=Name(id2)})}) = a1
           in
           (* Alias to the variable we're looking for *)
           let relevant =  ([Pop(Var(id)); Push(Var(id2))],
