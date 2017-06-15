@@ -1,4 +1,5 @@
 (* open Batteries;; *)
+open Python2_ast_types;;
 open Python2_normalized_ast;;
 open Python2_pys_interpreter_types;;
 

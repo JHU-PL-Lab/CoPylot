@@ -1,6 +1,5 @@
-open Python2_abstract_ast
 open Batteries
-module Concrete = Python2_ast
+open Python2_ast
 
 module ID_tuple = struct
   type t = identifier * expr_context
@@ -197,7 +196,7 @@ and make_arguments id_map (args,v,k,d) =
 
 (* Updates the address by appending "<new_scope_name>$<line_number>_" to the front *)
 let update_address id address a =
-  (id^"$"^(string_of_int (Concrete.Pos.to_pos a).Lexing.pos_lnum)) :: address
+  (id^"$"^(string_of_int (Pos.to_pos a).Lexing.pos_lnum)) :: address
 ;;
 
 (* Given the id_list at each level of recursion, update id_map with id and path *)

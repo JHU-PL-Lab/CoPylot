@@ -1,4 +1,5 @@
-open Python2_normalized_ast;;
+open Python2_ast_types;;
+open Python2_abstract_ast;;
 open Uid_generation;;
 
 let rec get_uid_hashtbl (m : modl) =
@@ -23,7 +24,6 @@ and collect_uids_stmt (tbl : annotated_stmt Uid_hashtbl.t) {uid=u;exception_targ
   | NameStmt (_)
     ->
     Uid_hashtbl.add tbl u {uid=u;exception_target=except;multi=in_loop;body}; tbl
-
 
 and collect_uids_stmt_lst tbl lst =
   List.fold_left collect_uids_stmt tbl lst

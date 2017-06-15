@@ -1,3 +1,4 @@
+open Python2_ast_types
 module Simplified = Python2_simplified_ast;;
 module Normalized = Python2_normalized_ast;;
 open Uid_generation;;
@@ -33,14 +34,13 @@ let normalize_option func o =
    Returns the assignment statement (in a list) and the name used *)
 let gen_normalized_assignment ctx annot
     (e : Normalized.annotated_expr) =
-  let open Normalized in
   let u = get_next_uid ctx annot in
   let name = gen_unique_name u in
   let assignment = {
     uid = u;
     exception_target = e.exception_target;
     multi = e.multi;
-    body = Assign(name, e);
+    body = Normalized.Assign(name, e);
   }
   in
   [assignment], name
@@ -67,7 +67,7 @@ let normalize_and_call_bool ctx annot normalizer annotator test =
 let create_annotation_from_stmt ctx exception_target in_loop
     (s : 'a Simplified.stmt) (e : 'b) =
   {
-    Normalized.uid = get_next_uid ctx (Simplified.extract_stmt_annot s);
+    uid = get_next_uid ctx (Simplified.extract_stmt_annot s);
     exception_target = exception_target;
     multi = in_loop;
     body = e;
@@ -77,7 +77,7 @@ let create_annotation_from_stmt ctx exception_target in_loop
 let create_annotation_from_expr ctx exception_target in_loop
     (s : 'a Simplified.expr) (e : 'b) =
   {
-    Normalized.uid = get_next_uid ctx (Simplified.extract_expr_annot s);
+    uid = get_next_uid ctx (Simplified.extract_expr_annot s);
     exception_target = exception_target;
     multi = in_loop;
     body = e;
@@ -176,7 +176,6 @@ and normalize_stmt_full
         test
     in
 
-    let open Normalized in
     let start_stmt = annotate_stmt @@ Normalized.Pass in
     let start_uid = start_stmt.uid in (* Start label *)
     let end_stmt = annotate_stmt @@ Normalized.Pass in
@@ -227,7 +226,6 @@ and normalize_stmt_full
     in
 
     let end_label = annotate_stmt @@ Normalized.Pass in
-    let open Normalized in
     let end_uid = end_label.uid in
     let goto_end_label = annotate_stmt @@ Normalized.Goto(end_uid) in
     let orelse_label = annotate_stmt @@ Normalized.Pass in
@@ -249,7 +247,6 @@ and normalize_stmt_full
     [annotate_stmt @@ Normalized.Raise(value_result)]
 
   | Simplified.TryExcept (body, handlers, annot) ->
-    let open Normalized in
     let exception_name = gen_unique_name annot in
     let catch = annotate_stmt @@ Normalized.Catch(exception_name) in
     let handler_start_uid = catch.uid in
@@ -341,7 +338,7 @@ and normalize_expr
     (in_loop : bool)
     exception_target
     (e : 'a Simplified.expr)
-  : Normalized.annotated_stmt list * Normalized.identifier =
+  : Normalized.annotated_stmt list * identifier =
   let annotate_stmt ex : Normalized.annotated_stmt =
     create_annotation_from_expr ctx exception_target in_loop e ex in
   let annotate_expr ex : Normalized.annotated_expr =
@@ -436,7 +433,6 @@ and normalize_expr
         Normalized.Assign(tmp_name,
                           annotate_expr @@ Normalized.Name(orelse_result))
       ] in
-    let open Normalized in
     let end_stmt = annotate_stmt @@ Normalized.Pass in
     let end_uid = end_stmt.uid in
     let goto_end_stmt = annotate_stmt @@ Normalized.Goto(end_uid) in
@@ -580,7 +576,7 @@ and normalize_expr_list ctx in_loop exception_target (lst : 'a Simplified.expr l
 
 and normalize_expr_option ctx in_loop exception_target
     (o : 'a Simplified.expr option)
-  : Normalized.annotated_stmt list * Normalized.identifier option =
+  : Normalized.annotated_stmt list * identifier option =
   let normalized_opt =
     normalize_option (normalize_expr ctx in_loop exception_target) o in
   match normalized_opt with
@@ -598,20 +594,13 @@ and normalize_cmpop o =
   | Simplified.In -> "__contains__"
   | Simplified.NotIn -> failwith "the NotIn operator is not supported" (* TODO *)
 
-and normalize_sign s =
-  match s with
-  | Simplified.Pos -> Normalized.Pos
-  | Simplified.Neg -> Normalized.Neg
-  | Simplified.Zero -> Normalized.Zero
-
 and normalize_number n =
   match n with
-  | Simplified.Int sgn -> Normalized.Int(normalize_sign sgn)
-  | Simplified.Float sgn -> Normalized.Float(normalize_sign sgn)
+  | Simplified.Int n -> Normalized.Int(n)
+  | Simplified.Float f -> Normalized.Float(f)
 
 and normalize_str s =
   match s with
-  | Simplified.StringAbstract -> Normalized.StringAbstract
   | Simplified.StringLiteral (s) -> Normalized.StringLiteral (s)
 
 and normalize_builtin b =

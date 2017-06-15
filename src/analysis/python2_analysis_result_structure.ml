@@ -1,7 +1,7 @@
 open Python2_cfg;;
 open Python2_pds;;
 open Uid_generation;;
-open Python2_normalized_ast;;
+open Python2_abstract_ast;;
 
 type analysis_result =
 {

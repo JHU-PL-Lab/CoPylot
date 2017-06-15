@@ -3,7 +3,8 @@ open Jhupllib;;
 open Nondeterminism;;
 open Python2_cfg;;
 open Python2_pds;;
-open Python2_normalized_ast;;
+open Python2_ast_types;;
+open Python2_abstract_ast;;
 open Python2_analysis_result_structure;;
 open Uid_generation;;
 

@@ -3,10 +3,9 @@ open Batteries
 open Jhupllib
 open Python2_parser
 open Lexing
-module Abstract = Python2_abstract_ast
-open Python2_simplified_ast
-module Lift = Python2_ast_lifter
+module Concrete = Python2_ast
 module Simplify = Python2_ast_simplifier
+open Python2_simplified_ast
 
 let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
 
@@ -42,8 +41,8 @@ let gen_module_test (name : string) (prog : string) (expected : 'a stmt list) =
   name>::
   ( fun _ ->
       let concrete = parse_from_string_safe (prog ^ "\n") in
-      let abstract = Lift.lift_modl concrete in
-      let actual = Simplify.simplify_modl abstract in
+      Simplify.toggle_short_names false;
+      let actual = Simplify.simplify_modl concrete in
       Simplify.reset_unique_name ();
       assert_equal ~printer:string_of_modl ~cmp:equivalent_modl
         (Module(expected, annot)) actual
@@ -54,8 +53,8 @@ let gen_stmt_test (name : string) (prog : string) (expected : 'a expr) =
   name>::
   ( fun _ ->
       let concrete = parse_stmt_from_string_safe (prog ^ "\n") in
-      let abstract = List.map Lift.lift_stmt concrete in
-      let actual = List.concat (List.map Simplify.simplify_stmt abstract) in
+      Simplify.toggle_short_names false;
+      let actual = List.concat (List.map Simplify.simplify_stmt concrete) in
       Simplify.reset_unique_name ();
       assert_equal ~printer:string_of_stmt ~cmp:equivalent_stmt
         [(Expr(expected, annot))] actual
@@ -64,7 +63,7 @@ let gen_stmt_test (name : string) (prog : string) (expected : 'a expr) =
 
 let expect_error_test
     (name : string)
-    (prog : 'a Abstract.stmt list)
+    (prog : 'a Concrete.stmt list)
     (expected : exn) =
   name>::
   (fun _ ->
@@ -76,27 +75,27 @@ let expect_error_test
 ;;
 
 (* This is useful when creating tests for expect_error_test *)
-let dummy_expr = Abstract.Num(Abstract.Int(Abstract.Zero), annot);;
+let dummy_expr = Concrete.Num(Concrete.Int(0), annot);;
 
 let int_test = gen_stmt_test "int_test"
     "4"
-    (Num(Int(Pos), annot))
+    (Num(Int(4), annot))
 ;;
 
 let float_test = gen_stmt_test "float_test"
     "1.7"
-    (Num(Float(Pos), annot))
+    (Num(Float(1.7), annot))
 ;;
 
 let float_zero_test = gen_stmt_test "float_zero_test"
     "0.0"
-    (Num(Float(Zero), annot))
+    (Num(Float(0.0), annot))
 ;;
 
 let unop_test = gen_stmt_test "unop_test_1"
     "+4"
     (Call(
-        Attribute(Num(Int(Pos), annot), "__pos__", annot),
+        Attribute(Num(Int(4), annot), "__pos__", annot),
         [],
         annot))
 ;;
@@ -116,7 +115,7 @@ let boolop_and_test = gen_stmt_test "boolop_and_test"
         [
           Name("x", annot);
           Bool(true, annot);
-          Num(Int(Neg), annot);
+          Num(Int(-5), annot);
         ],
         annot
       )
@@ -130,7 +129,7 @@ let boolop_or_test = gen_stmt_test "boolop_or_test"
         [
           Name("x", annot);
           Bool(false, annot);
-          Num(Int(Zero), annot);
+          Num(Int(0), annot);
         ],
         annot
       )
@@ -185,7 +184,7 @@ let var_assign_test = gen_module_test "var_assign_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        Num(Int(Pos), annot),
+        Num(Int(5), annot),
         annot
       );
       Assign(
@@ -201,7 +200,7 @@ let var_double_assign_test = gen_module_test "var_double_assign_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        Num(Int(Pos), annot),
+        Num(Int(5), annot),
         annot
       );
       Assign(
@@ -243,8 +242,8 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
         "$simplified_unique_name_0",
         Tuple(
           [
-            Num(Int(Neg), annot);
-            Num(Int(Zero), annot);
+            Num(Int(-1), annot);
+            Num(Int(0), annot);
           ],
           annot),
         annot);
@@ -294,7 +293,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
               Raise(
                 Call(
                   Name("ValueError", annot),
-                  [Str(StringAbstract,
+                  [Str(StringLiteral("too few values to unpack"),
                        annot)],
                   annot),
                 annot);
@@ -326,7 +325,7 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        Num(Int(Pos), annot),
+        Num(Int(3), annot),
         annot);
       Expr(
         Call(
@@ -336,8 +335,8 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
             annot),
           [
             Call(
-              Attribute(Num(Int(Pos), annot), "__add__", annot),
-              [Num(Int(Pos), annot)],
+              Attribute(Num(Int(1), annot), "__add__", annot),
+              [Num(Int(2), annot)],
               annot);
             Name("$simplified_unique_name_0", annot);
           ],
@@ -353,7 +352,7 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        Num(Int(Pos), annot),
+        Num(Int(3), annot),
         annot);
       Expr(
         Call(
@@ -365,8 +364,8 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
             Call(
               Builtin(Builtin_slice, annot),
               [
-                Num(Int(Pos), annot);
-                Num(Int(Pos), annot);
+                Num(Int(1), annot);
+                Num(Int(2), annot);
                 Name("None", annot);
               ],
               annot
@@ -385,7 +384,7 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
     [
       Assign(
         "$simplified_unique_name_0",
-        Num(Int(Pos), annot),
+        Num(Int(7), annot),
         annot);
       Expr(
         Call(
@@ -411,7 +410,7 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
       Assign(
         "$simplified_unique_name_0",
         Call(Attribute(Name("x", annot), "__mul__", annot),
-             [Num(Int(Neg), annot)],
+             [Num(Int(-5), annot)],
              annot
             ),
         annot
@@ -431,7 +430,7 @@ let var_cmp_test = gen_module_test "var_cmp_test"
         Compare(
           Name("x", annot),
           [LtE],
-          [Num(Int(Pos), annot)],
+          [Num(Int(42), annot)],
           annot
         ),
         annot
@@ -439,8 +438,8 @@ let var_cmp_test = gen_module_test "var_cmp_test"
     ]
 ;;
 
-let gen_some_abstract_assignment target =
-  Abstract.Assign(
+let gen_some_concrete_assignment target =
+  Concrete.Assign(
     [target],
     dummy_expr,
     annot)
@@ -449,40 +448,40 @@ let gen_some_abstract_assignment target =
 let bad_assign_tests =
   [
     expect_error_test "assign_to_num"
-      [(gen_some_abstract_assignment
-          (Abstract.Num(Abstract.Int(Abstract.Zero), annot)))]
+      [(gen_some_concrete_assignment
+          (Concrete.Num(Concrete.Int(0), annot)))]
       (Failure("can't assign to literal"));
     expect_error_test "assign_to_str"
-      [(gen_some_abstract_assignment
-          (Abstract.Str(Abstract.StringAbstract, annot)))]
+      [(gen_some_concrete_assignment
+          (Concrete.Str("", annot)))]
       (Failure("can't assign to literal"));
     expect_error_test "assign_to_bool"
-      [(gen_some_abstract_assignment
-          (Abstract.Bool(true, annot)))]
+      [(gen_some_concrete_assignment
+          (Concrete.Bool(true, annot)))]
       (Failure("can't assign to literal"));
     expect_error_test "assign_to_boolop"
-      [(gen_some_abstract_assignment
-          (Abstract.BoolOp(Abstract.And, [dummy_expr; dummy_expr], annot)))]
+      [(gen_some_concrete_assignment
+          (Concrete.BoolOp(Concrete.And, [dummy_expr; dummy_expr], annot)))]
       (Failure("can't assign to operator"));
     expect_error_test "assign_to_binop"
-      [(gen_some_abstract_assignment
-          (Abstract.BinOp(dummy_expr, Abstract.Add, dummy_expr, annot)))]
+      [(gen_some_concrete_assignment
+          (Concrete.BinOp(dummy_expr, Concrete.Add, dummy_expr, annot)))]
       (Failure("can't assign to operator"));
     expect_error_test "assign_to_unaryop"
-      [(gen_some_abstract_assignment
-          (Abstract.UnaryOp(Abstract.UAdd, dummy_expr, annot)))]
+      [(gen_some_concrete_assignment
+          (Concrete.UnaryOp(Concrete.UAdd, dummy_expr, annot)))]
       (Failure("can't assign to operator"));
     expect_error_test "assign_to_ifexp"
-      [(gen_some_abstract_assignment
-          (Abstract.IfExp(dummy_expr, dummy_expr, dummy_expr, annot)))]
+      [(gen_some_concrete_assignment
+          (Concrete.IfExp(dummy_expr, dummy_expr, dummy_expr, annot)))]
       (Failure("can't assign to conditional expression"));
     expect_error_test "assign_to_compare"
-      [(gen_some_abstract_assignment
-          (Abstract.Compare(dummy_expr, [Abstract.Lt], [dummy_expr], annot)))]
+      [(gen_some_concrete_assignment
+          (Concrete.Compare(dummy_expr, [Concrete.Lt], [dummy_expr], annot)))]
       (Failure("can't assign to comparison"));
     expect_error_test "assign_to_call"
-      [(gen_some_abstract_assignment
-          (Abstract.Call(dummy_expr, [], [], None, None, annot)))]
+      [(gen_some_concrete_assignment
+          (Concrete.Call(dummy_expr, [], [], None, None, annot)))]
       (Failure("can't assign to function call"));
   ]
 ;;
@@ -506,13 +505,13 @@ let funcdef_test = gen_module_test "funcdef_test"
 
 let bad_funcdef_test = expect_error_test "bad_funcdef_test"
     [
-      Abstract.FunctionDef(
+      Concrete.FunctionDef(
         "func",
-        ([Abstract.Num(Abstract.Int(Abstract.Pos), annot)],
+        ([Concrete.Num(Concrete.Int(5), annot)],
          None,
          None,
          []),
-        [Abstract.Pass(annot)],
+        [Concrete.Pass(annot)],
         [],
         annot
       )
@@ -525,7 +524,7 @@ let call_test = gen_stmt_test "call_test"
     (Call(
         Name("func", annot),
         [
-          Num(Int(Pos), annot);
+          Num(Int(1), annot);
           Name("x", annot);
           Str(StringLiteral("foo"), annot);
         ],
@@ -558,12 +557,12 @@ let if_test = gen_module_test "if_test"
       If(
         Compare(Name("x", annot),
                 [Gt],
-                [Num(Int(Pos), annot)],
+                [Num(Int(2), annot)],
                 annot),
         [
           Assign(
             "$simplified_unique_name_1",
-            Num(Int(Pos), annot),
+            Num(Int(3), annot),
             annot
           );
           Assign(
@@ -576,14 +575,14 @@ let if_test = gen_module_test "if_test"
           If(
             Compare(Name("x", annot),
                     [Lt],
-                    [Num(Int(Zero), annot)],
+                    [Num(Int(0), annot)],
                     annot),
             [
               Assign(
                 "$simplified_unique_name_0",
 
                 Call(Attribute(Name("x", annot), "__mul__", annot),
-                     [Num(Int(Neg), annot)],
+                     [Num(Int(-1), annot)],
                      annot),
                 annot
               );
@@ -607,7 +606,7 @@ let print_test = gen_module_test "print_test"
     [
       Print(None,
             [
-              Num(Int(Pos), annot);
+              Num(Int(1), annot);
               Name("x", annot);
               Str(StringLiteral("foo"),annot);
             ],
@@ -620,10 +619,10 @@ let tuple_test = gen_stmt_test "tuple_test"
     "(1,2,3,4)"
     (Tuple (
         [
-          Num(Int(Pos), annot);
-          Num(Int(Pos), annot);
-          Num(Int(Pos), annot);
-          Num(Int(Pos), annot);
+          Num(Int(1), annot);
+          Num(Int(2), annot);
+          Num(Int(3), annot);
+          Num(Int(4), annot);
         ],
         annot
       ))
@@ -636,13 +635,13 @@ let while_test = gen_module_test "while_test"
         Compare(
           Name("x", annot),
           [Lt],
-          [Num(Int(Pos), annot)],
+          [Num(Int(9001), annot)],
           annot),
         [
           Assign(
             "$simplified_unique_name_0",
             Call(Attribute(Name("x", annot), "__add__", annot),
-                 [Num(Int(Pos), annot)],
+                 [Num(Int(1), annot)],
                  annot),
             annot
           );
@@ -706,7 +705,7 @@ let break_test = gen_module_test "break_test"
         Compare(
           Name("x", annot),
           [Lt],
-          [Num(Int(Pos), annot)],
+          [Num(Int(9001), annot)],
           annot),
         [
           Break(annot)
@@ -723,7 +722,7 @@ let continue_test = gen_module_test "continue_test"
         Compare(
           Name("x", annot),
           [Lt],
-          [Num(Int(Pos), annot)],
+          [Num(Int(9001), annot)],
           annot),
         [
           Continue(annot)
@@ -757,7 +756,7 @@ let try_test = gen_module_test "try_test"
         [
           Assign(
             "$simplified_unique_name_0",
-            Num(Int(Pos), annot),
+            Num(Int(5), annot),
             annot);
           Assign(
             "x",
@@ -792,11 +791,11 @@ let try_test = gen_module_test "try_test"
 
 let bad_exception_handler_test = expect_error_test
     "bad_exception_handler_test"
-    [Abstract.TryExcept(
+    [Concrete.TryExcept(
         [],
         [
-          Abstract.ExceptHandler(
-            Some(Abstract.Name("foo", Abstract.Load, annot)),
+          Concrete.ExceptHandler(
+            Some(Concrete.Name("foo", Concrete.Load, annot)),
             Some(dummy_expr),
             [],
             annot
@@ -827,7 +826,7 @@ let triangle_ast =
       [ (* Body *)
         Assign(
           "$simplified_unique_name_0",
-          Num(Int(Zero), annot),
+          Num(Int(0), annot),
           annot);
         Assign(
           "count",
@@ -836,7 +835,7 @@ let triangle_ast =
         );
         Assign(
           "$simplified_unique_name_1",
-          Num(Int(Zero), annot),
+          Num(Int(0), annot),
           annot);
         Assign(
           "i",
@@ -865,7 +864,7 @@ let triangle_ast =
             Assign(
               "$simplified_unique_name_3",
               Call(Attribute(Name("count", annot), "__add__", annot),
-                   [Num(Int(Pos), annot)],
+                   [Num(Int(1), annot)],
                    annot),
               annot);
             Assign(
@@ -892,14 +891,14 @@ let big_test = gen_module_test "big_test"
             Call(
               Name("triangle", annot),
               [
-                Num(Int(Pos), annot)
+                Num(Int(1), annot)
               ],
               annot
             );
             Call(
               Name("triangle", annot),
               [
-                Num(Int(Pos), annot)
+                Num(Int(7), annot)
               ],
               annot
             );
@@ -915,13 +914,13 @@ let list_str = "[1,2,3,'four','five',2+4]";;
 let list_expr =
   List(
     [
-      Num(Int(Pos),annot);
-      Num(Int(Pos),annot);
-      Num(Int(Pos),annot);
+      Num(Int(1),annot);
+      Num(Int(2),annot);
+      Num(Int(3),annot);
       Str(StringLiteral("four"), annot);
       Str(StringLiteral("five"), annot);
-      Call(Attribute(Num(Int(Pos),annot), "__add__", annot),
-           [Num(Int(Pos), annot)],
+      Call(Attribute(Num(Int(2),annot), "__add__", annot),
+           [Num(Int(4), annot)],
            annot);
     ],
     annot
@@ -934,7 +933,7 @@ let list_test = gen_stmt_test "list_test"
 let list_in_test = gen_stmt_test "lst_in_test"
     ("5 in " ^ list_str)
     (Compare(
-        Num(Int(Pos), annot),
+        Num(Int(5), annot),
         [In],
         [list_expr],
         annot
@@ -959,14 +958,14 @@ let list_tests =
     list_test;
     list_in_test;
     (gen_slice_test "slice_test_1" "[0]"
-       (Num(Int(Zero),annot)));
+       (Num(Int(0),annot)));
     (gen_slice_test "slice_test2" "[5-2]"
-       (Call(Attribute(Num(Int(Pos), annot), "__sub__", annot),
-             [Num(Int(Pos), annot)], annot)));
+       (Call(Attribute(Num(Int(5), annot), "__sub__", annot),
+             [Num(Int(2), annot)], annot)));
     (gen_slice_test "slice_test3" "[2:]"
        (Call(Builtin(Builtin_slice, annot),
              [
-               Num(Int(Pos), annot);
+               Num(Int(2), annot);
                Name("None", annot);
                Name("None", annot);
              ],
@@ -975,7 +974,7 @@ let list_tests =
        (Call(Builtin(Builtin_slice, annot),
              [
                Name("None", annot);
-               Num(Int(Pos), annot);
+               Num(Int(4), annot);
                Name("None", annot);
              ],
              annot)));
@@ -984,23 +983,23 @@ let list_tests =
              [
                Name("None", annot);
                Name("None", annot);
-               Num(Int(Pos), annot);
+               Num(Int(3), annot);
              ],
              annot)));
     (gen_slice_test "slice_test6" "[2:4]"
        (Call(Builtin(Builtin_slice, annot),
              [
-               Num(Int(Pos), annot);
-               Num(Int(Pos), annot);
+               Num(Int(2), annot);
+               Num(Int(4), annot);
                Name("None", annot);
              ],
              annot)));
     (gen_slice_test "slice_test7" "[2:4:-1]"
        (Call(Builtin(Builtin_slice, annot),
              [
-               Num(Int(Pos), annot);
-               Num(Int(Pos), annot);
-               Num(Int(Neg), annot);
+               Num(Int(2), annot);
+               Num(Int(4), annot);
+               Num(Int(-1), annot);
              ],
              annot)));
   ]
@@ -1013,46 +1012,46 @@ let gen_binop_test (name : string) (prog : string) (lhs : 'a expr) (rhs : 'a exp
 let binop_tests =
   [
     (gen_binop_test "add_int_test" "42 + 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__add__");
+       (Num(Int(42), annot)) (Num(Int(9001), annot)) "__add__");
     (gen_binop_test "add_float_test" "42.0 + 9001.75"
-       (Num(Float(Pos), annot)) (Num(Float(Pos), annot)) "__add__");
+       (Num(Float(42.0), annot)) (Num(Float(9001.75), annot)) "__add__");
     (gen_binop_test "add_int_float_test" "42 + -9001.5"
-       (Num(Int(Pos), annot)) (Num(Float(Neg), annot)) "__add__");
+       (Num(Int(42), annot)) (Num(Float(-9001.5), annot)) "__add__");
 
     (gen_binop_test "add_str_test" "'foo' + 'bar'"
        (Str(StringLiteral("foo"), annot)) (Str(StringLiteral("bar"), annot)) "__add__");
     (gen_binop_test "add_int_str_test" "42 + 'foo'"
-       (Num(Int(Pos), annot)) (Str(StringLiteral("foo"), annot)) "__add__");
+       (Num(Int(42), annot)) (Str(StringLiteral("foo"), annot)) "__add__");
 
     (gen_binop_test "sub_int_test" "42 - 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__sub__");
+       (Num(Int(42), annot)) (Num(Int(9001), annot)) "__sub__");
     (gen_binop_test "mult_int_test" "42 * 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__mul__");
+       (Num(Int(42), annot)) (Num(Int(9001), annot)) "__mul__");
     (gen_binop_test "div_int_test" "42 / 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__div__");
+       (Num(Int(42), annot)) (Num(Int(9001), annot)) "__div__");
     (gen_binop_test "mod_int_test" "42 % 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__mod__");
+       (Num(Int(42), annot)) (Num(Int(9001), annot)) "__mod__");
     (gen_binop_test "pow_int_test" "42 ** 9001"
-       (Num(Int(Pos), annot)) (Num(Int(Pos), annot)) "__pow__");
+       (Num(Int(42), annot)) (Num(Int(9001), annot)) "__pow__");
 
     (gen_binop_test "triple_binop_test" "(42 - 9001) + 17"
-       (Call(Attribute(Num(Int(Pos), annot), "__sub__", annot),
-             [Num(Int(Pos), annot)],
+       (Call(Attribute(Num(Int(42), annot), "__sub__", annot),
+             [Num(Int(9001), annot)],
              annot))
-       (Num(Int(Pos), annot))
+       (Num(Int(17), annot))
        "__add__");
 
     (gen_binop_test "order_of_operations_test" "1+2*3"
-       (Num(Int(Pos), annot))
-       (Call(Attribute(Num(Int(Pos), annot), "__mul__", annot),
-             [Num(Int(Pos), annot)],
+       (Num(Int(1), annot))
+       (Call(Attribute(Num(Int(2), annot), "__mul__", annot),
+             [Num(Int(3), annot)],
              annot))
        "__add__");
   ]
 (* Run the tests *)
 
 let tests =
-  "abstract_ast">:::
+  "concrete_ast">:::
   [
     int_test;
     float_test;

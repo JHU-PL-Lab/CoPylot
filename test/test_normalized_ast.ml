@@ -4,9 +4,9 @@ open Jhupllib
 open Pp_utils
 open Python2_parser
 open Lexing
+open Python2_ast_types
 module Rename = Python2_rename_ast
 module Simplified = Python2_simplified_ast
-module Lift = Python2_ast_lifter
 module Simplify = Python2_ast_simplifier
 module Normalize = Python2_ast_normalizer
 open Python2_normalized_ast
@@ -58,12 +58,11 @@ and collect_uids_stmt s =
 let id_map = Rename.Id_map.empty;;
 
 let gen_module_test (name : string) (prog : string)
-    (expected : string)=
+    (expected : string) =
   name>::
   ( fun _ ->
       let concrete = parse_from_string_safe (prog ^ "\n") in
-      let abstract = Lift.lift_modl concrete in
-      let renamed = Rename.rename_modl id_map [] abstract in
+      let renamed = Rename.rename_modl id_map [] concrete in
       let simplified =
         (* Occasionally a test will fail; resetting here might help *)
         Simplify.reset_unique_name ();
@@ -91,13 +90,13 @@ let gen_literal_test name prog exp =
 
 let literal_tests =
   [
-    gen_literal_test "int+_test" "4" "Int+";
-    gen_literal_test "int0_test" "0" "Int0";
-    gen_literal_test "int-_test" "-4" "Int-";
+    gen_literal_test "int+_test" "4" "4";
+    gen_literal_test "int0_test" "0" "0";
+    gen_literal_test "int-_test" "-4" "-4";
 
-    gen_literal_test "float+_test" "4.0" "Float+";
-    gen_literal_test "float0_test" "0.0" "Float0";
-    gen_literal_test "float-_test" "-4.0" "Float-";
+    gen_literal_test "float+_test" "4.0" "4.000000";
+    gen_literal_test "float0_test" "0.0" "0.000000";
+    gen_literal_test "float-_test" "-4.0" "-4.000000";
 
     gen_literal_test "string_test" "'foo'" "\"foo\"";
 
@@ -133,10 +132,10 @@ let call_test = gen_module_test "call_test"
 
 let call_args_test = gen_module_test "call_args_test"
     "foo(1,x,2+3)"
-    ("@   2:    :F:  $norm0 = Int+;" ^
-     "\n@   4:    :F:  $norm1 = Int+;" ^
+    ("@   2:    :F:  $norm0 = 1;" ^
+     "\n@   4:    :F:  $norm1 = 2;" ^
      "\n@   6:    :F:  $norm2 = $norm1.__add__;" ^
-     "\n@   8:    :F:  $norm3 = Int+;" ^
+     "\n@   8:    :F:  $norm3 = 3;" ^
      "\n@  10:    :F:  $norm4 = $norm2($norm3);" ^
      "\n@  12:    :F:  $norm5 = foo($norm0, x, $norm4);" ^
      "\n@  13:    :F:  $norm5;")
@@ -145,7 +144,7 @@ let call_args_test = gen_module_test "call_args_test"
 
 let assign_test = gen_module_test "assign_test"
     "x = 5"
-    ("@   2:    :F:  $norm0 = Int+;" ^
+    ("@   2:    :F:  $norm0 = 5;" ^
      "\n@   4:    :F:  $simp0 = $norm0;" ^
      "\n@   6:    :F:  x = $simp0;")
 ;;
@@ -153,7 +152,7 @@ let assign_test = gen_module_test "assign_test"
 let augassign_test = gen_module_test "augassign_test"
     "x += 5"
     ("@   2:    :F:  $norm0 = x.__add__;" ^
-     "\n@   4:    :F:  $norm1 = Int+;" ^
+     "\n@   4:    :F:  $norm1 = 5;" ^
      "\n@   6:    :F:  $norm2 = $norm0($norm1);" ^
      "\n@   8:    :F:  $simp0 = $norm2;" ^
      "\n@  10:    :F:  x = $simp0;")
@@ -161,7 +160,7 @@ let augassign_test = gen_module_test "augassign_test"
 
 let multiassign_test = gen_module_test "multiassign_test"
     "x = y = 5"
-    ("@   2:    :F:  $norm0 = Int+;" ^
+    ("@   2:    :F:  $norm0 = 5;" ^
      "\n@   4:    :F:  $simp0 = $norm0;" ^
      "\n@   6:    :F:  x = $simp0;" ^
      "\n@   8:    :F:  y = $simp0;")
@@ -169,7 +168,7 @@ let multiassign_test = gen_module_test "multiassign_test"
 
 let assign_to_member_test = gen_module_test "assign_to_member_test"
     "x.mem = 5"
-    ("@   2:    :F:  $norm0 = Int+;" ^
+    ("@   2:    :F:  $norm0 = 5;" ^
      "\n@   4:    :F:  $simp0 = $norm0;" ^
      "\n@   6:    :F:  $norm1 = x.__setattr__;" ^
      "\n@   8:    :F:  $norm2 = \"mem\";" ^
@@ -179,22 +178,22 @@ let assign_to_member_test = gen_module_test "assign_to_member_test"
 
 let assign_to_index_test = gen_module_test "assign_to_index_test"
     "list[5] = 5"
-    ("@   2:    :F:  $norm0 = Int+;" ^
+    ("@   2:    :F:  $norm0 = 5;" ^
      "\n@   4:    :F:  $simp0 = $norm0;" ^
      "\n@   6:    :F:  $norm1 = list.__setitem__;" ^
-     "\n@   8:    :F:  $norm2 = Int+;" ^
+     "\n@   8:    :F:  $norm2 = 5;" ^
      "\n@  10:    :F:  $norm3 = $norm1($norm2, $simp0);" ^
      "\n@  11:    :F:  $norm3;")
 ;;
 
 let assign_to_slice_test = gen_module_test "assign_to_slice_test"
     "list[1:2] = 5"
-    ("@   2:    :F:  $norm0 = Int+;" ^
+    ("@   2:    :F:  $norm0 = 5;" ^
      "\n@   4:    :F:  $simp0 = $norm0;" ^
      "\n@   6:    :F:  $norm1 = list.__setitem__;" ^
      "\n@   8:    :F:  $norm2 = slice;" ^
-     "\n@  10:    :F:  $norm3 = Int+;" ^
-     "\n@  12:    :F:  $norm4 = Int+;" ^
+     "\n@  10:    :F:  $norm3 = 1;" ^
+     "\n@  12:    :F:  $norm4 = 2;" ^
      "\n@  14:    :F:  $norm5 = $norm2($norm3, $norm4, None);" ^
      "\n@  16:    :F:  $norm6 = $norm1($norm5, $simp0);" ^
      "\n@  17:    :F:  $norm6;")
@@ -202,8 +201,8 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
 
 let assign_from_tuple_test = gen_module_test "assign_from_tuple_test"
     "x,y = (1,2)"
-    ("@   2:    :F:  $norm0 = Int+;" ^
-     "\n@   4:    :F:  $norm1 = Int+;" ^
+    ("@   2:    :F:  $norm0 = 1;" ^
+     "\n@   4:    :F:  $norm1 = 2;" ^
      "\n@   6:    :F:  $norm2 = ($norm0, $norm1);" ^
      "\n@   8:    :F:  $simp0 = $norm2;" ^
      "\n@  10:    :F:  $norm3 = $simp0.__iter__;" ^
@@ -243,7 +242,7 @@ let assign_from_tuple_test = gen_module_test "assign_from_tuple_test"
      "\n@  65:    :F:  $norm23 = bool;" ^
      "\n@  67:    :F:  $norm24 = $norm23($norm22);" ^
      "\n@  77:    :F:  goto 76 if not $norm24;" ^
-     "\n@  69:    :F:  $norm25 = StringAbstract;" ^
+     "\n@  69:    :F:  $norm25 = \"too few values to unpack\";" ^
      "\n@  71:    :F:  $norm26 = ValueError($norm25);" ^
      "\n@  72:    :F:  raise $norm26;" ^
      "\n@  75:    :F:  goto 74;" ^
@@ -312,7 +311,7 @@ let boolop_and_test = gen_module_test "boolop_and_test"
     ("@   2:    :F:  $norm1 = bool;" ^
      "\n@   4:    :F:  $norm2 = $norm1(x);" ^
      "\n@  28:    :F:  goto 27 if not $norm2;" ^
-     "\n@   6:    :F:  $norm3 = Int+;" ^
+     "\n@   6:    :F:  $norm3 = 5;" ^
      "\n@   8:    :F:  $norm5 = bool;" ^
      "\n@  10:    :F:  $norm6 = $norm5($norm3);" ^
      "\n@  20:    :F:  goto 19 if not $norm6;" ^
@@ -338,7 +337,7 @@ let boolop_or_test = gen_module_test "boolop_or_test"
      "\n@   6:    :F:  $norm0 = x;" ^
      "\n@  26:    :F:  goto 25;" ^
      "\n@  27:    :F:  pass;" ^
-     "\n@   8:    :F:  $norm3 = Int+;" ^
+     "\n@   8:    :F:  $norm3 = 5;" ^
      "\n@  10:    :F:  $norm5 = bool;" ^
      "\n@  12:    :F:  $norm6 = $norm5($norm3);" ^
      "\n@  22:    :F:  goto 21 if not $norm6;" ^
@@ -405,12 +404,12 @@ let operator_tests =
 
 let list_test = gen_module_test "list_test"
     "[1,0.0,'foo',1-9]"
-    ("@   2:    :F:  $norm0 = Int+;" ^
-     "\n@   4:    :F:  $norm1 = Float0;" ^
+    ("@   2:    :F:  $norm0 = 1;" ^
+     "\n@   4:    :F:  $norm1 = 0.000000;" ^
      "\n@   6:    :F:  $norm2 = \"foo\";" ^
-     "\n@   8:    :F:  $norm3 = Int+;" ^
+     "\n@   8:    :F:  $norm3 = 1;" ^
      "\n@  10:    :F:  $norm4 = $norm3.__sub__;" ^
-     "\n@  12:    :F:  $norm5 = Int+;" ^
+     "\n@  12:    :F:  $norm5 = 9;" ^
      "\n@  14:    :F:  $norm6 = $norm4($norm5);" ^
      "\n@  16:    :F:  $norm7 = [$norm0, $norm1, $norm2, $norm6];" ^
      "\n@  17:    :F:  $norm7;")
@@ -419,12 +418,12 @@ let list_test = gen_module_test "list_test"
 
 let tuple_test = gen_module_test "tuple_test"
     "(1,0.0,'foo',f(3+33))"
-    ("@   2:    :F:  $norm0 = Int+;" ^
-     "\n@   4:    :F:  $norm1 = Float0;" ^
+    ("@   2:    :F:  $norm0 = 1;" ^
+     "\n@   4:    :F:  $norm1 = 0.000000;" ^
      "\n@   6:    :F:  $norm2 = \"foo\";" ^
-     "\n@   8:    :F:  $norm3 = Int+;" ^
+     "\n@   8:    :F:  $norm3 = 3;" ^
      "\n@  10:    :F:  $norm4 = $norm3.__add__;" ^
-     "\n@  12:    :F:  $norm5 = Int+;" ^
+     "\n@  12:    :F:  $norm5 = 33;" ^
      "\n@  14:    :F:  $norm6 = $norm4($norm5);" ^
      "\n@  16:    :F:  $norm7 = f($norm6);" ^
      "\n@  18:    :F:  $norm8 = ($norm0, $norm1, $norm2, $norm7);" ^
@@ -435,7 +434,7 @@ let tuple_test = gen_module_test "tuple_test"
 let index_test = gen_module_test "index_test"
     "list[0]"
     ("@   2:    :F:  $norm0 = list.__getitem__;" ^
-     "\n@   4:    :F:  $norm1 = Int0;" ^
+     "\n@   4:    :F:  $norm1 = 0;" ^
      "\n@   6:    :F:  $norm2 = $norm0($norm1);" ^
      "\n@   7:    :F:  $norm2;")
 ;;
@@ -444,8 +443,8 @@ let slice_test = gen_module_test "slice_test"
     "list[1:2]"
     ("@   2:    :F:  $norm0 = list.__getitem__;" ^
      "\n@   4:    :F:  $norm1 = slice;" ^
-     "\n@   6:    :F:  $norm2 = Int+;" ^
-     "\n@   8:    :F:  $norm3 = Int+;" ^
+     "\n@   6:    :F:  $norm2 = 1;" ^
+     "\n@   8:    :F:  $norm3 = 2;" ^
      "\n@  10:    :F:  $norm4 = $norm1($norm2, $norm3, None);" ^
      "\n@  12:    :F:  $norm5 = $norm0($norm4);" ^
      "\n@  13:    :F:  $norm5;")
@@ -457,7 +456,7 @@ let if_test = gen_module_test "if_test"
       "@   2:    :F:  $norm0 = bool;" ^
       "\n@   4:    :F:  $norm1 = $norm0(x);" ^
       "\n@  31:    :F:  goto 30 if not $norm1;" ^
-      "\n@   6:    :F:  $norm2 = Int+;" ^
+      "\n@   6:    :F:  $norm2 = 1;" ^
       "\n@   8:    :F:  $simp1 = $norm2;" ^
       "\n@  10:    :F:  z = $simp1;" ^
       "\n@  29:    :F:  goto 28;" ^
@@ -465,12 +464,12 @@ let if_test = gen_module_test "if_test"
       "\n@  12:    :F:  $norm3 = bool;" ^
       "\n@  14:    :F:  $norm4 = $norm3(y);" ^
       "\n@  27:    :F:  goto 26 if not $norm4;" ^
-      "\n@  16:    :F:  $norm5 = Int-;" ^
+      "\n@  16:    :F:  $norm5 = -1;" ^
       "\n@  18:    :F:  $simp0 = $norm5;" ^
       "\n@  20:    :F:  z = $simp0;" ^
       "\n@  25:    :F:  goto 24;" ^
       "\n@  26:    :F:  pass;" ^
-      "\n@  22:    :F:  $norm6 = Int0;" ^
+      "\n@  22:    :F:  $norm6 = 0;" ^
       "\n@  23:    :F:  $norm6;" ^
       "\n@  24:    :F:  pass;" ^
       "\n@  28:    :F:  pass;"
@@ -483,18 +482,18 @@ let ifexp_test = gen_module_test "ifexp_test"
       "@   2:    :F:  $norm1 = bool;" ^
       "\n@   4:    :F:  $norm2 = $norm1(x);" ^
       "\n@  30:    :F:  goto 29 if not $norm2;" ^
-      "\n@   6:    :F:  $norm3 = Int+;" ^
+      "\n@   6:    :F:  $norm3 = 1;" ^
       "\n@   8:    :F:  $norm0 = $norm3;" ^
       "\n@  28:    :F:  goto 27;" ^
       "\n@  29:    :F:  pass;" ^
       "\n@  10:    :F:  $norm5 = bool;" ^
       "\n@  12:    :F:  $norm6 = $norm5(y);" ^
       "\n@  24:    :F:  goto 23 if not $norm6;" ^
-      "\n@  14:    :F:  $norm7 = Int-;" ^
+      "\n@  14:    :F:  $norm7 = -1;" ^
       "\n@  16:    :F:  $norm4 = $norm7;" ^
       "\n@  22:    :F:  goto 21;" ^
       "\n@  23:    :F:  pass;" ^
-      "\n@  18:    :F:  $norm8 = Int0;" ^
+      "\n@  18:    :F:  $norm8 = 0;" ^
       "\n@  20:    :F:  $norm4 = $norm8;" ^
       "\n@  21:    :F:  pass;" ^
       "\n@  26:    :F:  $norm0 = $norm4;" ^
@@ -515,7 +514,7 @@ let tryexcept_test = gen_module_test "tryexcept_test"
       "\n  print 'got an int'"
     end
     begin
-      "@   4:   1:F:  $norm1 = Int+;" ^
+      "@   4:   1:F:  $norm1 = 5;" ^
       "\n@   6:   1:F:  $simp0 = $norm1;" ^
       "\n@   8:   1:F:  x = $simp0;" ^
       "\n@  10:   1:F:  $norm2 = somefunction();" ^
@@ -559,7 +558,7 @@ let funcdef_test = gen_module_test "funcdef_test"
       "\nx = f()"
     end
     begin
-      "@   7:    :F:  $norm0 = fun() {" ^
+      "@   7:    :F:  $norm0 = def () {" ^
       "\n@   2:    :F:    $simp0 = f;" ^
       "\n@   4:    :F:    f$1_x = $simp0;" ^
       "\n@   5:    :F:    return n;" ^
@@ -579,7 +578,7 @@ let funcdef_args_test = gen_module_test "funcdef_args_test"
       "\nx = f(z)"
     end
     begin
-      "@   7:    :F:  $norm0 = fun(f$1_x, f$1_y) {" ^
+      "@   7:    :F:  $norm0 = def (f$1_x, f$1_y) {" ^
       "\n@   2:    :F:    $simp0 = f;" ^
       "\n@   4:    :F:    f$1_x = $simp0;" ^
       "\n@   5:    :F:    return n;" ^
@@ -594,14 +593,14 @@ let funcdef_args_test = gen_module_test "funcdef_args_test"
 let while_test = gen_module_test "while_test"
     "while x < 3:\n\tx += 1"
     ("@  11:    :T:  pass;" ^
-     "\n@   2:    :T:  $norm0 = Int+;" ^
+     "\n@   2:    :T:  $norm0 = 3;" ^
      "\n@   4:    :T:  $norm1 = x.__lt__;" ^
      "\n@   6:    :T:  $norm2 = $norm1($norm0);" ^
      "\n@   8:    :T:  $norm3 = bool;" ^
      "\n@  10:    :T:  $norm4 = $norm3($norm2);" ^
      "\n@  23:    :T:  goto 12 if not $norm4;" ^
      "\n@  14:    :T:  $norm5 = x.__add__;" ^
-     "\n@  16:    :T:  $norm6 = Int+;" ^
+     "\n@  16:    :T:  $norm6 = 1;" ^
      "\n@  18:    :T:  $norm7 = $norm5($norm6);" ^
      "\n@  20:    :T:  $simp0 = $norm7;" ^
      "\n@  22:    :T:  x = $simp0;" ^
@@ -613,7 +612,7 @@ let while_test = gen_module_test "while_test"
 let break_test = gen_module_test "break_test"
     "while x < 3:\n\tbreak"
     ("@  11:    :T:  pass;" ^
-     "\n@   2:    :T:  $norm0 = Int+;" ^
+     "\n@   2:    :T:  $norm0 = 3;" ^
      "\n@   4:    :T:  $norm1 = x.__lt__;" ^
      "\n@   6:    :T:  $norm2 = $norm1($norm0);" ^
      "\n@   8:    :T:  $norm3 = bool;" ^
@@ -627,7 +626,7 @@ let break_test = gen_module_test "break_test"
 let continue_test = gen_module_test "continue_test"
     "while x < 3:\n\tcontinue"
     ("@  11:    :T:  pass;" ^
-     "\n@   2:    :T:  $norm0 = Int+;" ^
+     "\n@   2:    :T:  $norm0 = 3;" ^
      "\n@   4:    :T:  $norm1 = x.__lt__;" ^
      "\n@   6:    :T:  $norm2 = $norm1($norm0);" ^
      "\n@   8:    :T:  $norm3 = bool;" ^
@@ -645,8 +644,8 @@ let for_test = gen_module_test "for_test"
       "\n    print i"
     end
     begin
-      "@   2:    :F:  $norm0 = Int-;" ^
-      "\n@   4:    :F:  $norm1 = Int+;" ^
+      "@   2:    :F:  $norm0 = -1;" ^
+      "\n@   4:    :F:  $norm1 = 1;" ^
       "\n@   6:    :F:  $norm2 = [$norm0, $norm1];" ^
       "\n@   8:    :F:  $norm3 = $norm2.__iter__;" ^
       "\n@  10:    :F:  $norm4 = $norm3();" ^
@@ -661,7 +660,7 @@ let for_test = gen_module_test "for_test"
       "\n@  28:  17:T:  $norm10 = $simp0();" ^
       "\n@  30:  17:T:  $simp2 = $norm10;" ^
       "\n@  32:  17:T:  i = $simp2;" ^
-      "\n@  34:  17:T:  $norm11 = Int+;" ^
+      "\n@  34:  17:T:  $norm11 = 3;" ^
       "\n@  36:  17:T:  $norm12 = i.__lt__;" ^
       "\n@  38:  17:T:  $norm13 = $norm12($norm11);" ^
       "\n@  40:  17:T:  $norm14 = bool;" ^
@@ -698,8 +697,8 @@ let expect_error_test
   name>::
   (fun _ ->
      let concrete = parse_from_string_safe (prog ^ "\n") in
-     let abstract = Lift.lift_modl concrete in
-     let simplified = Simplify.simplify_modl abstract in
+     let renamed = Rename.rename_modl id_map [] concrete in
+     let simplified = Simplify.simplify_modl renamed in
      let ctx = create_new_uid_context () in
      Simplify.reset_unique_name ();
      assert_raises

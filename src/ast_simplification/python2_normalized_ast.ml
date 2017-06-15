@@ -1,20 +1,6 @@
-type uid = int
-[@@deriving eq, ord, show, to_yojson]
-;;
+open Python2_ast_types
 
-type identifier = string
-[@@deriving eq, ord, show, to_yojson]
-
-and 'a annotation =
-    {
-      uid: uid;
-      exception_target: uid option;
-      multi: bool;
-      body: 'a;
-    }
-[@@deriving eq, ord, show, to_yojson]
-
-and annotated_stmt = stmt annotation
+type annotated_stmt = stmt annotation
 [@@deriving eq, ord, show, to_yojson]
 
 and annotated_expr = expr annotation
@@ -53,16 +39,12 @@ and literal =
   | FunctionVal of identifier list (* args *) * annotated_stmt list (* body *)
 [@@deriving eq, ord, show, to_yojson]
 
-and sign = Pos | Neg | Zero
-[@@deriving eq, ord, show, to_yojson]
-
 and number =
-    | Int of sign
-  | Float of sign
+    | Int of int
+  | Float of float
 [@@deriving eq, ord, show, to_yojson]
 
 and str =
-    | StringAbstract
   | StringLiteral of string
 [@@deriving eq, ord, show, to_yojson]
 

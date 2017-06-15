@@ -1,7 +1,6 @@
-type identifier = string
-[@@deriving eq, ord, show]
+open Python2_ast_types
 
-and 'a modl =
+type 'a modl =
     | Module of 'a stmt list (* body *) * 'a
 [@@deriving eq, ord, show]
 
@@ -47,16 +46,12 @@ and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
 and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * identifier option (* name *) * 'a stmt list (* body *) * 'a
 [@@deriving eq, ord, show]
 
-and sign = Pos | Neg | Zero
-[@@deriving eq, ord, show]
-
 and number =
-    | Int of sign
-  | Float of sign
+    | Int of int
+  | Float of float
 [@@deriving eq, ord, show]
 
 and str =
-    | StringAbstract
   | StringLiteral of string
 [@@deriving eq, ord, show]
 

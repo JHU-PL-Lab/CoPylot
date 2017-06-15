@@ -1,4 +1,5 @@
-module Abstract = Python2_abstract_ast
+open Python2_ast_types
+module Concrete = Python2_ast
 module Simplified = Python2_simplified_ast
 exception Identifier_Only
 
@@ -29,16 +30,16 @@ let simplify_option func o =
   | Some(x) -> Some(func x)
 ;;
 
-let rec simplify_modl (m : 'a Abstract.modl) : 'a Simplified.modl =
+let rec simplify_modl (m : 'a Concrete.modl) : 'a Simplified.modl =
   match m with
-  | Abstract.Module (body, annot) ->
+  | Concrete.Module (body, annot) ->
     Simplified.Module(map_and_concat simplify_stmt body, annot)
 
 and simplify_stmt
-    (s : 'a Abstract.stmt)
+    (s : 'a Concrete.stmt)
   : 'a Simplified.stmt list =
   match s with
-  | Abstract.FunctionDef (func_name, args, body, _, annot)->
+  | Concrete.FunctionDef (func_name, args, body, _, annot)->
     let simplified_args = simplify_arguments args in
     let simplified_body = map_and_concat simplify_stmt body in
     [Simplified.Assign(func_name,
@@ -48,10 +49,10 @@ and simplify_stmt
                          annot),
                        annot)]
 
-  | Abstract.Return (value, annot) ->
+  | Concrete.Return (value, annot) ->
     [Simplified.Return(simplify_expr_option value, annot)]
 
-  | Abstract.Assign (targets, value, annot) ->
+  | Concrete.Assign (targets, value, annot) ->
     (* Assignments are very complicated, with different behavior depending
        on the lvalue.
 
@@ -68,12 +69,12 @@ and simplify_stmt
     let simplify_assignment =
       (fun e ->
          match e with
-         | Abstract.Name (id, _, _) ->
+         | Concrete.Name (id, _, _) ->
            [Simplified.Assign(id,
                               value_name,
                               annot)]
 
-         | Abstract.Attribute (obj, id, _, _) ->
+         | Concrete.Attribute (obj, id, _, _) ->
            [Simplified.Expr(
                Simplified.Call(
                  Simplified.Attribute(
@@ -87,7 +88,7 @@ and simplify_stmt
                  annot),
                annot)]
 
-         | Abstract.Subscript (lst, slice, _, _) ->
+         | Concrete.Subscript (lst, slice, _, _) ->
            [Simplified.Expr(
                Simplified.Call(
                  Simplified.Attribute(
@@ -129,8 +130,8 @@ and simplify_stmt
             j = tmp_j
             k = tmp_k
          *)
-         | Abstract.List (elts, _, _)
-         | Abstract.Tuple (elts, _, _) ->
+         | Concrete.List (elts, _, _)
+         | Concrete.Tuple (elts, _, _) ->
            let next_val = gen_unique_name annot in
            let bind_next_val = (* next_val = seq.__iter__().next *)
              Simplified.Assign(
@@ -149,8 +150,8 @@ and simplify_stmt
            let tmp_bindings =
              List.fold_left
                (fun
-                 (prev : Abstract.identifier list * 'a Simplified.stmt list)
-                 (_ : 'a Abstract.expr) ->
+                 (prev : Concrete.identifier list * 'a Simplified.stmt list)
+                 (_ : 'a Concrete.expr) ->
                  let tmp_name = gen_unique_name annot in
                  let next_assignment =
                    [
@@ -200,7 +201,9 @@ and simplify_stmt
                        Simplified.Call(
                          Simplified.Name("ValueError", annot),
                          [Simplified.Str(
-                             Simplified.StringAbstract,
+                             (* TODO: In Python this has the actual number of
+                                elts that it successfully unpacked *)
+                             Simplified.StringLiteral("too few values to unpack"),
                              annot)],
                          annot),
                        annot);
@@ -218,11 +221,11 @@ and simplify_stmt
            let assignment_list =
              List.map2
                (fun
-                 (tuple_elt : 'a Abstract.expr)
-                 (tmp_name : Abstract.identifier) ->
-                 Abstract.Assign(
+                 (tuple_elt : 'a Concrete.expr)
+                 (tmp_name : Concrete.identifier) ->
+                 Concrete.Assign(
                    [tuple_elt],
-                   Abstract.Name(tmp_name, Abstract.Load, annot),
+                   Concrete.Name(tmp_name, Concrete.Load, annot),
                    annot)
                )
                elts (fst tmp_bindings)
@@ -230,29 +233,29 @@ and simplify_stmt
            verification @
            map_and_concat simplify_stmt assignment_list
 
-         | Abstract.BoolOp _
-         | Abstract.BinOp _
-         | Abstract.UnaryOp _ -> failwith "can't assign to operator"
-         | Abstract.IfExp _ -> failwith "can't assign to conditional expression"
-         | Abstract.Compare _ -> failwith "can't assign to comparison"
-         | Abstract.Call _ -> failwith "can't assign to function call"
-         | Abstract.Num _
-         | Abstract.Str _
-         | Abstract.Bool _ -> failwith "can't assign to literal"
+         | Concrete.BoolOp _
+         | Concrete.BinOp _
+         | Concrete.UnaryOp _ -> failwith "can't assign to operator"
+         | Concrete.IfExp _ -> failwith "can't assign to conditional expression"
+         | Concrete.Compare _ -> failwith "can't assign to comparison"
+         | Concrete.Call _ -> failwith "can't assign to function call"
+         | Concrete.Num _
+         | Concrete.Str _
+         | Concrete.Bool _ -> failwith "can't assign to literal"
       ) in
     [value_assignment] @ (map_and_concat simplify_assignment targets)
 
-  | Abstract.AugAssign (target, op, value, annot) ->
+  | Concrete.AugAssign (target, op, value, annot) ->
     (* Convert to a standard assignment, then simplify that *)
     let regAssign =
-      Abstract.Assign(
+      Concrete.Assign(
         [target],
-        Abstract.BinOp(target, op, value, annot),
+        Concrete.BinOp(target, op, value, annot),
         annot
       ) in
     simplify_stmt regAssign
 
-  | Abstract.Print (dest, values, nl, annot) ->
+  | Concrete.Print (dest, values, nl, annot) ->
     [Simplified.Print (
         simplify_expr_option dest,
         List.map simplify_expr values,
@@ -260,7 +263,7 @@ and simplify_stmt
         annot
       )]
 
-  | Abstract.For (target, seq, body, _, annot) ->
+  | Concrete.For (target, seq, body, _, annot) ->
     (* For loops are always over some iterable. According to the docs,
        they loop until they are told to stop, or their iterator stops
        returning objects.
@@ -269,7 +272,7 @@ and simplify_stmt
        body's code is executed. When there are no elements of the iterable
        to assign, the loop terminates.
 
-       We handle for loops by turning them into an abstract while loop,
+       We handle for loops by turning them into a concrete while loop,
        then simplifying the resulting code. Specifically, we turn
 
        for i in seq:
@@ -288,14 +291,14 @@ and simplify_stmt
     *)
     let next_val = gen_unique_name annot in
     let bind_next_val = (* next_val = seq.__iter__().next_val *)
-      Abstract.Assign(
-        [Abstract.Name(next_val, Abstract.Store, annot)],
-        Abstract.Attribute(
-          Abstract.Call(
-            Abstract.Attribute(
+      Concrete.Assign(
+        [Concrete.Name(next_val, Concrete.Store, annot)],
+        Concrete.Attribute(
+          Concrete.Call(
+            Concrete.Attribute(
               seq,
               "__iter__",
-              Abstract.Load,
+              Concrete.Load,
               annot
             ),
             [],
@@ -305,16 +308,16 @@ and simplify_stmt
             annot
           ),
           "next",
-          Abstract.Load,
+          Concrete.Load,
           annot
         ),
         annot
       ) in
     let assign_target = (* i = next_val() *)
-      Abstract.Assign(
+      Concrete.Assign(
         [target],
-        Abstract.Call(
-          Abstract.Name(next_val, Abstract.Load, annot),
+        Concrete.Call(
+          Concrete.Name(next_val, Concrete.Load, annot),
           [],
           [],
           None,
@@ -324,37 +327,37 @@ and simplify_stmt
         annot
       ) in
     let while_loop = (* while True: i = next_val(); <body> *)
-      Abstract.While(
-        Abstract.Bool(true, annot),
+      Concrete.While(
+        Concrete.Bool(true, annot),
         [assign_target] @ body,
         [],
         annot
       ) in
     let try_except = (* try: <while>; except StopIteration: pass *)
-      Abstract.TryExcept(
+      Concrete.TryExcept(
         [while_loop],
-        [Abstract.ExceptHandler(
-            Some(Abstract.Name("StopIteration", Abstract.Load, annot)),
+        [Concrete.ExceptHandler(
+            Some(Concrete.Name("StopIteration", Concrete.Load, annot)),
             None,
-            [Abstract.Pass(annot)],
+            [Concrete.Pass(annot)],
             annot
           )],
         [],
         annot
       ) in
     map_and_concat simplify_stmt [bind_next_val; try_except]
-  | Abstract.While (test, body, _, annot) ->
+  | Concrete.While (test, body, _, annot) ->
     [Simplified.While(simplify_expr test,
                       map_and_concat simplify_stmt body,
                       annot)]
 
-  | Abstract.If (test, body, orelse, annot) ->
+  | Concrete.If (test, body, orelse, annot) ->
     [Simplified.If(simplify_expr test,
                    map_and_concat simplify_stmt body,
                    map_and_concat simplify_stmt orelse,
                    annot)]
 
-  | Abstract.Raise (typ, _, _, annot) ->
+  | Concrete.Raise (typ, _, _, annot) ->
     let simplified_typ =
       match typ with
       | None -> failwith "Raise must have exactly one argument"
@@ -362,37 +365,37 @@ and simplify_stmt
     in
     [Simplified.Raise(simplified_typ, annot)]
 
-  | Abstract.TryExcept (body, handlers, _, annot) ->
+  | Concrete.TryExcept (body, handlers, _, annot) ->
     [Simplified.TryExcept (
         map_and_concat simplify_stmt body,
         List.map simplify_excepthandler handlers,
         annot)]
 
-  | Abstract.Expr (e, annot) ->
+  | Concrete.Expr (e, annot) ->
     [Simplified.Expr(simplify_expr e, annot)]
 
-  | Abstract.Pass (annot) ->
+  | Concrete.Pass (annot) ->
     [Simplified.Pass (annot)]
 
-  | Abstract.Break (annot) ->
+  | Concrete.Break (annot) ->
     [Simplified.Break (annot)]
 
-  | Abstract.Continue (annot) ->
+  | Concrete.Continue (annot) ->
     [Simplified.Continue(annot)]
 
-(* Given an abstract expr, returns a list of statements, corresponding to
+(* Given a concrete expr, returns a list of statements, corresponding to
    the assignments necessary to compute it, and the name of the final
    variable that was bound *)
 and simplify_expr
-    (e : 'a Abstract.expr)
+    (e : 'a Concrete.expr)
   : 'a Simplified.expr =
   match e with
-  | Abstract.BoolOp (op, values, annot) ->
+  | Concrete.BoolOp (op, values, annot) ->
     Simplified.BoolOp (simplify_boolop op,
                        List.map simplify_expr values,
                        annot)
 
-  | Abstract.BinOp (left, op, right, annot) ->
+  | Concrete.BinOp (left, op, right, annot) ->
     Simplified.Call(
       Simplified.Attribute(
         simplify_expr left,
@@ -401,17 +404,17 @@ and simplify_expr
       [simplify_expr right],
       annot)
 
-  | Abstract.UnaryOp (op, operand, annot) ->
+  | Concrete.UnaryOp (op, operand, annot) ->
     begin
       match op with
-      | Abstract.Not ->
+      | Concrete.Not ->
         Simplified.IfExp(
           simplify_expr operand,
           Simplified.Bool(false, annot),
           Simplified.Bool(true, annot),
           annot)
 
-      | Abstract.UAdd ->
+      | Concrete.UAdd ->
         Simplified.Call(
           Simplified.Attribute(
             simplify_expr operand,
@@ -420,7 +423,7 @@ and simplify_expr
           [],
           annot)
 
-      | Abstract.USub -> Simplified.Call(
+      | Concrete.USub -> Simplified.Call(
           Simplified.Attribute(
             simplify_expr operand,
             "__neg__",
@@ -429,37 +432,37 @@ and simplify_expr
           annot)
     end
 
-  | Abstract.IfExp (test, body, orelse, annot) ->
+  | Concrete.IfExp (test, body, orelse, annot) ->
     Simplified.IfExp (simplify_expr test,
                       simplify_expr body,
                       simplify_expr orelse,
                       annot)
 
-  | Abstract.Compare (left, ops, comparators, annot) ->
+  | Concrete.Compare (left, ops, comparators, annot) ->
     Simplified.Compare (simplify_expr left,
                         List.map simplify_cmpop ops,
                         List.map simplify_expr comparators,
                         annot)
 
-  | Abstract.Call (func, args, _, _, _, annot) ->
+  | Concrete.Call (func, args, _, _, _, annot) ->
     Simplified.Call (simplify_expr func,
                      List.map simplify_expr args,
                      annot)
 
-  | Abstract.Num (n, annot) ->
+  | Concrete.Num (n, annot) ->
     Simplified.Num(simplify_number n, annot)
 
-  | Abstract.Str (typ, annot) ->
+  | Concrete.Str (typ, annot) ->
     Simplified.Str(simplify_str typ, annot)
 
-  | Abstract.Bool (b, annot) ->
+  | Concrete.Bool (b, annot) ->
     Simplified.Bool(b, annot)
 
-  | Abstract.Attribute (obj, attr, _, annot) ->
+  | Concrete.Attribute (obj, attr, _, annot) ->
     Simplified.Attribute (simplify_expr obj, attr, annot)
 
   (* Turn subscripts into calls to __getitem__() *)
-  | Abstract.Subscript (value, slice, _, annot) ->
+  | Concrete.Subscript (value, slice, _, annot) ->
     Simplified.Call(
       Simplified.Attribute(
         simplify_expr value,
@@ -468,17 +471,17 @@ and simplify_expr
       [simplify_slice slice annot],
       annot)
 
-  | Abstract.Name (id, _, annot) -> (* Throw out context *)
+  | Concrete.Name (id, _, annot) -> (* Throw out context *)
     Simplified.Name(id, annot)
 
-  | Abstract.List (elts, _, annot) ->
+  | Concrete.List (elts, _, annot) ->
     Simplified.List (List.map simplify_expr elts, annot)
 
-  | Abstract.Tuple (elts, _, annot) ->
+  | Concrete.Tuple (elts, _, annot) ->
     Simplified.Tuple (List.map simplify_expr elts, annot)
 
 and simplify_expr_option
-    (o : 'a Abstract.expr option)
+    (o : 'a Concrete.expr option)
   : 'a Simplified.expr option =
   let simplified_opt = simplify_option simplify_expr o in
   match simplified_opt with
@@ -489,7 +492,7 @@ and simplify_expr_option
    the same arguments. E.g. 1:2:3 becomes slice(1,2,3), and
    1:2 becomes slice (1,2,None) *)
 and simplify_slice
-    (s : 'a Abstract.slice)
+    (s : 'a Concrete.slice)
     annot
   : 'a Simplified.expr =
   (* Turn a "None" option into the python "None" object, and turn a
@@ -502,7 +505,7 @@ and simplify_slice
       simplify_expr x
   in
   match s with
-  | Abstract.Slice (lower, upper, step) ->
+  | Concrete.Slice (lower, upper, step) ->
     let args_list =
       [
         exp_opt_to_slice_arg lower;
@@ -514,37 +517,37 @@ and simplify_slice
       args_list,
       annot
     )
-  | Abstract.Index (value) ->
+  | Concrete.Index (value) ->
     simplify_expr value
 
 and simplify_boolop b =
   match b with
-  | Abstract.And -> Simplified.And
-  | Abstract.Or -> Simplified.Or
+  | Concrete.And -> Simplified.And
+  | Concrete.Or -> Simplified.Or
 
 and simplify_operator o =
   match o with
-  | Abstract.Add -> "__add__"
-  | Abstract.Sub -> "__sub__"
-  | Abstract.Mult -> "__mul__"
-  | Abstract.Div -> "__div__"
-  | Abstract.Mod -> "__mod__"
-  | Abstract.Pow -> "__pow__"
+  | Concrete.Add -> "__add__"
+  | Concrete.Sub -> "__sub__"
+  | Concrete.Mult -> "__mul__"
+  | Concrete.Div -> "__div__"
+  | Concrete.Mod -> "__mod__"
+  | Concrete.Pow -> "__pow__"
 
 and simplify_cmpop o =
   match o with
-  | Abstract.Eq -> Simplified.Eq
-  | Abstract.NotEq -> Simplified.NotEq
-  | Abstract.Lt -> Simplified.Lt
-  | Abstract.LtE -> Simplified.LtE
-  | Abstract.Gt -> Simplified.Gt
-  | Abstract.GtE -> Simplified.GtE
-  | Abstract.In -> Simplified.In
-  | Abstract.NotIn -> Simplified.NotIn
+  | Concrete.Eq -> Simplified.Eq
+  | Concrete.NotEq -> Simplified.NotEq
+  | Concrete.Lt -> Simplified.Lt
+  | Concrete.LtE -> Simplified.LtE
+  | Concrete.Gt -> Simplified.Gt
+  | Concrete.GtE -> Simplified.GtE
+  | Concrete.In -> Simplified.In
+  | Concrete.NotIn -> Simplified.NotIn
 
 and simplify_excepthandler h =
   match h with
-  | Abstract.ExceptHandler (typ, name, body, annot) ->
+  | Concrete.ExceptHandler (typ, name, body, annot) ->
     let new_typ =
       match typ with
       | None -> None
@@ -553,7 +556,7 @@ and simplify_excepthandler h =
     let new_name =
       match name with
       | None -> None
-      | Some(Abstract.Name(id,_,_)) -> Some(id)
+      | Some(Concrete.Name(id,_,_)) -> Some(id)
       | _ -> failwith "Second argument to exception handler must be an identifier"
     in
     Simplified.ExceptHandler (
@@ -562,29 +565,23 @@ and simplify_excepthandler h =
       map_and_concat simplify_stmt body,
       annot)
 
-and simplify_arguments a : Simplified.identifier list =
+and simplify_arguments a : identifier list =
   match a with
   | (args, _, _, _) ->
     List.map
       (fun arg ->
          match arg with
-         | Abstract.Name (id, _, _) -> id
+         | Concrete.Name (id, _, _) -> id
          | _ -> failwith "The arguments in a function definition must be identifiers"
       )
       args
 
-and simplify_sign s =
-  match s with
-  | Abstract.Pos -> Simplified.Pos
-  | Abstract.Neg -> Simplified.Neg
-  | Abstract.Zero -> Simplified.Zero
-
 and simplify_number n =
   match n with
-  | Abstract.Int sgn -> Simplified.Int(simplify_sign sgn)
-  | Abstract.Float sgn -> Simplified.Float(simplify_sign sgn)
+  | Concrete.Int n
+  | Concrete.LongInt n -> Simplified.Int(n)
+  | Concrete.Float f -> Simplified.Float(f)
+
 
 and simplify_str s =
-  match s with
-  | Abstract.StringAbstract -> Simplified.StringAbstract
-  | Abstract.StringLiteral (s) -> Simplified.StringLiteral (s)
+  Simplified.StringLiteral (s)

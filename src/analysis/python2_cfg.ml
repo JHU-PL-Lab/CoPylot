@@ -1,5 +1,5 @@
 open Batteries;;
-open Python2_normalized_ast;;
+open Python2_abstract_ast;;
 
 type vertex =
   | Program_point of annotated_stmt

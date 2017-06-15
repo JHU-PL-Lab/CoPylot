@@ -6,7 +6,8 @@ open Python2_pds;;
 open Python2_pds.Reachability.Stack_action.T;;
 open Python2_pds.Reachability.Terminus.T;;
 open Python2_pds.Dph.Untargeted_dynamic_pop_action;;
-module Ast = Python2_normalized_ast;;
+open Python2_ast_types;;
+module Ast = Python2_abstract_ast;;
 open Ast;;
 
 let literal_to_answer l =

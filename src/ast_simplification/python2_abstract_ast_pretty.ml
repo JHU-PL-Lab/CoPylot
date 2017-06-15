@@ -1,6 +1,6 @@
 open Format
 open Python2_ast_types
-open Python2_normalized_ast
+open Python2_abstract_ast
 
 (* Default pretty printing *)
 
@@ -95,11 +95,17 @@ and pp_literal indent fmt = function
   | FunctionVal (args, body) -> pp_functionval indent fmt args body
 
 and pp_num fmt = function
-  | Int n   -> fprintf fmt "%d" n
-  | Float f -> fprintf fmt "%f" f
+  | Int sgn   -> fprintf fmt "Int%a" pp_sign sgn
+  | Float sgn -> fprintf fmt "Float%a" pp_sign sgn
 
 and pp_str fmt = function
+  | StringAbstract -> fprintf fmt "StringAbstract"
   | StringLiteral s -> fprintf fmt "\"%s\"" (String.escaped s)
+
+and pp_sign fmt = function
+  | Pos  -> fprintf fmt "+"
+  | Neg  -> fprintf fmt "-"
+  | Zero -> fprintf fmt "0"
 
 and pp_builtin fmt = function
   | Builtin_slice -> fprintf fmt "slice"
@@ -107,7 +113,7 @@ and pp_builtin fmt = function
   | Builtin_type  -> fprintf fmt "type"
 
 and pp_functionval indent fmt args body =
-  fprintf fmt "def (%a) {\n%a\n}"
+  fprintf fmt "fun(%a) {\n%a\n}"
     (pp_list pp_id) args
     (pp_lines (pp_stmt (indent ^ "  "))) body
 

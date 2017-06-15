@@ -1,12 +1,12 @@
 %{
   open Python2_ast_types
-  open Python2_normalized_ast
+  open Python2_abstract_ast
   open Python2_pys_utils
 %}
 
 /* literals */
 %token <string> NAME
-%token <Python2_normalized_ast.number> NUM
+%token <Python2_abstract_ast.number> NUM
 %token <bool> BOOL
 /*%token <string> STR*/
 
@@ -42,7 +42,7 @@
 %token  SEMICOLON
 %token  DOT
 %token  COMMA
-/*%token <Python2_normalized_ast.sign> SGN*/
+/*%token <Python2_abstract_ast.sign> SGN*/
 %token  END
 
 /* other */
@@ -50,13 +50,13 @@
 %token <bool> LOOP
 
 %start file_input
-%type <Python2_normalized_ast.modl> file_input
+%type <Python2_abstract_ast.modl> file_input
 
 %start stmt_input
-%type <Python2_normalized_ast.annotated_stmt> stmt_input
+%type <Python2_abstract_ast.annotated_stmt> stmt_input
 
 %start expr_input
-%type <Python2_normalized_ast.annotated_expr> expr_input
+%type <Python2_abstract_ast.annotated_expr> expr_input
 
 
 %%
@@ -120,6 +120,7 @@ lst:
 expr_wrapper:
   | expr_annot expr
     { $1 $2 }
+
 
 expr:
   | NAME LPAREN lst RPAREN { Call($1,$3) }

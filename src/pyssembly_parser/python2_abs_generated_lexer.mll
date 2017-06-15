@@ -1,6 +1,6 @@
 {
-  open Python2_pys_generated_parser
-  open Python2_normalized_ast
+  open Python2_abs_generated_parser
+  open Python2_abstract_ast
 }
 
 
@@ -15,13 +15,6 @@
 *)
 
 let digit = ['0'-'9']
-let decimalinteger = digit+
-let intpart = digit+
-let fraction = '.' digit+
-let pointfloat = intpart? fraction | intpart '.'
-let exponent = ['e' 'E'] ['+' '-']? digit+
-let exponentfloat = (intpart | pointfloat) exponent
-let floatnumber = pointfloat | exponentfloat
 let identifier = ['a'-'z' 'A'-'Z' '_' '$'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '$' '+' '-']*
 
 
@@ -51,10 +44,6 @@ rule token = parse
   | '>' { GE }
   | '\"' { QUOTE }
   | eof { END }
-  | decimalinteger as n
-      { NUM (Int(int_of_string n)) }
-  | floatnumber as n
-      { NUM (Float(float_of_string n)) }
   | identifier as id
     { match id with
       | "def" -> DEF
@@ -70,5 +59,11 @@ rule token = parse
       | "type" -> BI_TYPE
       | "true" -> BOOL (true)
       | "false" -> BOOL (false)
+      | "Int+" -> NUM (Int(Pos))
+      | "Int-" -> NUM (Int(Neg))
+      | "Int0" -> NUM (Int(Zero))
+      | "Float+" -> NUM (Float(Pos))
+      | "Float-" -> NUM (Float(Neg))
+      | "Float0" -> NUM (Float(Zero))
       | _ -> NAME (id)
     }
