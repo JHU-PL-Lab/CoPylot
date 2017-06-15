@@ -107,7 +107,7 @@ assign:
 funcdef:
   /*<name>(<params>){<stmt_list>}*/
   | DEF NAME LPAREN lst RPAREN EQ LBRACE stmt_list RBRACE
-    { FunctionDef($2,$4,$8) }
+    {failwith "function"}/*{ FunctionDef($2,$4,$8) }*/
 
 return:
   | RETURN { Return(None) }

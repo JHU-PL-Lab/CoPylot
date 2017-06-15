@@ -46,10 +46,10 @@ let rec verify_unique_uids = function
 and collect_uids_stmt s =
   let rest =
     match s.body with
+    | Assign (_, {uid = u; body = Literal(FunctionVal(_, body)); _})
+      -> [u] @ List.concat (List.map collect_uids_stmt body)
     | Assign (_, {uid = u; _})
       -> [u]
-    | FunctionDef (_, _, body)
-      -> List.concat (List.map collect_uids_stmt body)
     | _ -> []
   in
   s.uid::rest
@@ -559,14 +559,33 @@ let funcdef_test = gen_module_test "funcdef_test"
       "\nx = f()"
     end
     begin
-      "@   6:    :F:  def f() {" ^
+      "@   7:    :F:  f = fun() {" ^
       "\n@   2:    :F:    $simp0 = f;" ^
       "\n@   4:    :F:    f$1_x = $simp0;" ^
       "\n@   5:    :F:    return n;" ^
       "\n};" ^
-      "\n@   8:    :F:  $norm0 = f();" ^
-      "\n@  10:    :F:  $simp1 = $norm0;" ^
-      "\n@  12:    :F:  x = $simp1;"
+      "\n@   9:    :F:  $norm0 = f();" ^
+      "\n@  11:    :F:  $simp1 = $norm0;" ^
+      "\n@  13:    :F:  x = $simp1;"
+    end
+;;
+
+let funcdef_args_test = gen_module_test "funcdef_args_test"
+    begin
+      "def f(x,y):" ^
+      "\n  x = f" ^
+      "\n  return n" ^
+      "\nx = f(x)"
+    end
+    begin
+        "@   7:    :F:  f = fun(f$1_x, f$1_y) {" ^
+      "\n@   2:    :F:    $simp0 = f;" ^
+      "\n@   4:    :F:    f$1_x = $simp0;" ^
+      "\n@   5:    :F:    return n;" ^
+      "\n};" ^
+      "\n@   9:    :F:  $norm0 = f(x);" ^
+      "\n@  11:    :F:  $simp1 = $norm0;" ^
+      "\n@  13:    :F:  x = $simp1;"
     end
 ;;
 
@@ -724,6 +743,7 @@ let tests =
     ifexp_test;
     tryexcept_test;
     funcdef_test;
+    funcdef_args_test;
     while_test;
     break_test;
     continue_test;

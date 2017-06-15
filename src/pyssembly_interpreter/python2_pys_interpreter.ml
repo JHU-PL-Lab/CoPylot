@@ -16,7 +16,7 @@ let step_program (prog : program) : program =
                 {body =
                    Literal(l)
                 ; _}) ->
-        let lval = literal_to_value l in
+        let lval = literal_to_value l prog.eta in
         let new_heap, new_memloc = allocate_memory prog.heap lval in
         let new_env = bind_var prog.env prog.eta id new_memloc in
         let new_stack = simple_advance_stack curr_frame stack_body in

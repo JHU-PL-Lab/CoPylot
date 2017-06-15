@@ -15,6 +15,7 @@ let literal_to_answer l =
   | Ast.Str (s) -> Python2_pds.Str s
   | Ast.Bool (b) -> Python2_pds.Bool b
   | Ast.Builtin (b) -> Python2_pds.Builtin b
+  | Ast.FunctionVal _ -> failwith "Functional answer type NYI"
 ;;
 
 let create_edge_function

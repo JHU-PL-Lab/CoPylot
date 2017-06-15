@@ -35,14 +35,7 @@ and pp_stmt indent fmt {uid=uid;exception_target=exc;multi=multi;body} =
     | Assign (target,value) ->
       fprintf fmt "%a = %a"
         pp_id target
-        pp_compound_expr value
-    | FunctionDef (name,args,body) ->
-      (* Python flavor FunctionDef: *)
-      (* fprintf fmt "@[<4>%a:%a(%a):@\n%a@]" *)
-      fprintf fmt "def %a(%a) {@\n%a@\n}"
-        pp_id name
-        (pp_list pp_id) args
-        (pp_lines (pp_stmt (indent ^ "  "))) body
+        (pp_compound_expr indent) value
     | Return (value) ->
       fprintf fmt "return %a"
         (pp_option pp_id) value
@@ -70,7 +63,7 @@ and pp_stmt indent fmt {uid=uid;exception_target=exc;multi=multi;body} =
   end;
   fprintf fmt "%s" ";"
 
-and pp_compound_expr fmt {uid=_;exception_target=_;multi=_;body} =
+and pp_compound_expr indent fmt {uid=_;exception_target=_;multi=_;body} =
   match body with
   | Call (func,args) ->
     fprintf fmt "%a(%a)"
@@ -86,18 +79,19 @@ and pp_compound_expr fmt {uid=_;exception_target=_;multi=_;body} =
   | Tuple (lst) ->
     fprintf fmt "(%a)"
       (pp_list pp_id) lst
-  | Literal (l) -> pp_literal fmt l
+  | Literal (l) -> (pp_literal indent) fmt l
   | Name (id)   -> pp_id fmt id
 
 
 and pp_id fmt id =
   fprintf fmt "%s" id
 
-and pp_literal fmt = function
+and pp_literal indent fmt = function
   | Num (n)      -> pp_num fmt n
   | Str (s)      -> pp_str fmt s
   | Bool (b)     -> pp_print_bool fmt b
   | Builtin (bi) -> pp_builtin fmt bi
+  | FunctionVal (args, body) -> pp_functionval indent fmt args body
 
 and pp_num fmt = function
   | Int sgn   -> fprintf fmt "Int%a" pp_sign sgn
@@ -107,7 +101,7 @@ and pp_str fmt = function
   | StringAbstract -> fprintf fmt "StringAbstract"
   | StringLiteral s -> fprintf fmt "\"%s\"" (String.escaped s)
 
-and pp_sign fmt= function
+and pp_sign fmt = function
   | Pos  -> fprintf fmt "+"
   | Neg  -> fprintf fmt "-"
   | Zero -> fprintf fmt "0"
@@ -116,6 +110,11 @@ and pp_builtin fmt = function
   | Builtin_slice -> fprintf fmt "slice"
   | Builtin_bool  -> fprintf fmt "bool"
   | Builtin_type  -> fprintf fmt "type"
+
+and pp_functionval indent fmt args body =
+  fprintf fmt "fun(%a) {\n%a\n}"
+    (pp_list pp_id) args
+    (pp_lines (pp_stmt (indent ^ "  "))) body
 
 and pp_multi fmt m =
   if m then fprintf fmt "T" else fprintf fmt "F"

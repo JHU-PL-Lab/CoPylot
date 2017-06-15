@@ -9,6 +9,9 @@ let rec get_uid_hashtbl (m : modl) =
 
 and collect_uids_stmt (tbl : annotated_stmt Uid_hashtbl.t) {uid=u;exception_target=except;multi=in_loop;body} =
   match body with
+  | Assign (_, {body = Literal(FunctionVal(_, func_body)); _}) ->
+    let new_tbl = collect_uids_stmt_lst tbl func_body in
+    Uid_hashtbl.add new_tbl u {uid=u;exception_target=except;multi=in_loop;body=body}; new_tbl
   | Assign (_, _)
   | Return (_)
   | Print (_, _, _)
@@ -20,9 +23,7 @@ and collect_uids_stmt (tbl : annotated_stmt Uid_hashtbl.t) {uid=u;exception_targ
   | NameStmt (_)
     ->
     Uid_hashtbl.add tbl u {uid=u;exception_target=except;multi=in_loop;body}; tbl
-  | FunctionDef (_, _, func_body) ->
-    let new_tbl = collect_uids_stmt_lst tbl func_body in
-    Uid_hashtbl.add new_tbl u {uid=u;exception_target=except;multi=in_loop;body}; new_tbl
+
 
 and collect_uids_stmt_lst tbl lst =
   List.fold_left collect_uids_stmt tbl lst

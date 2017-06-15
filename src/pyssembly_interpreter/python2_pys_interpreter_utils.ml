@@ -20,13 +20,15 @@ let allocate_memory (h : Heap.t) (v : value) : Heap.t * memloc =
   new_heap, m
 ;;
 
-let literal_to_value (l : literal) : value =
+let literal_to_value (l : literal) (eta : eta): value =
   let module Normalized = Python2_normalized_ast in
   match l with
   | Normalized.Num (n)     -> Num(n)
   | Normalized.Str (s)     -> Str(s)
   | Normalized.Bool (b)    -> Bool(b)
   | Normalized.Builtin (b) -> Builtin(b)
+  | Normalized.FunctionVal (args, body)
+    -> Function (eta, args, Body.create body)
 ;;
 
 let simple_advance_stack (frame : Stack_frame.t) (stack : Program_stack.t)

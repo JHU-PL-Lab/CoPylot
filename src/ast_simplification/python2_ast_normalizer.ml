@@ -133,7 +133,10 @@ and normalize_stmt_full
     let normalized_body =
       map_and_concat (normalize_stmt ctx exception_target) body in
     let annotated = annotate_stmt @@
-      Normalized.FunctionDef(func_name, args, normalized_body)
+      Normalized.Assign(func_name,
+                        annotate_expr @@
+                        Normalized.Literal(
+                          Normalized.FunctionVal(args, normalized_body)))
     in
     [annotated]
 

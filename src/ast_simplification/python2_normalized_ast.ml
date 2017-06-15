@@ -26,7 +26,6 @@ and modl =
 
 and stmt =
     | Assign of identifier (* target *) * annotated_expr (* value *)
-  | FunctionDef of identifier (* name *) * identifier list (* args *) * annotated_stmt list (* body *)
   | Return of identifier option (* value *)
   | Print of identifier option (* dest *) * identifier list (* values *) * bool (* nl *)
   | Raise of identifier (* value *)
@@ -51,6 +50,7 @@ and literal =
   | Str of str
   | Bool of bool
   | Builtin of builtin
+  | FunctionVal of identifier list (* args *) * annotated_stmt list (* body *)
 [@@deriving eq, ord, show, to_yojson]
 
 and sign = Pos | Neg | Zero
