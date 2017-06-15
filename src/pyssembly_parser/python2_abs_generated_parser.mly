@@ -84,6 +84,10 @@ expr_annot:
   | ANNOT_EXPR UID COLON except COLON LOOP COLON
     { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
   | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
+  
+except:
+  | {None}
+  | UID {Some($1)}
 
 stmt_list:
   | { [] }
@@ -143,9 +147,5 @@ literal:
 
 funcval:
   /*def (<params>){<stmt_list>}*/
-  | DEF LPAREN lst RPAREN EQ LBRACE stmt_list RBRACE
-    { FunctionVal($3,$7) }
-
-except:
-  | {None}
-  | UID {Some($1)}
+  | DEF LPAREN lst RPAREN LBRACE stmt_list RBRACE
+    { FunctionVal($3,$6) }

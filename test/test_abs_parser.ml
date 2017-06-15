@@ -1,8 +1,8 @@
 open OUnit2
 open Jhupllib
 open Python2_ast_types
-open Python2_normalized_ast
-open Python2_pys_parser
+open Python2_abstract_ast
+open Python2_abs_parser
 
 let string_of_modl m = Pp_utils.pp_to_string pp_modl m;;
 
@@ -50,22 +50,22 @@ let gen_expr_test (name : string) (pyssembly : string)
 
 (* Test begins *)
 let int_test = gen_expr_test "int_test"
-    "5"
+    "Int+"
     {uid= -1;
      exception_target=None;
      multi=false;
-     body=Literal(Num(Int(5)))}
+     body=Literal(Num(Int(Pos)))}
 ;;
 
 let assign_test = gen_stmt_test "assign_test"
-    "@1::F: a = 7;"
+    "@1::F: a = Int+;"
     {uid=1;
      exception_target=None;
      multi=false;
      body=Assign("a",{uid= -1 ;
                       exception_target=None;
                       multi=false;
-                      body=Literal(Num(Int(7)))})}
+                      body=Literal(Num(Int(Pos)))})}
 ;;
 
 let empty_funcdef_test = gen_expr_test "empty_funcdef_test"

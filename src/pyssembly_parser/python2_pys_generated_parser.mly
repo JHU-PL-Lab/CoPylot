@@ -6,7 +6,8 @@
 
 /* literals */
 %token <string> NAME
-%token <Python2_normalized_ast.number> NUM
+%token <int> INT
+%token <float> FLOAT
 %token <bool> BOOL
 %token NONE
 /*%token <string> STR*/
@@ -43,11 +44,9 @@
 %token  SEMICOLON
 %token  DOT
 %token  COMMA
-/*%token <Python2_normalized_ast.sign> SGN*/
 %token  END
 
 /* other */
-%token <Python2_ast_types.uid> UID
 %token <bool> LOOP
 
 %start file_input
@@ -75,15 +74,19 @@ expr_input:
 
 %inline
 stmt_annot:
-  | ANNOT_STMT UID COLON except COLON LOOP COLON
+  | ANNOT_STMT INT COLON except COLON LOOP COLON
     { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
   | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
 
 %inline
 expr_annot:
-  | ANNOT_EXPR UID COLON except COLON LOOP COLON
+  | ANNOT_EXPR INT COLON except COLON LOOP COLON
     { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
   | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
+
+except:
+  | {None}
+  | INT {Some($1)}
 
 stmt_list:
   | { [] }
@@ -97,8 +100,8 @@ stmt:
   | RAISE NAME { Raise($2) }
   | CATCH NAME { Catch($2) }
   | PASS { Pass }
-  | GOTO UID IFN NAME { GotoIfNot($4,$2) }
-  | GOTO UID { Goto($2) }
+  | GOTO INT IFN NAME { GotoIfNot($4,$2) }
+  | GOTO INT { Goto($2) }
   | NAME { NameStmt($1) }
 
 assign:
@@ -132,7 +135,8 @@ expr:
 
 
 literal:
-  | NUM { Num($1) }
+  | INT { Num(Int($1)) }
+  | FLOAT { Num(Float($1)) }
   | QUOTE NAME QUOTE { Str(StringLiteral($2)) }
   | BOOL { Bool($1) }
   | BI_SLICE { Builtin(Builtin_slice) }
@@ -143,9 +147,5 @@ literal:
 
 funcval:
   /*def (<params>){<stmt_list>}*/
-  | DEF LPAREN lst RPAREN EQ LBRACE stmt_list RBRACE
-    { FunctionVal($3,$7) }
-
-except:
-  | {None}
-  | UID {Some($1)}
+  | DEF LPAREN lst RPAREN LBRACE stmt_list RBRACE
+    { FunctionVal($3,$6) }
