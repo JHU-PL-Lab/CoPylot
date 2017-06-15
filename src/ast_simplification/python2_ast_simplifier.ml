@@ -41,10 +41,12 @@ and simplify_stmt
   | Abstract.FunctionDef (func_name, args, body, _, annot)->
     let simplified_args = simplify_arguments args in
     let simplified_body = map_and_concat simplify_stmt body in
-    [Simplified.FunctionDef(func_name,
-                            simplified_args,
-                            simplified_body,
-                            annot)]
+    [Simplified.Assign(func_name,
+                       Simplified.FunctionVal(
+                         simplified_args,
+                         simplified_body,
+                         annot),
+                       annot)]
 
   | Abstract.Return (value, annot) ->
     [Simplified.Return(simplify_expr_option value, annot)]

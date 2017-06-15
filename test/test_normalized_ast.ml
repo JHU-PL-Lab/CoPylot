@@ -559,14 +559,15 @@ let funcdef_test = gen_module_test "funcdef_test"
       "\nx = f()"
     end
     begin
-      "@   7:    :F:  f = fun() {" ^
+      "@   7:    :F:  $norm0 = fun() {" ^
       "\n@   2:    :F:    $simp0 = f;" ^
       "\n@   4:    :F:    f$1_x = $simp0;" ^
       "\n@   5:    :F:    return n;" ^
       "\n};" ^
-      "\n@   9:    :F:  $norm0 = f();" ^
-      "\n@  11:    :F:  $simp1 = $norm0;" ^
-      "\n@  13:    :F:  x = $simp1;"
+      "\n@   9:    :F:  f = $norm0;" ^
+      "\n@  11:    :F:  $norm1 = f();" ^
+      "\n@  13:    :F:  $simp1 = $norm1;" ^
+      "\n@  15:    :F:  x = $simp1;"
     end
 ;;
 
@@ -575,17 +576,18 @@ let funcdef_args_test = gen_module_test "funcdef_args_test"
       "def f(x,y):" ^
       "\n  x = f" ^
       "\n  return n" ^
-      "\nx = f(x)"
+      "\nx = f(z)"
     end
     begin
-        "@   7:    :F:  f = fun(f$1_x, f$1_y) {" ^
+      "@   7:    :F:  $norm0 = fun(f$1_x, f$1_y) {" ^
       "\n@   2:    :F:    $simp0 = f;" ^
       "\n@   4:    :F:    f$1_x = $simp0;" ^
       "\n@   5:    :F:    return n;" ^
       "\n};" ^
-      "\n@   9:    :F:  $norm0 = f(x);" ^
-      "\n@  11:    :F:  $simp1 = $norm0;" ^
-      "\n@  13:    :F:  x = $simp1;"
+      "\n@   9:    :F:  f = $norm0;" ^
+      "\n@  11:    :F:  $norm1 = f(z);" ^
+      "\n@  13:    :F:  $simp1 = $norm1;" ^
+      "\n@  15:    :F:  x = $simp1;"
     end
 ;;
 

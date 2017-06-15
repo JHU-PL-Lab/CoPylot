@@ -7,7 +7,6 @@ and 'a modl =
 
 and 'a stmt =
     | Assign of identifier (* target *) * 'a expr (* value *) * 'a
-  | FunctionDef of identifier (* name *) * identifier list (* args *) * 'a stmt list (* body *) * 'a
   | Return of 'a expr option (* value *) * 'a
   | Print of 'a expr option (* dest *) * 'a expr list (* values *) * bool (* nl *) * 'a
   | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a
@@ -36,6 +35,7 @@ and 'a expr =
   | Bool of bool * 'a
   | Name of identifier (* id *) * 'a
   | Builtin of builtin * 'a
+  | FunctionVal of identifier list (* args *) * 'a stmt list (* body *) * 'a
 [@@deriving eq, ord, show]
 
 and boolop = And | Or
@@ -68,7 +68,6 @@ and builtin =
 
 let extract_stmt_annot = function
   | Assign (_, _, a)
-  | FunctionDef (_,_,_,a)
   | Return(_,a)
   | Print(_,_,_,a)
   | While(_,_,a)
@@ -94,4 +93,5 @@ let extract_expr_annot = function
   | Bool(_,a)
   | Name(_,a)
   | Builtin(_,a)
--> a
+  | FunctionVal (_,_,a)
+    -> a

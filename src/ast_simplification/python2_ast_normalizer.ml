@@ -128,18 +128,6 @@ and normalize_stmt_full
     create_annotation_from_stmt ctx exception_target in_loop s e in
 
   match s with
-  | Simplified.FunctionDef (func_name, args, body, _)->
-    (* Hopefully the args are just names so this won't do anything *)
-    let normalized_body =
-      map_and_concat (normalize_stmt ctx exception_target) body in
-    let annotated = annotate_stmt @@
-      Normalized.Assign(func_name,
-                        annotate_expr @@
-                        Normalized.Literal(
-                          Normalized.FunctionVal(args, normalized_body)))
-    in
-    [annotated]
-
   | Simplified.Return (value, _) ->
     begin
       match value with
@@ -552,6 +540,13 @@ and normalize_expr
     gen_normalized_assignment ctx annot @@
     annotate_expr @@
     Normalized.Literal(Normalized.Builtin(normalize_builtin b))
+
+  | Simplified.FunctionVal (args, body, annot) ->
+    let normalized_body = List.concat @@
+      List.map (normalize_stmt_full ctx None None exception_target) body in
+    gen_normalized_assignment ctx annot @@
+    annotate_expr @@
+    Normalized.Literal(Normalized.FunctionVal(args, normalized_body))
 
   | Simplified.Attribute (obj, attr, annot) ->
     let obj_bindings, obj_result = normalize_expr ctx in_loop exception_target obj in

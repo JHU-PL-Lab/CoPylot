@@ -490,16 +490,17 @@ let bad_assign_tests =
 let funcdef_test = gen_module_test "funcdef_test"
     "def test_function(arg1,arg2):\n\treturn arg1"
     [
-      FunctionDef("test_function",
-                  [
-                    "arg1";
-                    "arg2";
-                  ],
-                  [ (* Body *)
-                    Return(Some(Name("arg1", annot)),
-                           annot)
-                  ],
-                  annot)
+      Assign("test_function",
+             FunctionVal([
+                 "arg1";
+                 "arg2";
+               ],
+                 [ (* Body *)
+                   Return(Some(Name("arg1", annot)),
+                          annot)
+                 ],
+                 annot),
+             annot)
     ]
 ;;
 
@@ -819,63 +820,65 @@ let triangle_def =
 ;;
 
 let triangle_ast =
-  FunctionDef(
+  Assign(
     "triangle",
-    ["n"],
-    [ (* Body *)
-      Assign(
-        "$simplified_unique_name_0",
-        Num(Int(Zero), annot),
-        annot);
-      Assign(
-        "count",
-        Name("$simplified_unique_name_0", annot),
-        annot
-      );
-      Assign(
-        "$simplified_unique_name_1",
-        Num(Int(Zero), annot),
-        annot);
-      Assign(
-        "i",
-        Name("$simplified_unique_name_1", annot),
-        annot
-      );
-      While(
-        Compare(
-          Name("count", annot),
-          [Lt],
-          [Name("n", annot)],
+    FunctionVal(
+      ["n"],
+      [ (* Body *)
+        Assign(
+          "$simplified_unique_name_0",
+          Num(Int(Zero), annot),
+          annot);
+        Assign(
+          "count",
+          Name("$simplified_unique_name_0", annot),
           annot
-        ),
-        [
-          Assign(
-            "$simplified_unique_name_2",
-            Call(Attribute(Name("i", annot), "__add__", annot),
-                 [Name("count", annot)],
-                 annot),
-            annot);
-          Assign(
-            "i",
-            Name("$simplified_unique_name_2", annot),
+        );
+        Assign(
+          "$simplified_unique_name_1",
+          Num(Int(Zero), annot),
+          annot);
+        Assign(
+          "i",
+          Name("$simplified_unique_name_1", annot),
+          annot
+        );
+        While(
+          Compare(
+            Name("count", annot),
+            [Lt],
+            [Name("n", annot)],
             annot
-          );
-          Assign(
-            "$simplified_unique_name_3",
-            Call(Attribute(Name("count", annot), "__add__", annot),
-                 [Num(Int(Pos), annot)],
-                 annot),
-            annot);
-          Assign(
-            "count",
-            Name("$simplified_unique_name_3", annot),
-            annot
-          )
-        ],
-        annot
-      );
-      Return(Some(Name("i", annot)), annot);
-    ],
+          ),
+          [
+            Assign(
+              "$simplified_unique_name_2",
+              Call(Attribute(Name("i", annot), "__add__", annot),
+                   [Name("count", annot)],
+                   annot),
+              annot);
+            Assign(
+              "i",
+              Name("$simplified_unique_name_2", annot),
+              annot
+            );
+            Assign(
+              "$simplified_unique_name_3",
+              Call(Attribute(Name("count", annot), "__add__", annot),
+                   [Num(Int(Pos), annot)],
+                   annot),
+              annot);
+            Assign(
+              "count",
+              Name("$simplified_unique_name_3", annot),
+              annot
+            )
+          ],
+          annot
+        );
+        Return(Some(Name("i", annot)), annot);
+      ],
+      annot),
     annot
   )
 ;;
