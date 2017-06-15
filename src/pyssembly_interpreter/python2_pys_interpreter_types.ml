@@ -13,11 +13,6 @@ type memloc = Memloc of int
 [@@deriving eq, ord, show]
 ;;
 
-(* Etas serve to identify various binding sets. *)
-type eta = Eta of int
-[@@deriving eq, ord, show]
-;;
-
 (* A list of statements to be executed, all in the same scope.
    Correponds to "S" in the grammar *)
 module Body : sig
@@ -80,17 +75,6 @@ struct
     with
     | Not_found -> None;;
 end
-;;
-
-(* The possible values in the program. Corresponds to "v" in the grammar. *)
-type value =
-  | Num of number
-  | Str of str
-  | Bool of bool
-  | Builtin of builtin
-  | Function of eta * identifier list (* arglist *) * Body.t
-  | NoneVal
-[@@deriving eq, ord, show]
 ;;
 
 (* A single stack frame, composed of the code to execute and the uid of the
@@ -202,6 +186,18 @@ struct
 end
 ;;
 
+(* The possible values in the program. Corresponds to "v" in the grammar. *)
+type value =
+  | Bindings of Bindings.t
+  | Num of number
+  | Str of str
+  | Bool of bool
+  | Builtin of builtin
+  | Function of memloc * identifier list (* arglist *) * Body.t
+  | NoneVal
+(* [@@deriving eq, ord, show] *)
+;;
+
 (* A heap binding (m,v) indicates that the memory location m contains the
    value v. These correspond to "H" in the grammar *)
 module Heap: sig
@@ -256,96 +252,48 @@ struct
 end
 ;;
 
-(* An environment is the map of etas to scopes, so we know which ones we are
-   allowed to search for variables in. Corresponds to "E" in the grammar. *)
-module Environment : sig
-  type t
-
-  val update_binding: t -> eta -> Bindings.t -> t
-
-  val get_binding: t -> eta -> Bindings.t
-
-  val get_unbound_eta: t -> eta
-
-  val empty: t
-  val singleton: eta -> Bindings.t -> t
-end =
-struct
-  module Eta_ord =
-  struct
-    type t = eta
-    let compare = compare_eta
-  end
-  module Eta_map = Map.Make(Eta_ord);;
-
-  type t = { map: Bindings.t Eta_map.t; maxval: int };;
-
-  let update_binding prev eta b =
-    let newmap = Eta_map.add eta b prev.map in
-    let Eta(etaval) = eta in
-    let new_maxval = max etaval prev.maxval in
-    { map = newmap; maxval = new_maxval };;
-
-  let get_binding env eta =
-    try
-      let b = Eta_map.find eta env.map in
-      b
-    with
-    | _ -> failwith "No binding found in environment";;
-
-  let get_unbound_eta env = Eta(env.maxval + 1);;
-
-  let empty = { map = Eta_map.empty; maxval = 0 };;
-
-  let singleton eta b =
-    let map = Eta_map.singleton eta b in
-    let Eta(etaval) = eta in
-    { map = map; maxval = etaval };;
-end;;
-
-(* The parents map holds the relationship between etas; children search their
+(* The parents map holds the relationship between memlocs; children search their
    parent's corresponding binding if they encounter an unbound variable. *)
 module Parents : sig
   type t
 
-  (* Register the first input eta as a child of the second *)
-  val add_parent: t -> eta -> eta -> t
+  (* Register the first input memloc as a child of the second *)
+  val add_parent: t -> memloc -> memloc -> t
 
-  (* Retrieve the parent of the input eta, if any *)
-  val get_parent: t -> eta -> eta option
+  (* Retrieve the parent of the input memloc, if any *)
+  val get_parent: t -> memloc -> memloc option
 
   val empty: t
-  val singleton: eta -> eta -> t
+  val singleton: memloc -> memloc -> t
 end =
 struct
-  module Eta_ord =
+  module Memloc_ord =
   struct
-    type t = eta
-    let compare = compare_eta
+    type t = memloc
+    let compare = compare_memloc
   end
-  module Eta_map = Map.Make(Eta_ord);;
+  module Memloc_map = Map.Make(Memloc_ord);;
 
-  type t = eta Eta_map.t;;
+  type t = memloc Memloc_map.t;;
 
-  let add_parent prev child parent = Eta_map.add child parent prev;;
+  let add_parent prev child parent = Memloc_map.add child parent prev;;
 
   let get_parent map child =
     try
-      let parent = Eta_map.find child map in
+      let parent = Memloc_map.find child map in
       Some(parent)
     with
     | Not_found -> None;;
 
-  let empty = Eta_map.empty;;
+  let empty = Memloc_map.empty;;
 
-  let singleton child parent = Eta_map.singleton child parent;;
+  let singleton child parent = Memloc_map.singleton child parent;;
 end;;
 
 type program =
   {
     stack: Program_stack.t;
     heap: Heap.t;
-    env: Environment.t;
     parents: Parents.t;
-    eta: eta
+    m: memloc
   }

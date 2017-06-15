@@ -17,24 +17,24 @@ let step_program (prog : program) : program =
                 {body =
                    Literal(l)
                 ; _}) ->
-        let lval = literal_to_value l prog.eta in
+        let lval = literal_to_value l prog.m in
         let new_heap, new_memloc = allocate_memory prog.heap lval in
-        let new_env = bind_var prog.env prog.eta id new_memloc in
+        let new_heap2 = bind_var new_heap prog.m id new_memloc in
         let new_stack = simple_advance_stack curr_frame stack_body in
-        { stack = new_stack; heap = new_heap; env = new_env; parents = prog.parents; eta = prog.eta }
+        { stack = new_stack; heap = new_heap2; parents = prog.parents; m = prog.m }
 
       | Assign (id,
                 {body =
                    Name(id2)
                 ; _}) ->
-        let memloc = lookup id2 prog.env prog.parents prog.eta in
+        let memloc = lookup id2 prog.heap prog.parents prog.m in
         begin
           match memloc with
           | None -> failwith "NYI: Throw NameError"
           | Some(m) ->
-            let new_env = bind_var prog.env prog.eta id m in
+            let new_heap = bind_var prog.heap prog.m id m in
             let new_stack = simple_advance_stack curr_frame stack_body  in
-            { stack = new_stack; heap = prog.heap; env = new_env; parents = prog.parents; eta = prog.eta }
+            { stack = new_stack; heap = new_heap; parents = prog.parents; m = prog.m }
         end
       | _ -> prog
     end
@@ -44,18 +44,17 @@ let interpret_program (prog : modl) =
   let Module(stmts, _) = prog in
   let starting_frame = Stack_frame.create (Body.create stmts) in
   let starting_stack = Program_stack.singleton starting_frame in
-  let starting_heap = Heap.empty in
   let starting_bindings = Bindings.empty in
-  let global_eta = Eta (0) in
-  let starting_env = Environment.singleton global_eta starting_bindings in
+  let global_memloc = Memloc(0) in
+  let starting_heap =
+    Heap.singleton global_memloc @@ Bindings(starting_bindings) in
   let starting_parents = Parents.empty in
   let starting_program =
     {
       stack = starting_stack;
       heap = starting_heap;
-      env = starting_env;
       parents = starting_parents;
-      eta = global_eta;
+      m = global_memloc;
     }
   in
   step_program starting_program
