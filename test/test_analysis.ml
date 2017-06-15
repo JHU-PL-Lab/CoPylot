@@ -3,10 +3,11 @@ open Batteries
 open Jhupllib
 open Python2_parser
 open Lexing
-open Python2_normalized_ast
-module Lift = Python2_ast_lifter
+open Python2_ast_types
+open Python2_abstract_ast
 module Simplify = Python2_ast_simplifier
 module Normalize = Python2_ast_normalizer
+module Lift = Python2_ast_lifter
 open Uid_generation
 open Python2_analysis
 module Answer_set = Python2_pds.Answer_set
@@ -28,19 +29,19 @@ let parse_from_string_safe str =
 (* Functions to hide testing boilerplate *)
 
 let gen_analysis_test (name : string) (prog : string)
-    (test_func : stmt list -> bool) =
+    (test_func : annotated_stmt list -> bool) =
   name>::
   ( fun _ ->
       let concrete = parse_from_string_safe (prog ^ "\n") in
-      let abstract = Lift.lift_modl concrete in
       let simplified =
         (* Occasionally a test will fail; resetting here might help *)
         Simplify.reset_unique_name ();
-        Simplify.simplify_modl abstract in
+        Simplify.simplify_modl concrete in
       Simplify.reset_unique_name ();
       let ctx = create_new_uid_context () in
-      let actual = Normalize.normalize_modl ctx simplified in
+      let normalized = Normalize.normalize_modl ctx simplified in
       Normalize.reset_unique_name ();
+      let actual = Lift.lift_modl normalized in
       match actual with
       | Module (body, _) ->
         assert_bool ("Incorrect Tree:\n" ^ string_of_modl actual)
@@ -48,39 +49,37 @@ let gen_analysis_test (name : string) (prog : string)
   )
 ;;
 
-let expect_error_test
-    (name : string)
-    (prog : string)
-    (expected : exn) =
-  name>::
-  (fun _ ->
-     let concrete = parse_from_string_safe (prog ^ "\n") in
-     let abstract = Lift.lift_modl concrete in
-     let simplified = Simplify.simplify_modl abstract in
-     let ctx = create_new_uid_context () in
-     Simplify.reset_unique_name ();
-     assert_raises
-       expected
-       (fun _ ->
-          Normalize.normalize_modl ctx simplified)
-  )
+let annotate_stmt_full u ex m (s : stmt) : annotated_stmt =
+  { uid = u; exception_target = ex; multi = m; body = s}
+;;
+
+let annotate_expr_full u ex m (e : expr) : annotated_expr =
+  { uid = u; exception_target = ex; multi = m; body = e}
+;;
+
+let annotate_stmt u s =
+  annotate_stmt_full u None false s
+;;
+
+let annotate_expr u e =
+  annotate_expr_full u None false e
 ;;
 
 let uid_test =
   "uid_test">::
   ( fun _ ->
-      let actual = Module([Assign("x", SimpleExpr(Literal(Num(Int(Zero), 1, None), 2, None), 3, None), 4, None);
-                           Assign("y", SimpleExpr(Literal(Num(Int(Pos), 5, None), 6, None), 7, None), 8, None);], 0) in
+      let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Num(Int(Zero))));
+                           annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Literal(Num(Int(Pos))));], 0) in
       let map = Python2_uid_stmt_map.get_uid_hashtbl actual in
-      assert_equal (Assign("y", SimpleExpr(Literal(Num(Int(Pos), 5, None), 6, None), 7, None), 8, None)) (Uid_hashtbl.find map 8)
+      assert_equal (annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Literal(Num(Int(Pos))))) (Uid_hashtbl.find map 3)
   )
 ;;
 
 let test_lex_cfg =
   "test_lex_cfg">::
   ( fun _ ->
-      let line1 = Assign("x", SimpleExpr(Literal(Num(Int(Zero), 1, None), 2, None), 3, None), 4, None) in
-      let line2 = Assign("y", SimpleExpr(Literal(Num(Int(Pos), 5, None), 6, None), 7, None), 8, None) in
+      let line1 = annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Num(Int(Zero)))) in
+      let line2 = annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Literal(Num(Int(Pos)))); in
       let actual = Module([line1; line2;], 0) in
       let Python2_cfg.Cfg.Cfg(lex, _) = Python2_cfg.Cfg.create actual in
       let open Python2_cfg.Lexical_cfg in let open Python2_cfg in
@@ -96,8 +95,8 @@ let test_lex_cfg =
 let test_ctrl_cfg =
   "test_ctrl_cfg">::
   ( fun _ ->
-      let line1 = Assign("x", SimpleExpr(Literal(Num(Int(Zero), 1, None), 2, None), 3, None), 4, None) in
-      let line2 = Assign("y", SimpleExpr(Literal(Num(Int(Pos), 5, None), 6, None), 7, None), 8, None) in
+      let line1 = annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Num(Int(Zero)))) in
+      let line2 = annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Literal(Num(Int(Pos)))); in
       let actual = Module([line1; line2;], 0) in
       let analysis = Analysis_result.create actual in
       let open Python2_analysis_result_structure in
@@ -115,10 +114,10 @@ let test_ctrl_cfg =
 let test_ctrl_cf2 =
   "test_ctrl_cfg">::
   ( fun _ ->
-      let line1 = Assign("$simplified_unique_name_0", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None) in
-      let line2 = Assign("x", SimpleExpr(Name("$simplified_unique_name_0", 5, None), 6, None), 7, None) in
-      let line3 = Assign("$simplified_unique_name_1", SimpleExpr(Literal(Num(Int(Neg), 8, None), 9, None), 10, None), 11, None) in
-      let line4 = Assign("y", SimpleExpr(Name("$simplified_unique_name_1", 12, None), 13, None), 14, None) in
+      let line1 = annotate_stmt 1 @@ Assign("$simplified_unique_name_0", annotate_expr 2 @@ Literal(Bool(true))) in
+      let line2 = annotate_stmt 3 @@Assign("x", annotate_expr 4 @@ Name("$simplified_unique_name_0")) in
+      let line3 = annotate_stmt 5 @@Assign("$simplified_unique_name_1", annotate_expr 6 @@ Literal(Num(Int(Neg)))) in
+      let line4 = annotate_stmt 7 @@Assign("y", annotate_expr 8 @@ Name("$simplified_unique_name_1")) in
       let actual = Module([line1; line2; line3; line4;], 0) in
       let analysis = Analysis_result.create actual in
       let open Python2_analysis_result_structure in
@@ -141,7 +140,7 @@ let test_ctrl_cf2 =
 let int_test =
   "int_test">::
   ( fun _ ->
-      let actual = Module([Assign("x", SimpleExpr(Literal(Num(Int(Zero), 1, None), 2, None), 3, None), 4, None)], 0) in
+      let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Num(Int(Zero))))], 0) in
       let open Python2_pds in
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Num(Int(Zero)))) (analyze_end actual "x")
   )
@@ -149,7 +148,7 @@ let int_test =
 let str_test =
   "str_test">::
   ( fun _ ->
-      let actual = Module([Assign("x", SimpleExpr(Literal(Str(StringLiteral("a"), 1, None), 2, None), 3, None), 4, None)], 0) in
+      let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Str(StringLiteral("a"))))], 0) in
       let open Python2_pds in
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Str(StringLiteral("a")))) (analyze_end actual "x")
   )
@@ -157,7 +156,7 @@ let str_test =
 let bool_test =
   "bool_test">::
   ( fun _ ->
-      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(false, 1, None), 2, None), 3, None), 4, None)], 0) in
+      let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Bool(false)))], 0) in
       let open Python2_pds in
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Bool(false))) (analyze_end actual "x")
   )
@@ -165,7 +164,7 @@ let bool_test =
 let undefined_test =
   "undefined_test">::
   ( fun _ ->
-      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(false, 1, None), 2, None), 3, None), 4, None)], 0) in
+      let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Bool(false)))], 0) in
       let open Python2_pds in
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Undefined)) (analyze_end actual "y")
   )
@@ -173,8 +172,8 @@ let undefined_test =
 let skip_test =
   "skip_test">::
   ( fun _ ->
-      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None);
-                           Assign("y", SimpleExpr(Literal(Bool(false, 5, None), 6, None), 7, None), 8, None);], 0) in
+      let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Bool(true)));
+                           annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Literal(Bool(false)));], 0) in
       let open Python2_pds in
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_end actual "x")
   )
@@ -182,8 +181,8 @@ let skip_test =
 let reassign_test =
   "reassign_test">::
   ( fun _ ->
-      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None);
-                           Assign("x", SimpleExpr(Literal(Bool(false, 5, None), 6, None), 7, None), 8, None);], 0) in
+      let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Bool(true)));
+                           annotate_stmt 3 @@ Assign("x", annotate_expr 4 @@ Literal(Bool(false)));], 0) in
       let open Python2_pds in
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Bool(false))) (analyze_end actual "x")
   )
@@ -191,17 +190,17 @@ let reassign_test =
 let reassign_midpoint_test =
   "reassign_midpoint_test">::
   ( fun _ ->
-      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None);
-                           Assign("x", SimpleExpr(Literal(Bool(false, 5, None), 6, None), 7, None), 8, None);], 0) in
+      let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Bool(true)));
+                           annotate_stmt 3 @@ Assign("x", annotate_expr 4 @@ Literal(Bool(false)));], 0) in
       let open Python2_pds in
-      assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_uid 8 actual "x")
+      assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_uid 3 actual "x")
   )
 
 let alias_test =
   "alias_test">::
   ( fun _ ->
-      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None);
-                           Assign("y", SimpleExpr(Name("x", 5, None), 6, None), 7, None);], 0) in
+      let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Bool(true)));
+                           annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Name("x"));], 0) in
       let open Python2_pds in
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_end actual "y")
   )
@@ -209,9 +208,9 @@ let alias_test =
 let several_alias_test =
   "several_alias_test">::
   ( fun _ ->
-      let actual = Module([Assign("x", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None);
-                           Assign("y", SimpleExpr(Name("x", 5, None), 6, None), 7, None);
-                           Assign("z", SimpleExpr(Name("y", 8, None), 9, None), 10, None);], 0) in
+      let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Bool(true)));
+                           annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Name("x"));
+                           annotate_stmt 5 @@ Assign("z", annotate_expr 6 @@ Name("y"));], 0) in
       let open Python2_pds in
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_end actual "z")
   )
@@ -220,10 +219,10 @@ let skip_and_alias_test =
   "skip_and_alias_test">::
   ( fun _ ->
       let actual = Module(
-          [Assign("$simplified_unique_name_0", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None);
-           Assign("x", SimpleExpr(Name("$simplified_unique_name_0", 5, None), 6, None), 7, None);
-           Assign("$simplified_unique_name_1", SimpleExpr(Literal(Num(Int(Neg), 8, None), 9, None), 10, None), 11, None);
-           Assign("y", SimpleExpr(Name("$simplified_unique_name_1", 12, None), 13, None), 14, None);], 0) in
+          [annotate_stmt 1 @@ Assign("$simplified_unique_name_0", annotate_expr 2 @@ Literal(Bool(true)));
+           annotate_stmt 3 @@ Assign("x", annotate_expr 4 @@ Name("$simplified_unique_name_0"));
+           annotate_stmt 5 @@ Assign("$simplified_unique_name_1", annotate_expr 6 @@ Literal(Num(Int(Neg))));
+           annotate_stmt 7 @@ Assign("y", annotate_expr 8 @@ Name("$simplified_unique_name_1"));], 0) in
       let open Python2_pds in
       assert_equal ~printer:answer_set_to_string (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_end actual "x")
   )
