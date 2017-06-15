@@ -3,7 +3,8 @@ open Batteries
 open Jhupllib
 open Python2_parser
 open Lexing
-open Python2_normalized_ast
+open Python2_ast_types
+open Python2_abstract_ast
 module Lift = Python2_ast_lifter
 module Simplify = Python2_ast_simplifier
 module Normalize = Python2_ast_normalizer
@@ -32,16 +33,16 @@ let gen_analysis_test_uid (name : string) (prog : string)
   name>::
   ( fun _ ->
       let concrete = parse_from_string_safe (prog ^ "\n") in
-      let abstract = Lift.lift_modl concrete in
       let simplified =
         (* Occasionally a test will fail; resetting here might help *)
         Simplify.reset_unique_name ();
-        Simplify.simplify_modl abstract in
+        Simplify.simplify_modl concrete in
       Simplify.reset_unique_name ();
       let ctx = create_new_uid_context () in
       let normalized = Normalize.normalize_modl ctx simplified in
       Normalize.reset_unique_name ();
-      let actual = analyze_uid u normalized v in
+      let abstract = Lift.lift_modl normalized in
+      let actual = analyze_uid u abstract v in
       assert_equal ~printer:answer_set_to_string expected actual
   )
 ;;
@@ -51,38 +52,19 @@ let gen_analysis_test_end (name : string) (prog : string)
   name>::
   ( fun _ ->
       let concrete = parse_from_string_safe (prog ^ "\n") in
-      let abstract = Lift.lift_modl concrete in
       let simplified =
         (* Occasionally a test will fail; resetting here might help *)
         Simplify.reset_unique_name ();
-        Simplify.simplify_modl abstract in
+        Simplify.simplify_modl concrete in
       Simplify.reset_unique_name ();
       let ctx = create_new_uid_context () in
       let normalized = Normalize.normalize_modl ctx simplified in
       Normalize.reset_unique_name ();
-      let actual = analyze_end normalized v in
+      let abstract = Lift.lift_modl normalized in
+      let actual = analyze_end abstract v in
       assert_equal ~printer:answer_set_to_string expected actual
   )
 ;;
-
-let expect_error_test
-    (name : string)
-    (prog : string)
-    (expected : exn) =
-  name>::
-  (fun _ ->
-     let concrete = parse_from_string_safe (prog ^ "\n") in
-     let abstract = Lift.lift_modl concrete in
-     let simplified = Simplify.simplify_modl abstract in
-     let ctx = create_new_uid_context () in
-     Simplify.reset_unique_name ();
-     assert_raises
-       expected
-       (fun _ ->
-          Normalize.normalize_modl ctx simplified)
-  )
-;;
-
 
 let int_test = gen_analysis_test_end "int_test"
     "x = 0"
@@ -104,36 +86,36 @@ let bool_test = gen_analysis_test_end "bool_test"
 
 let reassign_test = gen_analysis_test_end "reassign_test"
     "\n\
-x = True\n\
-x = -1"
+     x = True\n\
+     x = -1"
     (let open Python2_pds in (Python2_pds.Answer_set.singleton (Num(Int(Neg)))))
     "x"
 ;;
 
 let skip_test = gen_analysis_test_end "skip_test"
     "\n\
-x = True\n\
-y = -1"
+     x = True\n\
+     y = -1"
     (let open Python2_pds in (Python2_pds.Answer_set.singleton (Bool(true))))
     "x"
 ;;
 
 let alias_test = gen_analysis_test_end "alias_test"
     "\n\
-y = 1\n\
-x = y"
+     y = 1\n\
+     x = y"
     (let open Python2_pds in (Python2_pds.Answer_set.singleton (Num(Int(Pos)))))
     "x"
 ;;
 
 (* let reassign_midpoint_test =
-  "reassign_midpoint_test">::
-  ( fun _ ->
+   "reassign_midpoint_test">::
+   ( fun _ ->
       let actual = Module([Assign("x", SimpleExpr(Literal(Bool(true, 1, None), 2, None), 3, None), 4, None);
                            Assign("x", SimpleExpr(Literal(Bool(false, 5, None), 6, None), 7, None), 8, None);], 0) in
       let open Python2_pds in
       assert_equal ~printer:dump (Python2_pds.Answer_set.singleton (Bool(true))) (analyze_uid 8 actual "x")
-  ) *)
+   ) *)
 
 let tests =
   "analysis_ast">:::
