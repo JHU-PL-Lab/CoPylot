@@ -37,6 +37,7 @@ and literal =
   | Bool of bool
   | Builtin of builtin
   | FunctionVal of identifier list (* args *) * annotated_stmt list (* body *)
+  | NoneVal 
 [@@deriving eq, ord, show, to_yojson]
 
 and number =

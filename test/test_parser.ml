@@ -56,6 +56,11 @@ let int_test = gen_stmt_test "int_test"
     (Num(Int(4), annot))
 ;;
 
+let none_test = gen_stmt_test "none_test"
+    "None"
+    (NoneExpr(annot))
+;;
+
 let unop_test = gen_stmt_test "unop_test_1"
     "+4"
     (UnaryOp(UAdd, Num(Int(4), annot), annot))
@@ -672,6 +677,7 @@ let tests =
   "parser">:::
   [
     int_test;
+    none_test;
     unop_test;
     unop_not_test;
     boolop_and_test;

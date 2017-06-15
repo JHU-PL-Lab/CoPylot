@@ -92,6 +92,7 @@ and pp_literal indent fmt = function
   | Str (s)      -> pp_str fmt s
   | Bool (b)     -> pp_print_bool fmt b
   | Builtin (bi) -> pp_builtin fmt bi
+  | NoneVal      -> fprintf fmt "None"
   | FunctionVal (args, body) -> pp_functionval indent fmt args body
 
 and pp_num fmt = function

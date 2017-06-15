@@ -138,6 +138,7 @@ and _token state = parse
         | "in"       -> IN (curr_pos lexbuf)
         (* | "is"       -> IS (curr_pos lexbuf) *)
         (* | "lambda"   -> LAMBDA (curr_pos lexbuf) *)
+        | "None"     -> NONE (curr_pos lexbuf)
         | "not"      -> NOT (curr_pos lexbuf)
         | "or"       -> OR (curr_pos lexbuf)
         | "pass"     -> PASS (curr_pos lexbuf)

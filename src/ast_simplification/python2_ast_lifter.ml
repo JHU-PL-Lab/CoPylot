@@ -68,6 +68,8 @@ and lift_literal l =
     Abstract.Builtin (lift_builtin b)
   | Concrete.FunctionVal (args, body) ->
     Abstract.FunctionVal (args, List.map lift_stmt body)
+  | Concrete.NoneVal ->
+    Abstract.NoneVal
 
 and lift_number n =
   match n with

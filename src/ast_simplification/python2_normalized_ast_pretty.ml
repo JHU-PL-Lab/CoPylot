@@ -85,6 +85,10 @@ and pp_compound_expr indent fmt {uid=_;exception_target=_;multi=_;body} =
 
 
 and pp_id fmt id =
+  if id = "None" || id = "True" || id = "False"
+  then
+    failwith (id ^ "is not a valid identifier!")
+  else
   fprintf fmt "%s" id
 
 and pp_literal indent fmt = function
@@ -92,6 +96,7 @@ and pp_literal indent fmt = function
   | Str (s)      -> pp_str fmt s
   | Bool (b)     -> pp_print_bool fmt b
   | Builtin (bi) -> pp_builtin fmt bi
+  | NoneVal      -> fprintf fmt "None"
   | FunctionVal (args, body) -> pp_functionval indent fmt args body
 
 and pp_num fmt = function

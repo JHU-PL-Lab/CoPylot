@@ -28,6 +28,7 @@ let literal_to_value (l : literal) (eta : eta): value =
   | Normalized.Str (s)     -> Str(s)
   | Normalized.Bool (b)    -> Bool(b)
   | Normalized.Builtin (b) -> Builtin(b)
+  | Normalized.NoneVal     -> NoneVal
   | Normalized.FunctionVal (args, body)
     -> Function (eta, args, Body.create body)
 ;;

@@ -8,6 +8,7 @@
 %token <string> NAME
 %token <Python2_abstract_ast.number> NUM
 %token <bool> BOOL
+%token NONE
 /*%token <string> STR*/
 
 /* keywords */
@@ -121,7 +122,6 @@ expr_wrapper:
   | expr_annot expr
     { $1 $2 }
 
-
 expr:
   | NAME LPAREN lst RPAREN { Call($1,$3) }
   | NAME DOT NAME { Attribute($1,$3) }
@@ -139,6 +139,7 @@ literal:
   | BI_BOOL { Builtin(Builtin_bool) }
   | BI_TYPE { Builtin(Builtin_type) }
   | funcval {$1}
+  | NONE { NoneVal }
 
 funcval:
   /*def (<params>){<stmt_list>}*/

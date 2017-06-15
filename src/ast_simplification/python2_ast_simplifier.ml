@@ -1,7 +1,7 @@
 open Python2_ast_types
 module Concrete = Python2_ast
 module Simplified = Python2_simplified_ast
-exception Identifier_Only
+exception Invalid_assignment of string
 
 let name_counter = ref 0;;
 let use_shortened_names = ref false;;
@@ -235,13 +235,20 @@ and simplify_stmt
 
          | Concrete.BoolOp _
          | Concrete.BinOp _
-         | Concrete.UnaryOp _ -> failwith "can't assign to operator"
-         | Concrete.IfExp _ -> failwith "can't assign to conditional expression"
-         | Concrete.Compare _ -> failwith "can't assign to comparison"
-         | Concrete.Call _ -> failwith "can't assign to function call"
+         | Concrete.UnaryOp _
+           -> raise @@ Invalid_assignment "can't assign to operator"
+         | Concrete.IfExp _
+           -> raise @@ Invalid_assignment "can't assign to conditional expression"
+         | Concrete.Compare _
+           -> raise @@ Invalid_assignment "can't assign to comparison"
+         | Concrete.Call _
+           -> raise @@ Invalid_assignment "can't assign to function call"
          | Concrete.Num _
          | Concrete.Str _
-         | Concrete.Bool _ -> failwith "can't assign to literal"
+         | Concrete.Bool _
+           -> raise @@ Invalid_assignment "can't assign to literal"
+         | Concrete.NoneExpr _
+           -> raise @@ Invalid_assignment "cannot assign to None"
       ) in
     [value_assignment] @ (map_and_concat simplify_assignment targets)
 
@@ -480,6 +487,9 @@ and simplify_expr
   | Concrete.Tuple (elts, _, annot) ->
     Simplified.Tuple (List.map simplify_expr elts, annot)
 
+  | Concrete.NoneExpr (annot) ->
+    Simplified.NoneExpr (annot)
+
 and simplify_expr_option
     (o : 'a Concrete.expr option)
   : 'a Simplified.expr option =
@@ -500,7 +510,7 @@ and simplify_slice
   let exp_opt_to_slice_arg e =
     match e with
     | None ->
-      Simplified.Name("None", annot)
+      Simplified.NoneExpr(annot)
     | Some(x) ->
       simplify_expr x
   in

@@ -89,6 +89,7 @@ type value =
   | Bool of bool
   | Builtin of builtin
   | Function of eta * identifier list (* arglist *) * Body.t
+  | NoneVal
 [@@deriving eq, ord, show]
 ;;
 

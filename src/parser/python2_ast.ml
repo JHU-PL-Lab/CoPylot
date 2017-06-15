@@ -71,6 +71,7 @@ and 'a expr =
   | Name of identifier (* id *) * expr_context (* ctx *) * 'a
   | List of 'a expr list (* elts *) * expr_context (* ctx *) * 'a
   | Tuple of 'a expr list (* elts *) * expr_context (* ctx *) * 'a
+  | NoneExpr of 'a
 [@@deriving eq, ord, show]
 
 (* AugLoad and AugStore are not used *)
@@ -172,6 +173,7 @@ and name_of_expr = function
   | Name _         -> "Name"
   | List _         -> "List"
   | Tuple _        -> "Tuple"
+  | NoneExpr _     -> "NoneExpr"
 
 and name_of_expr_context = function
   | Load        -> "Load"
@@ -286,6 +288,7 @@ and annot_of_expr = function
   | Name (_, _, a)
   | List (_, _, a)
   | Tuple (_, _, a)
+  | NoneExpr (a)
     -> a
 
 (* and annot_of_excepthandler = function *)

@@ -70,5 +70,6 @@ rule token = parse
       | "type" -> BI_TYPE
       | "true" -> BOOL (true)
       | "false" -> BOOL (false)
+      | "None" -> NONE
       | _ -> NAME (id)
     }

@@ -8,6 +8,7 @@
 %token <string> NAME
 %token <Python2_normalized_ast.number> NUM
 %token <bool> BOOL
+%token NONE
 /*%token <string> STR*/
 
 /* keywords */
@@ -138,6 +139,7 @@ literal:
   | BI_BOOL { Builtin(Builtin_bool) }
   | BI_TYPE { Builtin(Builtin_type) }
   | funcval {$1}
+  | NONE { NoneVal }
 
 funcval:
   /*def (<params>){<stmt_list>}*/

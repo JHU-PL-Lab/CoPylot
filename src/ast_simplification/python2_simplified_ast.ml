@@ -34,6 +34,7 @@ and 'a expr =
   | Bool of bool * 'a
   | Name of identifier (* id *) * 'a
   | Builtin of builtin * 'a
+  | NoneExpr of 'a
   | FunctionVal of identifier list (* args *) * 'a stmt list (* body *) * 'a
 [@@deriving eq, ord, show]
 
@@ -88,5 +89,6 @@ let extract_expr_annot = function
   | Bool(_,a)
   | Name(_,a)
   | Builtin(_,a)
+  | NoneExpr (a)
   | FunctionVal (_,_,a)
     -> a

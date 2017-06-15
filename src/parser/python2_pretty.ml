@@ -319,6 +319,9 @@ and pp_expr fmt = function
   | Tuple (elts, _, _) ->
     pp_paren_expr_list fmt elts
 
+  | NoneExpr (_) ->
+    fprintf fmt "NoneExpr"
+
 and pp_expr_list fmt = pp_list pp_expr fmt
 and pp_paren_expr_list fmt = pp_paren pp_expr_list fmt
 

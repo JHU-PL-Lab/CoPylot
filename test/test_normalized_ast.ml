@@ -102,6 +102,8 @@ let literal_tests =
 
     gen_literal_test "bool_true_test" "True" "true";
     gen_literal_test "bool_false_test" "False" "false";
+
+    gen_literal_test "none_test" "None" "None";
   ]
 ;;
 
@@ -194,9 +196,10 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
      "\n@   8:    :F:  $norm2 = slice;" ^
      "\n@  10:    :F:  $norm3 = 1;" ^
      "\n@  12:    :F:  $norm4 = 2;" ^
-     "\n@  14:    :F:  $norm5 = $norm2($norm3, $norm4, None);" ^
-     "\n@  16:    :F:  $norm6 = $norm1($norm5, $simp0);" ^
-     "\n@  17:    :F:  $norm6;")
+     "\n@  14:    :F:  $norm5 = None;" ^
+     "\n@  16:    :F:  $norm6 = $norm2($norm3, $norm4, $norm5);" ^
+     "\n@  18:    :F:  $norm7 = $norm1($norm6, $simp0);" ^
+     "\n@  19:    :F:  $norm7;")
 ;;
 
 let assign_from_tuple_test = gen_module_test "assign_from_tuple_test"
@@ -445,9 +448,10 @@ let slice_test = gen_module_test "slice_test"
      "\n@   4:    :F:  $norm1 = slice;" ^
      "\n@   6:    :F:  $norm2 = 1;" ^
      "\n@   8:    :F:  $norm3 = 2;" ^
-     "\n@  10:    :F:  $norm4 = $norm1($norm2, $norm3, None);" ^
-     "\n@  12:    :F:  $norm5 = $norm0($norm4);" ^
-     "\n@  13:    :F:  $norm5;")
+     "\n@  10:    :F:  $norm4 = None;" ^
+     "\n@  12:    :F:  $norm5 = $norm1($norm2, $norm3, $norm4);" ^
+     "\n@  14:    :F:  $norm6 = $norm0($norm5);" ^
+     "\n@  15:    :F:  $norm6;")
 ;;
 
 let if_test = gen_module_test "if_test"

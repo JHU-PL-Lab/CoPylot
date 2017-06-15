@@ -80,6 +80,7 @@ keywords, but as names. We are intentionally deviating from this here.*)
 %token <Lexing.position> IN
 /*%token <Lexing.position> IS*/
 /*%token <Lexing.position> LAMBDA*/
+%token <Lexing.position> NONE
 %token <Lexing.position> NOT
 %token <Lexing.position> OR
 %token <Lexing.position> PASS
@@ -617,11 +618,12 @@ atom:
   | atom_dict   { $1 } *)
   (*
   | atom_repr   { $1 }*)
-  | atom_bool { $1 }
+  | atom_bool   { $1 }
   | atom_name   { $1 }
   | INT         { Num (Int (fst $1), annot (snd $1)) }
   | LONGINT     { Num (LongInt (fst $1), annot (snd $1)) }
   | FLOAT       { Num (Float (fst $1), annot (snd $1)) }
+  | NONE        { NoneExpr (annot $1) }
   (*
   | IMAG        { Num (Imag (fst $1), annot (snd $1)) }*)
   | string_list { Str (String.concat "" (fst $1), annot (snd $1)) }

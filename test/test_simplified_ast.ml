@@ -82,6 +82,11 @@ let int_test = gen_stmt_test "int_test"
     (Num(Int(4), annot))
 ;;
 
+let none_test = gen_stmt_test "none_test"
+    "None"
+    (NoneExpr(annot))
+;;
+
 let float_test = gen_stmt_test "float_test"
     "1.7"
     (Num(Float(1.7), annot))
@@ -366,7 +371,7 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
               [
                 Num(Int(1), annot);
                 Num(Int(2), annot);
-                Name("None", annot);
+                NoneExpr(annot);
               ],
               annot
             );
@@ -450,39 +455,39 @@ let bad_assign_tests =
     expect_error_test "assign_to_num"
       [(gen_some_concrete_assignment
           (Concrete.Num(Concrete.Int(0), annot)))]
-      (Failure("can't assign to literal"));
+      (Simplify.Invalid_assignment("can't assign to literal"));
     expect_error_test "assign_to_str"
       [(gen_some_concrete_assignment
           (Concrete.Str("", annot)))]
-      (Failure("can't assign to literal"));
+      (Simplify.Invalid_assignment("can't assign to literal"));
     expect_error_test "assign_to_bool"
       [(gen_some_concrete_assignment
           (Concrete.Bool(true, annot)))]
-      (Failure("can't assign to literal"));
+      (Simplify.Invalid_assignment("can't assign to literal"));
     expect_error_test "assign_to_boolop"
       [(gen_some_concrete_assignment
           (Concrete.BoolOp(Concrete.And, [dummy_expr; dummy_expr], annot)))]
-      (Failure("can't assign to operator"));
+      (Simplify.Invalid_assignment("can't assign to operator"));
     expect_error_test "assign_to_binop"
       [(gen_some_concrete_assignment
           (Concrete.BinOp(dummy_expr, Concrete.Add, dummy_expr, annot)))]
-      (Failure("can't assign to operator"));
+      (Simplify.Invalid_assignment("can't assign to operator"));
     expect_error_test "assign_to_unaryop"
       [(gen_some_concrete_assignment
           (Concrete.UnaryOp(Concrete.UAdd, dummy_expr, annot)))]
-      (Failure("can't assign to operator"));
+      (Simplify.Invalid_assignment("can't assign to operator"));
     expect_error_test "assign_to_ifexp"
       [(gen_some_concrete_assignment
           (Concrete.IfExp(dummy_expr, dummy_expr, dummy_expr, annot)))]
-      (Failure("can't assign to conditional expression"));
+      (Simplify.Invalid_assignment("can't assign to conditional expression"));
     expect_error_test "assign_to_compare"
       [(gen_some_concrete_assignment
           (Concrete.Compare(dummy_expr, [Concrete.Lt], [dummy_expr], annot)))]
-      (Failure("can't assign to comparison"));
+      (Simplify.Invalid_assignment("can't assign to comparison"));
     expect_error_test "assign_to_call"
       [(gen_some_concrete_assignment
           (Concrete.Call(dummy_expr, [], [], None, None, annot)))]
-      (Failure("can't assign to function call"));
+      (Simplify.Invalid_assignment("can't assign to function call"));
   ]
 ;;
 
@@ -966,23 +971,23 @@ let list_tests =
        (Call(Builtin(Builtin_slice, annot),
              [
                Num(Int(2), annot);
-               Name("None", annot);
-               Name("None", annot);
+               NoneExpr(annot);
+               NoneExpr(annot);
              ],
              annot)));
     (gen_slice_test "slice_test4" "[:4]"
        (Call(Builtin(Builtin_slice, annot),
              [
-               Name("None", annot);
+               NoneExpr(annot);
                Num(Int(4), annot);
-               Name("None", annot);
+               NoneExpr(annot);
              ],
              annot)));
     (gen_slice_test "slice_test5" "[::3]"
        (Call(Builtin(Builtin_slice, annot),
              [
-               Name("None", annot);
-               Name("None", annot);
+               NoneExpr(annot);
+               NoneExpr(annot);
                Num(Int(3), annot);
              ],
              annot)));
@@ -991,7 +996,7 @@ let list_tests =
              [
                Num(Int(2), annot);
                Num(Int(4), annot);
-               Name("None", annot);
+               NoneExpr(annot);
              ],
              annot)));
     (gen_slice_test "slice_test7" "[2:4:-1]"
@@ -1054,6 +1059,7 @@ let tests =
   "concrete_ast">:::
   [
     int_test;
+    none_test;
     float_test;
     float_zero_test;
     unop_test;
