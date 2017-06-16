@@ -155,11 +155,111 @@ let assign_test = gen_module_test "assign_test"
 
 let augassign_test = gen_module_test "augassign_test"
     "x += 5"
-    ("@   2:    :F:  $norm0 = x.__add__;" ^
-     "\n@   4:    :F:  $norm1 = Int+;" ^
-     "\n@   6:    :F:  $norm2 = $norm0($norm1);" ^
-     "\n@   8:    :F:  $simp0 = $norm2;" ^
-     "\n@  10:    :F:  x = $simp0;")
+    begin
+      "@   4:   1:F:  $norm1 = x.__iadd__;" ^
+      "\n@   6:   1:F:  $simp4 = $norm1;" ^
+      "\n@   8:   1:F:  $simp1 = $simp4;" ^
+      "\n@  32:    :F:  goto 2;" ^
+      "\n@   1:    :F:  catch $norm0;" ^
+      "\n@  10:    :F:  $norm2 = type;" ^
+      "\n@  12:    :F:  $norm3 = $norm2($norm0);" ^
+      "\n@  14:    :F:  $norm4 = $norm3.__eq__;" ^
+      "\n@  16:    :F:  $norm5 = $norm4(AttributeError);" ^
+      "\n@  18:    :F:  $norm6 = bool;" ^
+      "\n@  20:    :F:  $norm7 = $norm6($norm5);" ^
+      "\n@  31:    :F:  goto 30 if not $norm7;" ^
+      "\n@  22:    :F:  $norm8 = x.__add__;" ^
+      "\n@  24:    :F:  $simp3 = $norm8;" ^
+      "\n@  26:    :F:  $simp1 = $simp3;" ^
+      "\n@  29:    :F:  goto 28;" ^
+      "\n@  30:    :F:  pass;" ^
+      "\n@  27:    :F:  raise $norm0;" ^
+      "\n@  28:    :F:  pass;" ^
+      "\n@   2:    :F:  pass;" ^
+      "\n@  34:    :F:  $norm9 = Int+;" ^
+      "\n@  36:    :F:  $norm10 = $simp1($norm9);" ^
+      "\n@  38:    :F:  $simp2 = $norm10;" ^
+      "\n@  40:    :F:  x = $simp2;"
+    end
+;;
+
+let augassign_to_member_test = gen_module_test "augassign_to_member_test"
+    "obj.mem += 5"
+    begin
+      "@   2:    :F:  $simp0 = obj;" ^
+      "\n@   6:   3:F:  $norm1 = $simp0.mem;" ^
+      "\n@   8:   3:F:  $norm2 = $norm1.__iadd__;" ^
+      "\n@  10:   3:F:  $simp4 = $norm2;" ^
+      "\n@  12:   3:F:  $simp1 = $simp4;" ^
+      "\n@  38:    :F:  goto 4;" ^
+      "\n@   3:    :F:  catch $norm0;" ^
+      "\n@  14:    :F:  $norm3 = type;" ^
+      "\n@  16:    :F:  $norm4 = $norm3($norm0);" ^
+      "\n@  18:    :F:  $norm5 = $norm4.__eq__;" ^
+      "\n@  20:    :F:  $norm6 = $norm5(AttributeError);" ^
+      "\n@  22:    :F:  $norm7 = bool;" ^
+      "\n@  24:    :F:  $norm8 = $norm7($norm6);" ^
+      "\n@  37:    :F:  goto 36 if not $norm8;" ^
+      "\n@  26:    :F:  $norm9 = $simp0.mem;" ^
+      "\n@  28:    :F:  $norm10 = $norm9.__add__;" ^
+      "\n@  30:    :F:  $simp3 = $norm10;" ^
+      "\n@  32:    :F:  $simp1 = $simp3;" ^
+      "\n@  35:    :F:  goto 34;" ^
+      "\n@  36:    :F:  pass;" ^
+      "\n@  33:    :F:  raise $norm0;" ^
+      "\n@  34:    :F:  pass;" ^
+      "\n@   4:    :F:  pass;" ^
+      "\n@  40:    :F:  $norm11 = Int+;" ^
+      "\n@  42:    :F:  $norm12 = $simp1($norm11);" ^
+      "\n@  44:    :F:  $simp2 = $norm12;" ^
+      "\n@  46:    :F:  $norm13 = $simp0.__setattr__;" ^
+      "\n@  48:    :F:  $norm14 = \"mem\";" ^
+      "\n@  50:    :F:  $norm15 = $norm13($norm14, $simp2);" ^
+      "\n@  51:    :F:  $norm15;"
+    end
+;;
+
+let augassign_to_list_test = gen_module_test "augassign_to_list_test"
+    "lst[1:2] += 5"
+    begin
+      "@   2:    :F:  $simp0 = lst;" ^
+      "\n@   4:    :F:  $norm0 = slice;" ^
+      "\n@   6:    :F:  $norm1 = Int+;" ^
+      "\n@   8:    :F:  $norm2 = Int+;" ^
+      "\n@  10:    :F:  $norm3 = None;" ^
+      "\n@  12:    :F:  $norm4 = $norm0($norm1, $norm2, $norm3);" ^
+      "\n@  14:    :F:  $simp2 = $norm4;" ^
+      "\n@  18:  15:F:  $norm6 = $simp0.__getitem__;" ^
+      "\n@  20:  15:F:  $norm7 = $norm6($simp1);" ^
+      "\n@  22:  15:F:  $norm8 = $norm7.__iadd__;" ^
+      "\n@  24:  15:F:  $simp5 = $norm8;" ^
+      "\n@  26:  15:F:  $simp1 = $simp5;" ^
+      "\n@  54:    :F:  goto 16;" ^
+      "\n@  15:    :F:  catch $norm5;" ^
+      "\n@  28:    :F:  $norm9 = type;" ^
+      "\n@  30:    :F:  $norm10 = $norm9($norm5);" ^
+      "\n@  32:    :F:  $norm11 = $norm10.__eq__;" ^
+      "\n@  34:    :F:  $norm12 = $norm11(AttributeError);" ^
+      "\n@  36:    :F:  $norm13 = bool;" ^
+      "\n@  38:    :F:  $norm14 = $norm13($norm12);" ^
+      "\n@  53:    :F:  goto 52 if not $norm14;" ^
+      "\n@  40:    :F:  $norm15 = $simp0.__getitem__;" ^
+      "\n@  42:    :F:  $norm16 = $norm15($simp1);" ^
+      "\n@  44:    :F:  $norm17 = $norm16.__add__;" ^
+      "\n@  46:    :F:  $simp4 = $norm17;" ^
+      "\n@  48:    :F:  $simp1 = $simp4;" ^
+      "\n@  51:    :F:  goto 50;" ^
+      "\n@  52:    :F:  pass;" ^
+      "\n@  49:    :F:  raise $norm5;" ^
+      "\n@  50:    :F:  pass;" ^
+      "\n@  16:    :F:  pass;" ^
+      "\n@  56:    :F:  $norm18 = Int+;" ^
+      "\n@  58:    :F:  $norm19 = $simp1($norm18);" ^
+      "\n@  60:    :F:  $simp3 = $norm19;" ^
+      "\n@  62:    :F:  $norm20 = $simp0.__setitem__;" ^
+      "\n@  64:    :F:  $norm21 = $norm20($simp1, $simp3);" ^
+      "\n@  65:    :F:  $norm21;"
+    end
 ;;
 
 let multiassign_test = gen_module_test "multiassign_test"
@@ -265,6 +365,8 @@ let assignment_tests =
   [
     assign_test;
     augassign_test;
+    augassign_to_member_test;
+    augassign_to_list_test;
     multiassign_test;
     assign_to_member_test;
     assign_to_index_test;
@@ -597,7 +699,7 @@ let funcdef_args_test = gen_module_test "funcdef_args_test"
 ;;
 
 let while_test = gen_module_test "while_test"
-    "while x < 3:\n\tx += 1"
+    "while x < 3:\n\tx = x + 1"
     ("@  11:    :T:  pass;" ^
      "\n@   2:    :T:  $norm0 = Int+;" ^
      "\n@   4:    :T:  $norm1 = x.__lt__;" ^

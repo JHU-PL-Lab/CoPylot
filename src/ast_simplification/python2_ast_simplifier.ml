@@ -253,14 +253,94 @@ and simplify_stmt
     [value_assignment] @ (map_and_concat simplify_assignment targets)
 
   | Concrete.AugAssign (target, op, value, annot) ->
-    (* Convert to a standard assignment, then simplify that *)
-    let regAssign =
-      Concrete.Assign(
-        [target],
-        Concrete.BinOp(target, op, value, annot),
-        annot
-      ) in
-    simplify_stmt regAssign
+    (* a += b "simplifies" to
+       tmp1 = a
+       try:
+         tmp2 = tmp1.__iadd__
+       except AttributeError:
+         tmp2 = tmp1.__add__
+       a = tmp2(b)
+
+       except we have to do a little more work depending on the form of a.
+
+       If a has the form obj.mem, we replace it with "tmp1 = obj; tmp1.mem += 2".
+       This ensures that obj is only evaluated once, as required.
+
+       Similarly, if a looks like list[slice], we evaluate the list and slice
+       beforehand.
+    *)
+    let tmp1 = gen_unique_name annot in
+    let tmp2 = gen_unique_name annot in
+    let binds, newtarget =
+      begin
+        match target with
+        | Concrete.Name _ ->
+          [], target
+
+        | Concrete.Attribute (obj, id, ctx, annot) ->
+          [Simplified.Assign (tmp1, simplify_expr obj, annot)],
+          Concrete.Attribute (Concrete.Name(tmp1, Concrete.Load, annot), id, ctx, annot)
+
+        | Concrete.Subscript (lst, slice, ctx, annot) ->
+          let slice_name = gen_unique_name annot in
+          [
+            Simplified.Assign (tmp1, simplify_expr lst, annot);
+            Simplified.Assign (slice_name, simplify_slice slice annot, annot);
+          ],
+          Concrete.Subscript(Concrete.Name(tmp1, Concrete.Load, annot),
+                             Concrete.Index(Concrete.Name(tmp2, Concrete.Load, annot)),
+                             ctx,
+                             annot)
+
+        | Concrete.List _
+        | Concrete.Tuple _
+          -> raise @@ Invalid_assignment "illegal expression for augmented assignment"
+        | Concrete.BoolOp _
+        | Concrete.BinOp _
+        | Concrete.UnaryOp _
+          -> raise @@ Invalid_assignment "can't assign to operator"
+        | Concrete.IfExp _
+          -> raise @@ Invalid_assignment "can't assign to conditional expression"
+        | Concrete.Compare _
+          -> raise @@ Invalid_assignment "can't assign to comparison"
+        | Concrete.Call _
+          -> raise @@ Invalid_assignment "can't assign to function call"
+        | Concrete.Num _
+        | Concrete.Str _
+        | Concrete.Bool _
+          -> raise @@ Invalid_assignment "can't assign to literal"
+        | Concrete.NoneExpr _
+          -> raise @@ Invalid_assignment "cannot assign to None"
+      end in
+    let tryexcept =
+      Concrete.TryExcept(
+        [
+          Concrete.Assign(
+            [Concrete.Name(tmp2, Concrete.Store, annot)],
+            Concrete.Attribute(newtarget, simplify_augoperator op, Concrete.Load, annot),
+            annot);
+        ],
+        [
+          Concrete.ExceptHandler(
+            Some(Concrete.Name("AttributeError", Concrete.Load, annot)), None,
+            [
+              Concrete.Assign(
+                [Concrete.Name(tmp2, Concrete.Store, annot)],
+                Concrete.Attribute(newtarget, simplify_operator op, Concrete.Load, annot),
+                annot)
+            ],
+            annot);
+        ],
+        [],
+        annot);
+    in
+    let final_assign =
+      Concrete.Assign([newtarget],
+                      Concrete.Call(Concrete.Name(tmp2, Concrete.Load, annot),
+                                    [value], [], None, None, annot),
+                      annot)
+    in
+    binds @ simplify_stmt tryexcept @ simplify_stmt final_assign
 
   | Concrete.Print (dest, values, nl, annot) ->
     [Simplified.Print (
@@ -283,17 +363,17 @@ and simplify_stmt
        then simplifying the resulting code. Specifically, we turn
 
        for i in seq:
-         <body>
+       <body>
 
        into
 
        next_val = seq.__iter__().next
        try:
-         while True:
-           i = next_val()
-           <body>
+       while True:
+        i = next_val()
+        <body>
        except StopIteration:
-         pass
+       pass
 
     *)
     let next_val = gen_unique_name annot in
@@ -537,12 +617,22 @@ and simplify_boolop b =
 
 and simplify_operator o =
   match o with
-  | Concrete.Add -> "__add__"
-  | Concrete.Sub -> "__sub__"
-  | Concrete.Mult -> "__mul__"
-  | Concrete.Div -> "__div__"
-  | Concrete.Mod -> "__mod__"
-  | Concrete.Pow -> "__pow__"
+  | Concrete.Add  ->  "__add__"
+  | Concrete.Sub  ->  "__sub__"
+  | Concrete.Mult ->  "__mul__"
+  | Concrete.Div  ->  "__div__"
+  | Concrete.Mod  ->  "__mod__"
+  | Concrete.Pow  ->  "__pow__"
+
+and simplify_augoperator o =
+  match o with
+  | Concrete.Add  ->  "__iadd__"
+  | Concrete.Sub  ->  "__isub__"
+  | Concrete.Mult ->  "__imul__"
+  | Concrete.Div  ->  "__idiv__"
+  | Concrete.Mod  ->  "__imod__"
+  | Concrete.Pow  ->  "__ipow__"
+
 
 and simplify_cmpop o =
   match o with

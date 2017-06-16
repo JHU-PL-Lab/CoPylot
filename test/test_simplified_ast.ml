@@ -411,20 +411,34 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
 
 let var_aug_assign_test = gen_module_test "var_aug_assign_test"
     "x *= -5"
-    [
-      Assign(
-        "$simplified_unique_name_0",
-        Call(Attribute(Name("x", annot), "__mul__", annot),
-             [Num(Int(-5), annot)],
-             annot
-            ),
-        annot
-      );
-      Assign(
-        "x",
-        Name("$simplified_unique_name_0", annot),
-        annot
-      )
+    [TryExcept (
+        [Assign ("$simplified_unique_name_4",
+                 Attribute (
+                   Name ("x", annot), "__imul__", annot),
+                 annot);
+         Assign ("$simplified_unique_name_1",
+                 Name ("$simplified_unique_name_4", annot), annot)
+        ],
+        [ExceptHandler (
+            Some (Name ("AttributeError", annot)), None,
+            [Assign ("$simplified_unique_name_3",
+                     Attribute (
+                       Name ("x", annot), "__mul__", annot),
+                     annot);
+             Assign ("$simplified_unique_name_1",
+                     Name ("$simplified_unique_name_3", annot),
+                     annot)
+            ],
+            annot)
+        ],
+        annot);
+     Assign ("$simplified_unique_name_2",
+             Call (
+               Name ("$simplified_unique_name_1", annot),
+               [Num(Int(-5), annot)],
+               annot),
+             annot);
+     Assign ("x", Name ("$simplified_unique_name_2", annot), annot)
     ]
 ;;
 
@@ -558,51 +572,65 @@ let attribute_call_test = gen_stmt_test "attribute_test"
 
 let if_test = gen_module_test "if_test"
     "if x > 2:\n\tx = 3\nelif x < 0: x *= -1\nelse: pass"
-    [
-      If(
-        Compare(Name("x", annot),
-                [Gt],
-                [Num(Int(2), annot)],
-                annot),
-        [
-          Assign(
-            "$simplified_unique_name_1",
-            Num(Int(3), annot),
-            annot
-          );
-          Assign(
-            "x",
-            Name("$simplified_unique_name_1", annot),
-            annot
-          )
+    [If (
+        Compare (
+          Name ("x", annot), [Python2_simplified_ast.Gt],
+          [Num(Int 2, annot)],
+          annot),
+        [Assign ("$simplified_unique_name_5",
+                 Num(Int 3, annot),
+                 annot);
+         Assign ("x",
+                 Name ("$simplified_unique_name_5", annot), annot)
         ],
-        [
-          If(
-            Compare(Name("x", annot),
-                    [Lt],
-                    [Num(Int(0), annot)],
-                    annot),
-            [
-              Assign(
-                "$simplified_unique_name_0",
-
-                Call(Attribute(Name("x", annot), "__mul__", annot),
-                     [Num(Int(-1), annot)],
-                     annot),
-                annot
-              );
-              Assign(
-                "x",
-                Name("$simplified_unique_name_0", annot),
-                annot
-              )
+        [If (
+            Compare (
+              Name ("x", annot),
+              [Python2_simplified_ast.Lt],
+              [Num (Int 0, annot) ],
+              annot),
+            [TryExcept (
+                [Assign ("$simplified_unique_name_4",
+                         Attribute (
+                           Name ("x", annot), "__imul__", annot),
+                         annot);
+                 Assign ("$simplified_unique_name_1",
+                         Name (
+                           "$simplified_unique_name_4", annot),
+                         annot)
+                ],
+                [ExceptHandler (
+                    (Some (Name ("AttributeError", annot))),
+                    None,
+                    [Assign (
+                        "$simplified_unique_name_3",
+                        Attribute (
+                          Name ("x", annot), "__mul__",
+                          annot),
+                        annot);
+                     Assign (
+                       "$simplified_unique_name_1",
+                       Name (
+                         "$simplified_unique_name_3", annot),
+                       annot)
+                    ],
+                    annot)
+                ],
+                annot);
+             Assign ("$simplified_unique_name_2",
+                     Call (
+                       Name ("$simplified_unique_name_1",
+                             annot),
+                       [Num(Int (-1), annot)],
+                       annot),
+                     annot);
+             Assign ("x",
+                     Name ("$simplified_unique_name_2", annot),
+                     annot)
             ],
-            [Pass(annot)],
-            annot
-          )
+            [Pass annot], annot)
         ],
-        annot
-      )
+        annot)
     ]
 ;;
 
@@ -828,63 +856,84 @@ let triangle_ast =
     "triangle",
     FunctionVal(
       ["n"],
-      [ (* Body *)
-        Assign(
-          "$simplified_unique_name_0",
-          Num(Int(0), annot),
-          annot);
-        Assign(
-          "count",
-          Name("$simplified_unique_name_0", annot),
-          annot
-        );
-        Assign(
-          "$simplified_unique_name_1",
-          Num(Int(0), annot),
-          annot);
-        Assign(
-          "i",
-          Name("$simplified_unique_name_1", annot),
-          annot
-        );
-        While(
-          Compare(
-            Name("count", annot),
-            [Lt],
-            [Name("n", annot)],
-            annot
-          ),
-          [
-            Assign(
-              "$simplified_unique_name_2",
-              Call(Attribute(Name("i", annot), "__add__", annot),
-                   [Name("count", annot)],
+      [Assign ("$simplified_unique_name_0",
+               Num (Int 0, annot),
+               annot);
+       Assign ("count",
+               Name ("$simplified_unique_name_0", annot),
+               annot);
+       Assign ("$simplified_unique_name_1",
+               Num (Int 0, annot),
+               annot);
+       Assign ("i",
+               Name ("$simplified_unique_name_1", annot),
+               annot);
+       While (
+         Compare (
+           Name ("count", annot),
+           [Python2_simplified_ast.Lt],
+           [Name ("n", annot)], annot),
+         [TryExcept (
+             [Assign (
+                 "$simplified_unique_name_6",
+                 Attribute (
+                   Name ("i", annot), "__iadd__",
                    annot),
-              annot);
-            Assign(
-              "i",
-              Name("$simplified_unique_name_2", annot),
-              annot
-            );
-            Assign(
-              "$simplified_unique_name_3",
-              Call(Attribute(Name("count", annot), "__add__", annot),
-                   [Num(Int(1), annot)],
-                   annot),
-              annot);
-            Assign(
-              "count",
-              Name("$simplified_unique_name_3", annot),
-              annot
-            )
-          ],
-          annot
-        );
-        Return(Some(Name("i", annot)), annot);
+                 annot);
+              Assign (
+                "$simplified_unique_name_3",
+                Name (
+                  "$simplified_unique_name_6", annot),
+                annot)
+             ],
+             [ExceptHandler (
+                 Some (Name ("AttributeError",
+                             annot)),
+                 None,
+                 [Assign (
+                     "$simplified_unique_name_5",
+                     Attribute (
+                       Name ("i", annot),
+                       "__add__", annot),
+                     annot);
+                  Assign (
+                    "$simplified_unique_name_3",
+                    Name (
+                      "$simplified_unique_name_5", annot),
+                    annot)
+                 ],
+                 annot)
+             ],
+             annot);
+          Assign ("$simplified_unique_name_4",
+                  Call (
+                    Name (
+                      "$simplified_unique_name_3", annot),
+                    [Name ("count", annot)], annot),
+                  annot);
+          Assign ("i",
+                  Name (
+                    "$simplified_unique_name_4", annot),
+                  annot);
+          Assign ("$simplified_unique_name_7",
+                  Call (
+                    Attribute (
+                      Name ("count", annot),
+                      "__add__", annot),
+                    [Num (Int 1, annot)],
+                    annot),
+                  annot);
+          Assign ("count",
+                  Name (
+                    "$simplified_unique_name_7", annot),
+                  annot)
+         ],
+         annot);
+       Return (
+         Some (Name ("i", annot)), annot)
       ],
       annot),
-    annot
-  )
+    annot)
 ;;
 
 let big_test = gen_module_test "big_test"
