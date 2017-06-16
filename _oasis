@@ -115,6 +115,7 @@ Library "pyssembly_interpreter"
   Path: src/pyssembly_interpreter
   Modules:
     Python2_pys_interpreter_types,
+    Python2_pys_interpreter_builtin_objects,
     Python2_pys_interpreter_utils,
     Python2_pys_interpreter
   BuildDepends:

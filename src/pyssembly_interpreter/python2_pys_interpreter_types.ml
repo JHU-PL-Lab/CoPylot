@@ -152,10 +152,10 @@ module Bindings : sig
 
   (* Add a binding of the input memloc to the given value, overwriting
      the previous entry if one exists *)
-  val update_binding: t -> identifier -> memloc -> t
+  val update_binding: identifier -> memloc -> t -> t
 
   (* Get the memory location bound to the current variable, if any *)
-  val get_memloc: t -> identifier -> memloc option
+  val get_memloc: identifier -> t -> memloc option
 
   val empty: t
   val singleton: identifier -> memloc -> t
@@ -170,9 +170,9 @@ struct
 
   type t = memloc Var_map.t;;
 
-  let update_binding prev id mem = Var_map.add id mem prev;;
+  let update_binding id mem prev = Var_map.add id mem prev;;
 
-  let get_memloc map id =
+  let get_memloc id map =
     try
       let m = Var_map.find id map in
       Some(m)
@@ -193,7 +193,8 @@ type value =
   | Str of str
   | Bool of bool
   | Builtin of builtin
-  | Function of memloc * identifier list (* arglist *) * Body.t
+  | Function of memloc (* Bound scope *) * identifier list (* arglist *) * Body.t
+  | Method of memloc (* Bound scope *) * memloc (* self *) * identifier list (* args *) * Body.t
   | NoneVal
 (* [@@deriving eq, ord, show] *)
 ;;
@@ -208,10 +209,10 @@ module Heap: sig
 
   (* Add a binding of the input memloc to the given value, overwriting
      the previous entry if one exists *)
-  val update_binding: t -> memloc -> value -> t
+  val update_binding: memloc -> value -> t -> t
 
   (* Get the value bound to the given location in memory, if there is one. *)
-  val get_value: t -> memloc -> value option
+  val get_value: memloc -> t -> value option
 
   val empty: t
   val singleton: memloc -> value -> t
@@ -230,13 +231,13 @@ struct
 
   let get_new_memloc heap = Memloc(heap.maxval + 1);;
 
-  let update_binding heap mem value =
+  let update_binding mem value heap =
     let new_map = Memloc_map.add mem value heap.map in
     let Memloc(mem_val) = mem in
     let new_max = max heap.maxval mem_val in
     { map = new_map; maxval = new_max };;
 
-  let get_value heap mem =
+  let get_value mem heap =
   try
     let v = Memloc_map.find mem heap.map in
     Some(v)
@@ -258,10 +259,10 @@ module Parents : sig
   type t
 
   (* Register the first input memloc as a child of the second *)
-  val add_parent: t -> memloc -> memloc -> t
+  val add_parent: memloc -> memloc -> t -> t
 
   (* Retrieve the parent of the input memloc, if any *)
-  val get_parent: t -> memloc -> memloc option
+  val get_parent: memloc -> t -> memloc option
 
   val empty: t
   val singleton: memloc -> memloc -> t
@@ -276,9 +277,9 @@ struct
 
   type t = memloc Memloc_map.t;;
 
-  let add_parent prev child parent = Memloc_map.add child parent prev;;
+  let add_parent child parent prev = Memloc_map.add child parent prev;;
 
-  let get_parent map child =
+  let get_parent child map =
     try
       let parent = Memloc_map.find child map in
       Some(parent)

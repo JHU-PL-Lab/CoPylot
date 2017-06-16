@@ -2,9 +2,22 @@
 open Python2_ast_types;;
 open Python2_normalized_ast;;
 open Python2_pys_interpreter_types;;
+open Python2_pys_interpreter_builtin_objects;;
+
+let make_literal_obj (m : memloc) (l : literal) : Bindings.t =
+  let module Normalized = Python2_normalized_ast in
+  match l with
+  | Normalized.Num (Int _)   ->   make_int_obj m
+  | Normalized.Num (Float _) ->   make_float_obj m
+  | Normalized.Str _         ->   make_string_obj m
+  | Normalized.Bool _        ->   make_bool_obj m
+  | Normalized.FunctionVal _ ->   make_function_obj m
+  | Normalized.NoneVal       ->   make_none_obj m
+  | Normalized.Builtin _     ->   make_function_obj m
+;;
 
 let retrieve_binding (heap : Heap.t) (m : memloc) : Bindings.t =
-  let hval = Heap.get_value heap m in
+  let hval = Heap.get_value m heap in
   let bindings =
     match hval with
     | Some(Bindings(b)) -> b
@@ -20,14 +33,14 @@ let bind_var
     (target : memloc)
   : Heap.t =
   let bindings = retrieve_binding heap bindings_loc in
-  let new_bindings = Bindings.update_binding bindings var target in
-  let new_env = Heap.update_binding heap bindings_loc @@ Bindings(new_bindings) in
+  let new_bindings = Bindings.update_binding var target bindings in
+  let new_env = Heap.update_binding bindings_loc (Bindings(new_bindings)) heap in
   new_env
 ;;
 
 let allocate_memory (h : Heap.t) (v : value) : Heap.t * memloc =
   let m = Heap.get_new_memloc h in
-  let new_heap = Heap.update_binding h m v in
+  let new_heap = Heap.update_binding m v h in
   new_heap, m
 ;;
 
@@ -58,11 +71,11 @@ let rec lookup
     (bindings_loc : memloc)
   : memloc option =
   let bindings = retrieve_binding heap bindings_loc in
-  let m = Bindings.get_memloc bindings id in
+  let m = Bindings.get_memloc id bindings in
   match m with
   | Some _ -> m
   | None ->
-    let parent = Parents.get_parent parents bindings_loc in
+    let parent = Parents.get_parent bindings_loc parents in
     match parent with
     | None -> None
     | Some(p) -> lookup id heap parents p
