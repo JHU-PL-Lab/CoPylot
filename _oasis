@@ -55,15 +55,19 @@ Library "ast_simplification"
   Path: src/ast_simplification
   Modules:
     Python2_ast_types,
-    Python2_abstract_ast,
-    Python2_ast_lifter,
+    Python2_concrete_ast,
+    Python2_ast_generalizer,
     Python2_rename_ast,
     Python2_simplified_ast,
     Python2_ast_simplifier,
     Python2_normalized_ast,
     Python2_ast_normalizer,
+    Python2_abstract_ast,
+    Python2_ast_lifter,
     Python2_uid_stmt_map,
-    Python2_normalized_ast_pretty
+    Python2_normalized_ast_pretty,
+    Python2_abstract_ast_pretty,
+    Python2_ast_pipeline
   BuildDepends:
     batteries,
     jhupllib,

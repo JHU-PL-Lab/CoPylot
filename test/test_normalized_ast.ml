@@ -1,25 +1,21 @@
-open OUnit2
-open Batteries
-open Jhupllib
-open Pp_utils
-open Python2_parser
-open Lexing
-open Python2_ast_types
-module Rename = Python2_rename_ast
-module Simplified = Python2_simplified_ast
-module Simplify = Python2_ast_simplifier
-module Normalize = Python2_ast_normalizer
-open Python2_normalized_ast
-open Python2_normalized_ast_pretty
-open Uid_generation
+open OUnit2;;
+open Batteries;;
+open Jhupllib;;
+open Pp_utils;;
+
+open Python2_ast_types;;
+open Python2_ast_pipeline;;
+open Python2_normalized_ast;;
+open Python2_normalized_ast_pretty;;
 
 let string_of_modl m = Pp_utils.pp_to_string pp_modl m;;
 
-let parse_from_string_safe str =
+let parse_to_normalized_safe prog short_names =
   try
-    parse_from_string str
+    parse_to_normalized prog short_names
   with
   | Python2_parser.Parse_error p ->
+    let open Lexing in
     assert_failure (Printf.sprintf "Error in line %d, col %d."
                       p.pos_lnum p.pos_cnum)
 ;;
@@ -55,28 +51,17 @@ and collect_uids_stmt s =
   s.uid::rest
 ;;
 
-let id_map = Rename.Id_map.empty;;
-
 let gen_module_test (name : string) (prog : string)
     (expected : string) =
   name>::
   ( fun _ ->
-      let concrete = parse_from_string_safe (prog ^ "\n") in
-      let renamed = Rename.rename_modl id_map [] concrete in
-      let simplified =
-        (* Occasionally a test will fail; resetting here might help *)
-        Simplify.reset_unique_name ();
-        Simplify.toggle_short_names true;
-        Simplify.simplify_modl renamed in
-      Simplify.reset_unique_name ();
-      let ctx = create_new_uid_context () in
-      let actual =
-        Normalize.toggle_short_names true;
-        Normalize.normalize_modl ctx simplified in
-      Normalize.reset_unique_name ();
+      let actual = parse_to_normalized_safe prog true in
+      Python2_ast_simplifier.reset_unique_name ();
+      Python2_ast_normalizer.reset_unique_name ();
+
       let distinct_uids = verify_unique_uids actual in
-      assert_bool ("Repeated UIDs:\n" ^ string_of_modl actual)
-        distinct_uids;
+      assert_bool ("Repeated UIDs:\n" ^ string_of_modl actual) distinct_uids;
+
       let pyssembly = pp_to_string pp_modl actual in
       assert_equal ~printer:(fun x -> x) ~cmp:String.equal expected pyssembly
   )
@@ -811,15 +796,12 @@ let expect_error_test
     (expected : exn) =
   name>::
   (fun _ ->
-     let concrete = parse_from_string_safe (prog ^ "\n") in
-     let renamed = Rename.rename_modl id_map [] concrete in
-     let simplified = Simplify.simplify_modl renamed in
-     let ctx = create_new_uid_context () in
-     Simplify.reset_unique_name ();
      assert_raises
        expected
        (fun _ ->
-          Normalize.normalize_modl ctx simplified)
+          parse_to_normalized prog true);
+     Python2_ast_simplifier.reset_unique_name ();
+     Python2_ast_normalizer.reset_unique_name ()
   )
 ;;
 

@@ -1,5 +1,5 @@
 open Python2_ast_types
-module Concrete = Python2_ast
+module Concrete = Python2_concrete_ast
 module Simplified = Python2_simplified_ast
 exception Invalid_assignment of string
 
@@ -154,7 +154,7 @@ and simplify_stmt
            let tmp_bindings =
              List.fold_left
                (fun
-                 (prev : Concrete.identifier list * 'a Simplified.stmt list)
+                 (prev : identifier list * 'a Simplified.stmt list)
                  (_ : 'a Concrete.expr) ->
                  let tmp_name = gen_unique_name annot in
                  let next_assignment =
@@ -226,7 +226,7 @@ and simplify_stmt
              List.map2
                (fun
                  (tuple_elt : 'a Concrete.expr)
-                 (tmp_name : Concrete.identifier) ->
+                 (tmp_name : identifier) ->
                  Concrete.Assign(
                    [tuple_elt],
                    Concrete.Name(tmp_name, Concrete.Load, annot),
@@ -541,10 +541,10 @@ and simplify_expr
                      annot)
 
   | Concrete.Num (n, annot) ->
-    Simplified.Num(simplify_number n, annot)
+    Simplified.Num(n, annot)
 
-  | Concrete.Str (typ, annot) ->
-    Simplified.Str(simplify_str typ, annot)
+  | Concrete.Str (s, annot) ->
+    Simplified.Str(s, annot)
 
   | Concrete.Bool (b, annot) ->
     Simplified.Bool(b, annot)
@@ -679,13 +679,3 @@ and simplify_arguments a : identifier list =
          | _ -> failwith "The arguments in a function definition must be identifiers"
       )
       args
-
-and simplify_number n =
-  match n with
-  | Concrete.Int n
-  | Concrete.LongInt n -> Int(n)
-  | Concrete.Float f -> Float(f)
-
-
-and simplify_str s =
-  StringLiteral (s)

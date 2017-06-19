@@ -1,13 +1,13 @@
-open OUnit2
-open Batteries
-open Jhupllib
-open Python2_parser
-open Lexing
-open Python2_ast_types
-module Concrete = Python2_ast
-module Simplify = Python2_ast_simplifier
+open OUnit2;;
+open Batteries;;
+open Jhupllib;;
 
-open Python2_simplified_ast
+module Concrete = Python2_concrete_ast;;
+
+open Python2_ast_types;;
+open Python2_ast_pipeline;;
+open Python2_simplified_ast;;
+
 let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
 
 let string_of_stmt e  = Pp_utils.pp_to_string
@@ -18,20 +18,12 @@ let string_of_modl m = Pp_utils.pp_to_string
     (pp_modl (fun _ _ -> ())) m;;
 let equivalent_modl m1 m2 = equal_modl ( fun _ _ -> true) m1 m2;;
 
-let parse_stmt_from_string_safe str =
+let parse_to_simplified prog short_names =
   try
-    parse_stmt_from_string str
+    parse_to_simplified prog short_names
   with
   | Python2_parser.Parse_error p ->
-    assert_failure (Printf.sprintf "Error in line %d, col %d."
-                      p.pos_lnum p.pos_cnum)
-;;
-
-let parse_from_string_safe str =
-  try
-    parse_from_string str
-  with
-  | Python2_parser.Parse_error p ->
+    let open Lexing in
     assert_failure (Printf.sprintf "Error in line %d, col %d."
                       p.pos_lnum p.pos_cnum)
 ;;
@@ -41,42 +33,16 @@ let parse_from_string_safe str =
 let gen_module_test (name : string) (prog : string) (expected : 'a stmt list) =
   name>::
   ( fun _ ->
-      let concrete = parse_from_string_safe (prog ^ "\n") in
-      Simplify.toggle_short_names false;
-      let actual = Simplify.simplify_modl concrete in
-      Simplify.reset_unique_name ();
+      let actual = parse_to_simplified prog false in
+      Python2_ast_simplifier.reset_unique_name ();
       assert_equal ~printer:string_of_modl ~cmp:equivalent_modl
         (Module(expected, annot)) actual
   )
 ;;
 
 let gen_stmt_test (name : string) (prog : string) (expected : 'a expr) =
-  name>::
-  ( fun _ ->
-      let concrete = parse_stmt_from_string_safe (prog ^ "\n") in
-      Simplify.toggle_short_names false;
-      let actual = List.concat (List.map Simplify.simplify_stmt concrete) in
-      Simplify.reset_unique_name ();
-      assert_equal ~printer:string_of_stmt ~cmp:equivalent_stmt
-        [(Expr(expected, annot))] actual
-  )
+  gen_module_test name prog @@ [(Expr(expected, annot))]
 ;;
-
-let expect_error_test
-    (name : string)
-    (prog : 'a Concrete.stmt list)
-    (expected : exn) =
-  name>::
-  (fun _ ->
-     assert_raises
-       expected
-       (fun _ ->
-          (List.concat (List.map Simplify.simplify_stmt prog)))
-  )
-;;
-
-(* This is useful when creating tests for expect_error_test *)
-let dummy_expr = Concrete.Num(Concrete.Int(0), annot);;
 
 let int_test = gen_stmt_test "int_test"
     "4"
@@ -458,6 +424,22 @@ let var_cmp_test = gen_module_test "var_cmp_test"
     ]
 ;;
 
+let expect_error_test
+    (name : string)
+    (prog : 'a Concrete.stmt list)
+    (expected : exn) =
+  name>::
+  (fun _ ->
+     assert_raises
+       expected
+       (fun _ ->
+          (List.concat (List.map Python2_ast_simplifier.simplify_stmt prog)))
+  )
+;;
+
+(* This is useful when creating tests for expect_error_test *)
+let dummy_expr = Concrete.Num(Int(0), annot);;
+
 let gen_some_concrete_assignment target =
   Concrete.Assign(
     [target],
@@ -466,14 +448,15 @@ let gen_some_concrete_assignment target =
 ;;
 
 let bad_assign_tests =
+  let module Simplify = Python2_ast_simplifier in
   [
     expect_error_test "assign_to_num"
       [(gen_some_concrete_assignment
-          (Concrete.Num(Concrete.Int(0), annot)))]
+          (Concrete.Num(Int(0), annot)))]
       (Simplify.Invalid_assignment("can't assign to literal"));
     expect_error_test "assign_to_str"
       [(gen_some_concrete_assignment
-          (Concrete.Str("", annot)))]
+          (Concrete.Str(StringLiteral(""), annot)))]
       (Simplify.Invalid_assignment("can't assign to literal"));
     expect_error_test "assign_to_bool"
       [(gen_some_concrete_assignment
@@ -511,11 +494,11 @@ let funcdef_test = gen_module_test "funcdef_test"
     [
       Assign("test_function",
              FunctionVal([
-                 "arg1";
-                 "arg2";
+                 "test_function$1_arg1";
+                 "test_function$1_arg2";
                ],
                  [ (* Body *)
-                   Return(Name("arg1", annot), annot)
+                   Return(Name("test_function$1_arg1", annot), annot)
                  ],
                  annot),
              annot)
@@ -526,7 +509,7 @@ let bad_funcdef_test = expect_error_test "bad_funcdef_test"
     [
       Concrete.FunctionDef(
         "func",
-        ([Concrete.Num(Concrete.Int(5), annot)],
+        ([Concrete.Num(Int(5), annot)],
          None,
          None,
          []),
@@ -855,29 +838,29 @@ let triangle_ast =
   Assign(
     "triangle",
     FunctionVal(
-      ["n"],
+      ["triangle$1_n"], (* This test is currently failing: Change this to ["n"] to make it succeed, but this is a bug *)
       [Assign ("$simplified_unique_name_0",
                Num (Int 0, annot),
                annot);
-       Assign ("count",
+       Assign ("triangle$1_count",
                Name ("$simplified_unique_name_0", annot),
                annot);
        Assign ("$simplified_unique_name_1",
                Num (Int 0, annot),
                annot);
-       Assign ("i",
+       Assign ("triangle$1_i",
                Name ("$simplified_unique_name_1", annot),
                annot);
        While (
          Compare (
-           Name ("count", annot),
+           Name ("triangle$1_count", annot),
            [Python2_simplified_ast.Lt],
-           [Name ("n", annot)], annot),
+           [Name ("triangle$1_n", annot)], annot),
          [TryExcept (
              [Assign (
                  "$simplified_unique_name_6",
                  Attribute (
-                   Name ("i", annot), "__iadd__",
+                   Name ("triangle$1_i", annot), "__iadd__",
                    annot),
                  annot);
               Assign (
@@ -893,7 +876,7 @@ let triangle_ast =
                  [Assign (
                      "$simplified_unique_name_5",
                      Attribute (
-                       Name ("i", annot),
+                       Name ("triangle$1_i", annot),
                        "__add__", annot),
                      annot);
                   Assign (
@@ -909,27 +892,27 @@ let triangle_ast =
                   Call (
                     Name (
                       "$simplified_unique_name_3", annot),
-                    [Name ("count", annot)], annot),
+                    [Name ("triangle$1_count", annot)], annot),
                   annot);
-          Assign ("i",
+          Assign ("triangle$1_i",
                   Name (
                     "$simplified_unique_name_4", annot),
                   annot);
           Assign ("$simplified_unique_name_7",
                   Call (
                     Attribute (
-                      Name ("count", annot),
+                      Name ("triangle$1_count", annot),
                       "__add__", annot),
                     [Num (Int 1, annot)],
                     annot),
                   annot);
-          Assign ("count",
+          Assign ("triangle$1_count",
                   Name (
                     "$simplified_unique_name_7", annot),
                   annot)
          ],
          annot);
-       Return (Name("i", annot), annot);
+       Return (Name("triangle$1_i", annot), annot);
       ],
       annot),
     annot)

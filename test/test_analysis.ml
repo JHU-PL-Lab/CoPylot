@@ -1,27 +1,25 @@
-open OUnit2
-open Batteries
-open Jhupllib
-open Python2_parser
-open Lexing
-open Python2_ast_types
-open Python2_abstract_ast
-module Simplify = Python2_ast_simplifier
-module Normalize = Python2_ast_normalizer
-module Lift = Python2_ast_lifter
-open Uid_generation
-open Python2_analysis
-module Answer_set = Python2_pds.Answer_set
+open OUnit2;;
+open Batteries;;
+open Jhupllib;;
+
+open Python2_ast_types;;
+open Python2_abstract_ast;;
+open Python2_ast_pipeline;;
+
+open Python2_analysis;;
+module Answer_set = Python2_pds.Answer_set;;
 
 let string_of_modl m = Pp_utils.pp_to_string pp_modl m;;
 let answer_set_to_string s =
   Pp_utils.pp_to_string
     (Pp_utils.pp_set Python2_pds.pp_answer Answer_set.enum) s;;
 
-let parse_from_string_safe str =
+let parse_to_abstract_safe prog short_names =
   try
-    parse_from_string str
+    parse_to_abstract prog short_names
   with
   | Python2_parser.Parse_error p ->
+    let open Lexing in
     assert_failure (Printf.sprintf "Error in line %d, col %d."
                       p.pos_lnum p.pos_cnum)
 ;;
@@ -32,16 +30,9 @@ let gen_analysis_test (name : string) (prog : string)
     (test_func : annotated_stmt list -> bool) =
   name>::
   ( fun _ ->
-      let concrete = parse_from_string_safe (prog ^ "\n") in
-      let simplified =
-        (* Occasionally a test will fail; resetting here might help *)
-        Simplify.reset_unique_name ();
-        Simplify.simplify_modl concrete in
-      Simplify.reset_unique_name ();
-      let ctx = create_new_uid_context () in
-      let normalized = Normalize.normalize_modl ctx simplified in
-      Normalize.reset_unique_name ();
-      let actual = Lift.lift_modl normalized in
+      let actual = parse_to_abstract_safe prog true in
+      Python2_ast_simplifier.reset_unique_name ();
+      Python2_ast_normalizer.reset_unique_name ();
       match actual with
       | Module (body, _) ->
         assert_bool ("Incorrect Tree:\n" ^ string_of_modl actual)
@@ -70,6 +61,7 @@ let uid_test =
   ( fun _ ->
       let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Num(Int(Zero))));
                            annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Literal(Num(Int(Pos))));], 0) in
+      let open Uid_generation in
       let map = Python2_uid_stmt_map.get_uid_hashtbl actual in
       assert_equal (annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Literal(Num(Int(Pos))))) (Uid_hashtbl.find map 3)
   )
