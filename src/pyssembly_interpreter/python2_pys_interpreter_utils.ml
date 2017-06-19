@@ -27,6 +27,20 @@ let retrieve_binding (heap : Heap.t) (m : memloc) : Bindings.t =
   bindings
 ;;
 
+let get_active_or_fail (frame : Stack_frame.t) : annotated_stmt =
+  let active = Stack_frame.active_stmt frame in
+  match active with
+  | None -> failwith "Failed to find active statement"
+  | Some(stmt) -> stmt
+;;
+
+let get_parent_or_fail (parents : Parents.t) (child : memloc) : memloc =
+  let parent = Parents.get_parent child parents in
+  match parent with
+  | None -> failwith "Failed to find parent scope"
+  | Some(p) -> p
+;;
+
 let bind_var
     (heap : Heap.t)
     (bindings_loc : memloc)
@@ -107,6 +121,4 @@ let get_obj_value (heap : Heap.t) (m : memloc) : value option =
         Some(actual_value)
     end
   | _ -> failwith "Asked to find *value of non-object"
-
-
 ;;

@@ -100,6 +100,8 @@ module Stack_frame : sig
   (* Create a new stack frame from a statement body *)
   val create: Body.t -> t
 
+  (* Retrieve the method with the specified uid, if one exists *)
+  val get_stmt: t -> uid -> annotated_stmt option
 end =
 struct
   type t = { curr_label: label; body: Body.t }
@@ -137,6 +139,10 @@ struct
   let create (body : Body.t) : t =
     let start_uid = Body.get_first_uid body in
     { curr_label = Uid(start_uid); body = body }
+  ;;
+
+  let get_stmt (frame: t) (uid: uid) : annotated_stmt option =
+    Body.get_stmt frame.body uid
   ;;
 end
 ;;

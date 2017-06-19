@@ -87,6 +87,32 @@ let step_program (prog : program) : program =
          let new_stack = simple_advance_stack curr_frame stack_body in
          { stack = new_stack; heap = new_heap; parents = prog.parents; m = prog.m } *)
 
+      (* | Raise (id) ->
+        let id_loc = lookup_or_error prog.heap prog.parents prog.m id in
+        let rec pop_until_caught prog =
+          let curr_frame, stack_body = Program_stack.pop prog.stack in
+          let active = get_active_or_fail curr_frame in
+          match active.exception_target with
+          | None -> (* No exception target *)
+            let prev_m = get_parent_or_fail prog.parents prog.m in
+            (* Base case: empty stack, nothing more to pop *)
+            if Program_stack.is_empty stack_body then
+              { stack = stack_body; heap = prog.heap; parents = prog.parents; m = prog.m }
+            else
+              (* No catch here, go to the next stack frame *)
+              pop_until_caught
+                { stack = stack_body; heap = prog.heap; parents = prog.parents; m = prev_m }
+          | Some(target) -> (* Hopefully target points to a catch *)
+            begin
+              match Stack_frame.get_stmt curr_frame target with
+              | Some({body = Catch(id); _}) ->
+                failwith ""
+              | _ -> failwith "Exception target did not point to catch in scope"
+            end in prog *)
+
+      | Catch _ ->
+        failwith "SyntaxError: Reached catch statement with no raised value"
+
       | Pass ->
         let new_stack = simple_advance_stack curr_frame stack_body in
         { stack = new_stack; heap = prog.heap; parents = prog.parents; m = prog.m }
