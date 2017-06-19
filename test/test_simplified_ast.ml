@@ -514,8 +514,7 @@ let funcdef_test = gen_module_test "funcdef_test"
                  "arg2";
                ],
                  [ (* Body *)
-                   Return(Some(Name("arg1", annot)),
-                          annot)
+                   Return(Name("arg1", annot), annot)
                  ],
                  annot),
              annot)
@@ -929,8 +928,7 @@ let triangle_ast =
                   annot)
          ],
          annot);
-       Return (
-         Some (Name ("i", annot)), annot)
+       Return (Name("i", annot), annot);
       ],
       annot),
     annot)

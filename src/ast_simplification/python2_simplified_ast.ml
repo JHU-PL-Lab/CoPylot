@@ -6,7 +6,7 @@ type 'a modl =
 
 and 'a stmt =
     | Assign of identifier (* target *) * 'a expr (* value *) * 'a
-  | Return of 'a expr option (* value *) * 'a
+  | Return of 'a expr (* value *) * 'a
   | Print of 'a expr option (* dest *) * 'a expr list (* values *) * bool (* nl *) * 'a
   | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a

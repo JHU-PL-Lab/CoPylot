@@ -129,15 +129,9 @@ and normalize_stmt_full
 
   match s with
   | Simplified.Return (value, _) ->
-    begin
-      match value with
-      | None ->
-        [annotate_stmt @@ Normalized.Return(None)]
-      | Some(x) ->
-        let bindings, result = normalize_expr ctx in_loop exception_target x in
-        bindings @
-        [annotate_stmt @@ Normalized.Return(Some(result))]
-    end
+    let bindings, result = normalize_expr ctx in_loop exception_target value in
+    bindings @
+    [annotate_stmt @@ Normalized.Return(result)]
 
 
   | Simplified.Assign (target, value, _) ->

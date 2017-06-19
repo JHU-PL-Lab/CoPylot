@@ -50,7 +50,11 @@ and simplify_stmt
                        annot)]
 
   | Concrete.Return (value, annot) ->
-    [Simplified.Return(simplify_expr_option value, annot)]
+    begin
+      match simplify_expr_option value with
+      | None -> [Simplified.Return(Simplified.NoneExpr(annot), annot)]
+      | Some(v) -> [Simplified.Return(v, annot)]
+    end
 
   | Concrete.Assign (targets, value, annot) ->
     (* Assignments are very complicated, with different behavior depending

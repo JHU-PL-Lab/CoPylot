@@ -109,8 +109,7 @@ assign:
   | NAME EQ expr_wrapper { Assign($1,$3) }
 
 return:
-  | RETURN { Return(None) }
-  | RETURN NAME { Return(Some($2)) }
+  | RETURN NAME { Return($2) }
 
 print:
   | PRINT lst GE NAME { Print(Some($4),$2,false) }

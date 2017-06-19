@@ -84,7 +84,7 @@ expr_annot:
   | ANNOT_EXPR UID COLON except COLON LOOP COLON
     { fun x -> {uid=$2;exception_target=$4;multi=$6;body=x} }
   | { fun x -> {uid=next_uid ();exception_target=None;multi=false;body=x} }
-  
+
 except:
   | {None}
   | UID {Some($1)}
@@ -110,8 +110,7 @@ assign:
   | NAME EQ expr_wrapper { Assign($1,$3) }
 
 return:
-  | RETURN { Return(None) }
-  | RETURN NAME { Return(Some($2)) }
+  | RETURN NAME { Return($2) }
 
 print:
   | PRINT lst GE NAME { Print(Some($4),$2,false) }

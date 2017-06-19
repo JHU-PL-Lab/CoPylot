@@ -109,7 +109,12 @@ let literal_tests =
 
 let stmt_tests =
   [
-    gen_module_test "return_test" "return x" "@   1:    :F:  return x;";
+    gen_module_test "return_var_test" "return x" "@   1:    :F:  return x;";
+    gen_module_test "return_int_test" "return 5"
+      "@   2:    :F:  $norm0 = 5;\n@   3:    :F:  return $norm0;";
+    gen_module_test "return_none_test" "return"
+      "@   2:    :F:  $norm0 = None;\n@   3:    :F:  return $norm0;";
+
 
     gen_module_test "print_test1" "print x" "@   1:    :F:  print x;";
     gen_module_test "print_test2" "print x,y" "@   1:    :F:  print x, y;";

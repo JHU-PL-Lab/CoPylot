@@ -39,7 +39,7 @@ and pp_stmt indent fmt {uid=uid;exception_target=exc;multi=multi;body} =
         (pp_compound_expr indent) value
     | Return (value) ->
       fprintf fmt "return %a"
-        (pp_option pp_id) value
+        pp_id value
     | Print (_,values,_) ->
       fprintf fmt "print %a" (* TODO: print dest if relevant *)
         (pp_list pp_id) values

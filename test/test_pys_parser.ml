@@ -85,7 +85,7 @@ let funcdef_test = gen_expr_test "funcdef_test"
                               [{uid=2;
                                 exception_target=None;
                                 multi=false;
-                                body=Return(Some("a"))}]))}
+                                body=Return("a")}]))}
 ;;
 
 let print_test = gen_stmt_test "print_test"

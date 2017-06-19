@@ -12,7 +12,7 @@ and modl =
 
 and stmt =
     | Assign of identifier (* target *) * annotated_expr (* value *)
-  | Return of identifier option (* value *)
+  | Return of identifier (* value *)
   | Print of identifier option (* dest *) * identifier list (* values *) * bool (* nl *)
   | Raise of identifier (* value *)
   | Catch of identifier (* name *)
