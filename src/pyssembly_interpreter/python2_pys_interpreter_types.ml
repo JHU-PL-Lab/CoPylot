@@ -28,7 +28,7 @@ module Body : sig
   val get_first_uid: t -> uid
 
   (* Retrieve the statement with the given uid *)
-  val get_stmt: t -> uid -> annotated_stmt
+  val get_stmt: t -> uid -> annotated_stmt option
 
   (* Return the uid of the next statement in the list, or End if none.
      WARNING: this is not necessarily the next statement to be executed if
@@ -53,7 +53,11 @@ struct
   let get_first_uid b =
     let fst = List.hd b.stmts in fst.uid;;
 
-  let get_stmt (b : t) (u : uid) = List.find (fun s -> (s.uid = u)) b.stmts;;
+  let get_stmt (b : t) (u : uid) =
+    try
+      Some(List.find (fun s -> (s.uid = u)) b.stmts)
+    with
+    | Not_found -> None
 
   let create (stmts : annotated_stmt list) =
     let labels = List.map (fun s -> Uid(s.uid)) stmts in
@@ -106,23 +110,34 @@ struct
   let active_stmt (frame : t) =
     match frame.curr_label with
     | End -> None
-    | Uid u -> Some(Body.get_stmt frame.body u);;
+    | Uid u ->
+      let active = Body.get_stmt frame.body u in
+      match active with
+      | None -> failwith "Stack frame uid not contained in body"
+      | Some _ -> active
+  ;;
 
   let get_next_label (frame : t) =
     let next = Body.get_next_label frame.body frame.curr_label in
     match next with
     | None -> failwith "Can't move past end of stack frame"
     | Some(l) -> l
-;;
+  ;;
 
   let advance (frame : t) (new_label : label) : t =
-    { curr_label = new_label; body = frame.body };;
+    match new_label with
+    | End -> { curr_label = End; body = frame.body }
+    | Uid(uid) ->
+      match Body.get_stmt frame.body uid with
+      | None -> failwith "Tried to goto a uid not in the stack frame"
+      | Some _ ->
+        { curr_label = new_label; body = frame.body }
+  ;;
 
   let create (body : Body.t) : t =
     let start_uid = Body.get_first_uid body in
     { curr_label = Uid(start_uid); body = body }
   ;;
-
 end
 ;;
 
@@ -192,11 +207,13 @@ type value =
   | Num of number
   | Str of str
   | Bool of bool
+  | ListVal of memloc list
+  | TupleVal of memloc list
   | Builtin of builtin
   | Function of memloc (* Bound scope *) * identifier list (* arglist *) * Body.t
   | Method of memloc (* Bound scope *) * memloc (* self *) * identifier list (* args *) * Body.t
   | NoneVal
-(* [@@deriving eq, ord, show] *)
+  (* [@@deriving eq, ord, show] *)
 ;;
 
 (* A heap binding (m,v) indicates that the memory location m contains the
@@ -211,8 +228,8 @@ module Heap: sig
      the previous entry if one exists *)
   val update_binding: memloc -> value -> t -> t
 
-  (* Get the value bound to the given location in memory, if there is one. *)
-  val get_value: memloc -> t -> value option
+  (* Get the value bound to the given location in memory *)
+  val get_value: memloc -> t -> value
 
   val empty: t
   val singleton: memloc -> value -> t
@@ -238,11 +255,11 @@ struct
     { map = new_map; maxval = new_max };;
 
   let get_value mem heap =
-  try
-    let v = Memloc_map.find mem heap.map in
-    Some(v)
-  with
-  | Not_found -> None;;
+    try
+      let v = Memloc_map.find mem heap.map in
+      v
+    with
+    | Not_found -> failwith "No value found in heap";;
 
   let empty = { map = Memloc_map.empty; maxval = 0 };;
 

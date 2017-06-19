@@ -3,6 +3,7 @@ open Python2_ast_types;;
 open Python2_normalized_ast;;
 open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter_builtin_objects;;
+open Jhupllib_utils;;
 
 let make_literal_obj (m : memloc) (l : literal) : Bindings.t =
   let module Normalized = Python2_normalized_ast in
@@ -20,7 +21,7 @@ let retrieve_binding (heap : Heap.t) (m : memloc) : Bindings.t =
   let hval = Heap.get_value m heap in
   let bindings =
     match hval with
-    | Some(Bindings(b)) -> b
+    | Bindings(b) -> b
     | _ -> failwith "Failed to retrieve binding from heap"
   in
   bindings
@@ -65,10 +66,10 @@ let simple_advance_stack (frame : Stack_frame.t) (stack : Program_stack.t)
 ;;
 
 let rec lookup
-    (id: identifier)
     (heap : Heap.t)
     (parents : Parents.t)
     (bindings_loc : memloc)
+    (id: identifier)
   : memloc option =
   let bindings = retrieve_binding heap bindings_loc in
   let m = Bindings.get_memloc id bindings in
@@ -78,5 +79,34 @@ let rec lookup
     let parent = Parents.get_parent bindings_loc parents in
     match parent with
     | None -> None
-    | Some(p) -> lookup id heap parents p
+    | Some(p) -> lookup heap parents p id
+;;
+
+let lookup_or_error
+    (heap : Heap.t)
+    (parents : Parents.t)
+    (bindings_loc : memloc)
+    (id: identifier)
+  : memloc =
+  let memloc = lookup heap parents bindings_loc id in
+  match memloc with
+  | None -> raise @@ Not_yet_implemented "NYI: Throw NameError"
+  | Some(m) -> m
+;;
+
+let get_obj_value (heap : Heap.t) (m : memloc) : value option =
+  let obj = Heap.get_value m heap in
+  match obj with
+  | Bindings(bindings) ->
+    let value_memloc = Bindings.get_memloc "*value" bindings in
+    begin
+      match value_memloc with
+      | None -> None
+      | Some(memloc) ->
+        let actual_value = Heap.get_value memloc heap in
+        Some(actual_value)
+    end
+  | _ -> failwith "Asked to find *value of non-object"
+
+
 ;;
