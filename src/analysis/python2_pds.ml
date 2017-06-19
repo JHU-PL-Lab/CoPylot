@@ -12,7 +12,7 @@ type answer =
   | Str of str
   | Bool of bool
   | Builtin of builtin
-  | NoneVal 
+  | NoneVal
 [@@deriving eq, ord, show, to_yojson]
 ;;
 

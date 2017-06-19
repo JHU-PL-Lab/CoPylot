@@ -83,7 +83,6 @@ and pp_compound_expr indent fmt {uid=_;exception_target=_;multi=_;body} =
   | Literal (l) -> (pp_literal indent) fmt l
   | Name (id)   -> pp_id fmt id
 
-
 and pp_id fmt id =
   if id = "None" || id = "True" || id = "False"
   then
@@ -107,9 +106,11 @@ and pp_str fmt = function
   | StringLiteral s -> fprintf fmt "\"%s\"" (String.escaped s)
 
 and pp_builtin fmt = function
-  | Builtin_slice -> fprintf fmt "slice"
-  | Builtin_bool  -> fprintf fmt "bool"
-  | Builtin_type  -> fprintf fmt "type"
+  | Builtin_slice -> fprintf fmt "builtin_slice"
+  | Builtin_bool  -> fprintf fmt "builtin_bool"
+  | Builtin_type  -> fprintf fmt "builtin_type"
+  | Builtin_AttributeError -> fprintf fmt "builtin_AttributeError"
+  | Builtin_ValueError -> fprintf fmt "builtin_ValueError"
 
 and pp_functionval indent fmt args body =
   fprintf fmt "def (%a) {\n%a\n}"

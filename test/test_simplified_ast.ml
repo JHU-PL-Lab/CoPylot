@@ -3,10 +3,11 @@ open Batteries
 open Jhupllib
 open Python2_parser
 open Lexing
+open Python2_ast_types
 module Concrete = Python2_ast
 module Simplify = Python2_ast_simplifier
-open Python2_simplified_ast
 
+open Python2_simplified_ast
 let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
 
 let string_of_stmt e  = Pp_utils.pp_to_string
@@ -273,7 +274,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
               );
               Raise(
                 Call(
-                  Name("ValueError", annot),
+                  Builtin(Builtin_ValueError, annot),
                   [Str(StringLiteral("too many values to unpack"),
                        annot)],
                   annot),
@@ -297,7 +298,7 @@ let var_assign_from_tuple_test = gen_module_test "var_assign_from_tuple_test"
             [
               Raise(
                 Call(
-                  Name("ValueError", annot),
+                  Builtin(Builtin_ValueError, annot),
                   [Str(StringLiteral("too few values to unpack"),
                        annot)],
                   annot),

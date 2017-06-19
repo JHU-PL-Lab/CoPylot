@@ -1,4 +1,4 @@
-open Python2_ast_types
+open Python2_ast_types;;
 
 type 'a modl =
     | Module of 'a stmt list (* body *) * 'a
@@ -45,21 +45,6 @@ and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
 [@@deriving eq, ord, show]
 
 and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * identifier option (* name *) * 'a stmt list (* body *) * 'a
-[@@deriving eq, ord, show]
-
-and number =
-    | Int of int
-  | Float of float
-[@@deriving eq, ord, show]
-
-and str =
-  | StringLiteral of string
-[@@deriving eq, ord, show]
-
-and builtin =
-    | Builtin_bool
-  | Builtin_slice
-  | Builtin_type
 [@@deriving eq, ord, show]
 
 let extract_stmt_annot = function

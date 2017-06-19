@@ -53,7 +53,7 @@ let normalize_and_call_bool ctx annot normalizer annotator test =
   let builtin_bool_binding, builtin_bool_name =
     gen_normalized_assignment ctx annot @@
     annotator @@
-    Normalized.Literal(Normalized.Builtin(Normalized.Builtin_bool))
+    Normalized.Literal(Normalized.Builtin(Builtin_bool))
   in
   let test_bool_binding, test_bool_name =
     gen_normalized_assignment ctx annot @@
@@ -263,7 +263,7 @@ and normalize_stmt_full
           | Some(exp) ->
             Simplified.Compare(
               Simplified.Call(
-                Simplified.Builtin(Simplified.Builtin_type, annot),
+                Simplified.Builtin(Builtin_type, annot),
                 [Simplified.Name(exception_name, annot)],
                 annot),
               [Simplified.Eq],
@@ -514,12 +514,12 @@ and normalize_expr
   | Simplified.Num (n, annot) ->
     gen_normalized_assignment ctx annot @@
     annotate_expr @@
-    Normalized.Literal(Normalized.Num(normalize_number n))
+    Normalized.Literal(Normalized.Num(n))
 
   | Simplified.Str (s, annot) ->
     gen_normalized_assignment ctx annot @@
     annotate_expr @@
-    Normalized.Literal(Normalized.Str(normalize_str s))
+    Normalized.Literal(Normalized.Str(s))
 
   | Simplified.Bool (b, annot) ->
     gen_normalized_assignment ctx annot @@
@@ -529,7 +529,7 @@ and normalize_expr
   | Simplified.Builtin (b, annot) ->
     gen_normalized_assignment ctx annot @@
     annotate_expr @@
-    Normalized.Literal(Normalized.Builtin(normalize_builtin b))
+    Normalized.Literal(Normalized.Builtin(b))
 
   | Simplified.FunctionVal (args, body, annot) ->
     let normalized_body = List.concat @@
@@ -592,18 +592,3 @@ and normalize_cmpop o =
   | Simplified.GtE -> "__ge__"
   | Simplified.In -> "__contains__"
   | Simplified.NotIn -> failwith "the NotIn operator is not supported" (* TODO *)
-
-and normalize_number n =
-  match n with
-  | Simplified.Int n -> Normalized.Int(n)
-  | Simplified.Float f -> Normalized.Float(f)
-
-and normalize_str s =
-  match s with
-  | Simplified.StringLiteral (s) -> Normalized.StringLiteral (s)
-
-and normalize_builtin b =
-  match b with
-  | Simplified.Builtin_bool -> Normalized.Builtin_bool
-  | Simplified.Builtin_slice -> Normalized.Builtin_slice
-  | Simplified.Builtin_type -> Normalized.Builtin_type

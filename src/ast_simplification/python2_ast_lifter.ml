@@ -60,12 +60,12 @@ and lift_literal l =
   match l with
   | Concrete.Num (n) ->
     Abstract.Num (lift_number n)
-  | Concrete.Str (Concrete.StringLiteral(str)) ->
+  | Concrete.Str (StringLiteral(str)) ->
     Abstract.Str (Abstract.StringLiteral(str))
   | Concrete.Bool (b) ->
     Abstract.Bool (b)
   | Concrete.Builtin (b) ->
-    Abstract.Builtin (lift_builtin b)
+    Abstract.Builtin (b)
   | Concrete.FunctionVal (args, body) ->
     Abstract.FunctionVal (args, List.map lift_stmt body)
   | Concrete.NoneVal ->
@@ -73,23 +73,17 @@ and lift_literal l =
 
 and lift_number n =
   match n with
-  | Concrete.Int arg1 ->
+  | Int arg1 ->
     if arg1 > 0 then
       Abstract.Int(Abstract.Pos)
     else if arg1 < 0 then
       Abstract.Int(Abstract.Neg)
     else
       Abstract.Int(Abstract.Zero)
-  | Concrete.Float arg1 ->
+  | Float arg1 ->
     if arg1 > 0.0 then
       Abstract.Float(Abstract.Pos)
     else if arg1 < 0.0 then
       Abstract.Float(Abstract.Neg)
     else
       Abstract.Float(Abstract.Zero)
-
-and lift_builtin b =
-  match b with
-  | Concrete.Builtin_slice -> Abstract.Builtin_slice
-  | Concrete.Builtin_bool -> Abstract.Builtin_bool
-  | Concrete.Builtin_type -> Abstract.Builtin_type

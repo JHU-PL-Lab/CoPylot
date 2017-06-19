@@ -39,18 +39,3 @@ and literal =
   | FunctionVal of identifier list (* args *) * annotated_stmt list (* body *)
   | NoneVal
 [@@deriving eq, ord, show, to_yojson]
-
-and number =
-    | Int of int
-  | Float of float
-[@@deriving eq, ord, show, to_yojson]
-
-and str =
-  | StringLiteral of string
-[@@deriving eq, ord, show, to_yojson]
-
-and builtin =
-    | Builtin_slice
-  | Builtin_bool
-  | Builtin_type
-[@@deriving eq, ord, show, to_yojson]

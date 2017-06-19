@@ -86,7 +86,7 @@ and simplify_stmt
                    "__setattr__",
                    annot),
                  [
-                   Simplified.Str(Simplified.StringLiteral(id), annot);
+                   Simplified.Str(StringLiteral(id), annot);
                    value_name;
                  ],
                  annot),
@@ -181,9 +181,9 @@ and simplify_stmt
 
                  Simplified.Raise(
                    Simplified.Call(
-                     Simplified.Name("ValueError", annot),
+                     Simplified.Builtin(Builtin_ValueError, annot),
                      [Simplified.Str(
-                         Simplified.StringLiteral("too many values to unpack"),
+                         StringLiteral("too many values to unpack"),
                          annot)],
                      annot),
                    annot);
@@ -203,11 +203,11 @@ and simplify_stmt
                    [
                      Simplified.Raise(
                        Simplified.Call(
-                         Simplified.Name("ValueError", annot),
+                         Simplified.Builtin(Builtin_ValueError, annot),
                          [Simplified.Str(
                              (* TODO: In Python this has the actual number of
                                 elts that it successfully unpacked *)
-                             Simplified.StringLiteral("too few values to unpack"),
+                             StringLiteral("too few values to unpack"),
                              annot)],
                          annot),
                        annot);
@@ -607,7 +607,7 @@ and simplify_slice
         exp_opt_to_slice_arg step;
       ] in
     Simplified.Call(
-      Simplified.Builtin(Simplified.Builtin_slice, annot),
+      Simplified.Builtin(Builtin_slice, annot),
       args_list,
       annot
     )
@@ -683,9 +683,9 @@ and simplify_arguments a : identifier list =
 and simplify_number n =
   match n with
   | Concrete.Int n
-  | Concrete.LongInt n -> Simplified.Int(n)
-  | Concrete.Float f -> Simplified.Float(f)
+  | Concrete.LongInt n -> Int(n)
+  | Concrete.Float f -> Float(f)
 
 
 and simplify_str s =
-  Simplified.StringLiteral (s)
+  StringLiteral (s)

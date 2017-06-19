@@ -52,9 +52,3 @@ and str =
     | StringAbstract
   | StringLiteral of string
 [@@deriving eq, ord, show, to_yojson]
-
-and builtin =
-    | Builtin_slice
-  | Builtin_bool
-  | Builtin_type
-[@@deriving eq, ord, show, to_yojson]
