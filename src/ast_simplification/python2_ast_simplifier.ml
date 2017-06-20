@@ -253,6 +253,9 @@ and simplify_stmt
            -> raise @@ Invalid_assignment "can't assign to literal"
          | Concrete.NoneExpr _
            -> raise @@ Invalid_assignment "cannot assign to None"
+         | Concrete.Builtin _
+           -> raise @@ Invalid_assignment "Can't assign to builtin. How did you even do that?"
+
       ) in
     [value_assignment] @ (map_and_concat simplify_assignment targets)
 
@@ -315,6 +318,8 @@ and simplify_stmt
           -> raise @@ Invalid_assignment "can't assign to literal"
         | Concrete.NoneExpr _
           -> raise @@ Invalid_assignment "cannot assign to None"
+        | Concrete.Builtin _
+          -> raise @@ Invalid_assignment "Can't assign to builtin. How did you even do that?"
       end in
     let tryexcept =
       Concrete.TryExcept(
@@ -326,7 +331,7 @@ and simplify_stmt
         ],
         [
           Concrete.ExceptHandler(
-            Some(Concrete.Name("AttributeError", Concrete.Load, annot)), None,
+            Some(Concrete.Builtin(Builtin_AttributeError, annot)), None,
             [
               Concrete.Assign(
                 [Concrete.Name(tmp2, Concrete.Store, annot)],
@@ -573,6 +578,9 @@ and simplify_expr
 
   | Concrete.NoneExpr (annot) ->
     Simplified.NoneExpr (annot)
+
+  | Concrete.Builtin (b, annot) ->
+    Simplified.Builtin (b, annot)
 
 and simplify_expr_option
     (o : 'a Concrete.expr option)

@@ -387,7 +387,7 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
                  Name ("$simplified_unique_name_4", annot), annot)
         ],
         [ExceptHandler (
-            Some (Name ("AttributeError", annot)), None,
+            Some (Builtin (Builtin_AttributeError, annot)), None,
             [Assign ("$simplified_unique_name_3",
                      Attribute (
                        Name ("x", annot), "__mul__", annot),
@@ -583,7 +583,7 @@ let if_test = gen_module_test "if_test"
                          annot)
                 ],
                 [ExceptHandler (
-                    (Some (Name ("AttributeError", annot))),
+                    (Some (Builtin (Builtin_AttributeError, annot))),
                     None,
                     [Assign (
                         "$simplified_unique_name_3",
@@ -870,8 +870,7 @@ let triangle_ast =
                 annot)
              ],
              [ExceptHandler (
-                 Some (Name ("AttributeError",
-                             annot)),
+                 Some (Builtin (Builtin_AttributeError, annot)),
                  None,
                  [Assign (
                      "$simplified_unique_name_5",
