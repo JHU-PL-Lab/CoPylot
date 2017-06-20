@@ -68,6 +68,7 @@ and 'a expr =
   | Name of identifier (* id *) * expr_context (* ctx *) * 'a
   | List of 'a expr list (* elts *) * expr_context (* ctx *) * 'a
   | Tuple of 'a expr list (* elts *) * expr_context (* ctx *) * 'a
+  | Builtin of builtin * 'a
   | NoneExpr of 'a
 [@@deriving eq, ord, show]
 
