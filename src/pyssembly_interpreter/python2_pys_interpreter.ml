@@ -72,23 +72,20 @@ let step_program (prog : program) : program =
         let new_stack = simple_advance_stack curr_frame stack_body in
         { stack = new_stack; heap = new_heap; parents = prog.parents; m = prog.m }
 
-      (* | Assign (id, {body =
+      | Assign (id, {body =
                        Normalized.Call(func, args)
                     ; _ }) ->
-         let func_memloc = lookup_or_error prog.heap prog.parents prog.m func in
-         let func_obj = Heap.get_value func_memloc prog.heap in
-         let arg_memlocs =
-          List.map (lookup_or_error prog.heap prog.parents prog.m) elts
-         in
-         let lval = TupleVal(memlocs) in
-         let val_heap, val_memloc = allocate_memory prog.heap lval in
-         let val_obj = make_tuple_obj val_memloc in
-         let obj_heap, obj_memloc =
+        let func_memloc = lookup_or_error prog.heap prog.parents prog.m func in
+        let callable_memloc = get_call heap func_memloc in
+        let lval = call_function callable_memloc in
+        let val_heap, val_memloc = allocate_memory prog.heap lval in
+        let val_obj = make_tuple_obj val_memloc in
+        let obj_heap, obj_memloc =
           allocate_memory val_heap @@ Bindings(val_obj)
-         in
-         let new_heap = bind_var obj_heap prog.m id obj_memloc in
-         let new_stack = simple_advance_stack curr_frame stack_body in
-         { stack = new_stack; heap = new_heap; parents = prog.parents; m = prog.m } *)
+        in
+        let new_heap = bind_var obj_heap prog.m id obj_memloc in
+        let new_stack = simple_advance_stack curr_frame stack_body in
+        { stack = new_stack; heap = new_heap; parents = prog.parents; m = prog.m }
 
       | Raise (id) ->
         let id_loc = lookup prog.heap prog.parents prog.m id in
@@ -164,10 +161,10 @@ let interpret_program (prog : modl) =
   let starting_parents = Parents.empty in
   let starting_program =
     {
+      parents = starting_parents;
       stack = starting_stack;
       heap = starting_heap;
-      parents = starting_parents;
-      m = global_memloc;
+      eta = global_memloc;
     }
   in
   step_program starting_program

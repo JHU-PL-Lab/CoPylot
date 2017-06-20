@@ -57,6 +57,47 @@ let memloc_to_int = function
   | _ -> 0
 ;;
 
+(* A variable binding (x,m) indicates that the variable x is bound to
+   memory location m. These correspond to "B" in the grammar *)
+module Bindings : sig
+  type t
+
+  (* Add a binding of the input memloc to the given value, overwriting
+     the previous entry if one exists *)
+  val update_binding: identifier -> memloc -> t -> t
+
+  (* Get the memory location bound to the current variable, if any *)
+  val get_memloc: identifier -> t -> memloc option
+
+  val empty: t
+  val singleton: identifier -> memloc -> t
+end =
+struct
+  module Var_ord =
+  struct
+    type t = identifier
+    let compare = compare_identifier
+  end
+  module Var_map = Map.Make(Var_ord);;
+
+  type t = memloc Var_map.t;;
+
+  let update_binding id mem prev = Var_map.add id mem prev;;
+
+  let get_memloc id map =
+    try
+      let m = Var_map.find id map in
+      Some(m)
+    with
+    | Not_found -> None
+  ;;
+
+  let empty = Var_map.empty;;
+
+  let singleton id mem = Var_map.singleton id mem;;
+end
+;;
+
 (* A list of statements to be executed, all in the same scope.
    Correponds to "S" in the grammar *)
 module Body : sig
@@ -212,46 +253,6 @@ struct
   let singleton (frame : Stack_frame.t) = [frame];;
 end
 ;;
-(* A variable binding (x,m) indicates that the variable x is bound to
-   memory location m. These correspond to "B" in the grammar *)
-module Bindings : sig
-  type t
-
-  (* Add a binding of the input memloc to the given value, overwriting
-     the previous entry if one exists *)
-  val update_binding: identifier -> memloc -> t -> t
-
-  (* Get the memory location bound to the current variable, if any *)
-  val get_memloc: identifier -> t -> memloc option
-
-  val empty: t
-  val singleton: identifier -> memloc -> t
-end =
-struct
-  module Var_ord =
-  struct
-    type t = identifier
-    let compare = compare_identifier
-  end
-  module Var_map = Map.Make(Var_ord);;
-
-  type t = memloc Var_map.t;;
-
-  let update_binding id mem prev = Var_map.add id mem prev;;
-
-  let get_memloc id map =
-    try
-      let m = Var_map.find id map in
-      Some(m)
-    with
-    | Not_found -> None
-  ;;
-
-  let empty = Var_map.empty;;
-
-  let singleton id mem = Var_map.singleton id mem;;
-end
-;;
 
 type function_val =
   | Builtin_func of builtin_function
@@ -369,10 +370,124 @@ struct
   let singleton child parent = Memloc_map.singleton child parent;;
 end;;
 
-type program =
+type micro_inert =
+  | Var of identifier
+  | Memloc of memloc
+  | Value of value
+  (* [@@deriving eq, ord, show] *)
+;;
+
+type micro_command =
+  | STORE
+  | WRAP
+  | BIND
+  | ADVANCE
+  | LOOKUP
+  | RAISE
+  (* [@@deriving eq, ord, show] *)
+;;
+
+type micro_instruction =
+  | Inert of micro_inert
+  | Command of micro_command
+  (* [@@deriving eq, ord, show] *)
+;;
+
+module Micro_instruction_stack :
+sig
+  type t
+
+  val create: micro_instruction list -> t
+
+  (* Returns the first non-inert micro_instruction in the list. Fails if
+     there is none. If pop was called, also returns the stack with the that
+     element removed *)
+  val get_first_command: t -> micro_command
+  val pop_first_command: t -> micro_command * t
+
+  (* Returns the last inert micro_instruction BEFORE the first command in the
+     stack. Fails if there is none.
+     If pop was called, also returns the stack with the that element removed *)
+  val get_last_inert: t -> micro_inert
+  val pop_last_inert: t -> micro_inert * t
+
+  val is_empty: t -> bool
+
+  (* Insert the contents of the second stack immediately before the first
+     non-inert in the second stack.
+
+     The parts of the first stack before and after the site of the location
+      are unaffected. *)
+  val insert_instruction: t -> t -> t
+
+end =
+struct
+  (* TODO: replace these lists with an actual stack data type? *)
+  type t = micro_inert list * micro_instruction list
+
+  (* We maintain the invariant that we are always pointing to the first
+     non-inert micro_instruction in the stack; that is, that the first element
+     of the micro_instruction list is not inert *)
+
+  let get_first_command (stack : t) : micro_command =
+    match snd stack with
+    | [] -> failwith "No commands in MI stack"
+    | hd::_ ->
+      match hd with
+      | Inert _ -> failwith "Inert was at the head of our MI stack!"
+      | Command c -> c
+  ;;
+
+  let pop_first_command (stack : t) : micro_command * t =
+    match snd stack with
+    | [] -> failwith "No commands in MI stack"
+    | hd::rest ->
+      match hd with
+      | Inert _ -> failwith "Inert was at the head of our MI stack!"
+      | Command c -> c, (fst stack, rest)
+  ;;
+
+  let get_last_inert (stack : t) : micro_inert =
+    match fst stack with
+    | [] -> failwith "No inerts at beginning of MI stack"
+    | hd::_ -> hd
+  ;;
+
+  let pop_last_inert (stack : t) : micro_inert * t =
+    match fst stack with
+    | [] -> failwith "Can't get from empty Micro instruction stack"
+    | hd::rest ->
+      hd, (rest, snd stack)
+  ;;
+
+  let is_empty (stack: t) =
+    List.is_empty (fst stack) && List.is_empty (snd stack)
+  ;;
+
+  let create lst =
+    let rec gather_inerts inerts lst =
+      match lst with
+      | [] -> [], []
+      | hd::rest ->
+        match hd with
+        | Inert i -> gather_inerts (i::inerts) rest
+        | _ -> inerts, rest
+    in
+    gather_inerts [] lst
+  ;;
+
+  let insert_instruction (stack: t) (inserted: t) =
+    fst stack @ fst inserted, snd stack @ snd inserted
+  ;;
+
+end
+;;
+
+type program_state =
   {
+    parents: Parents.t;
+    micro: Micro_instruction_stack.t;
     stack: Program_stack.t;
     heap: Heap.t;
-    parents: Parents.t;
-    m: memloc
+    eta: memloc
   }
