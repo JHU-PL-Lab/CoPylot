@@ -1,7 +1,7 @@
 open Batteries
 open Python2_ast
 
-module ID_tuple = struct
+(* module ID_tuple = struct
   type t = identifier * expr_context
   let compare (id1,ctx1) (id2,ctx2) =
     match (String.compare id1 id2) with
@@ -12,20 +12,20 @@ module ID_tuple = struct
       in compare_ctx ctx1 ctx2
     | n -> n
 end
-;;
+;; *)
 
 (* Mapping utilities *)
 (* Maps: id * ctx -> id *)
-module Id_map = Map.Make (ID_tuple);;
+module Id_map = Map.Make (String);;
 
 (* If a map does not exist, do nothing *)
-let safe_map (id,_) id_map =
-  try Id_map.find (id,Load) id_map with
+let safe_map id id_map =
+  try Id_map.find id id_map with
     Not_found -> id
 ;;
 
 (* Let us add maps with regard to context *)
-let safe_add (id,_) new_id id_map =
+let safe_add id new_id id_map =
   (* match ctx with
      | Param ->
      let new_map = Id_map.add (id,ctx) path id_map in
@@ -37,7 +37,7 @@ let safe_add (id,_) new_id id_map =
      | _ -> id_map *)
   (* let new_map = Id_map.add (id,Param) new_id id_map in *)
   (* let new_map_2 = Id_map.add (id,Store) new_id new_map in *)
-  Id_map.add (id,Load) new_id id_map
+  Id_map.add id new_id id_map
 ;;
 
 (* Getting (identifier, context) tuples of Nodes in the tree *)
@@ -136,7 +136,7 @@ and make_expr_list id_map lst= List.map (make_expr id_map) lst
 
 and make_stmt id_map = function
   | FunctionDef (id,args,body,dec,a) ->
-    let alias = safe_map (id,Store) id_map in
+    let alias = safe_map id id_map in
     FunctionDef (alias,args,body,dec,a)
   | Return (value,a) -> Return (make_option id_map value,a)
   | Assign (targets,value,a) ->
@@ -164,7 +164,7 @@ and make_stmt id_map = function
 
 and make_expr id_map = function
   | Name (id,ctx,a) ->
-    let alias = safe_map (id,ctx) id_map in
+    let alias = safe_map id id_map in
     Name (alias,ctx,a)
   | BoolOp (op,values,a) -> BoolOp (op,make_expr_list id_map values,a)
   | BinOp (left,op,right,a) ->
@@ -209,7 +209,7 @@ let rec update_map id_map id_list address =
     String.concat "_" [(List.hd address);id] in
   match id_list with
   | [] -> id_map
-  | (id,ctx) :: rest -> update_map (safe_add (id,ctx) (path id ctx) id_map) rest address
+  | (id,ctx) :: rest -> update_map (safe_add id (path id ctx) id_map) rest address
 
 (* Filter out all id with context "Load". *)
 let rec filter_id = function
@@ -262,7 +262,7 @@ and rename_stmt_func id_map address (node : 'a stmt) =
     let new_address = update_address id address a in
     let new_map = update_map id_map id_list new_address in
     (* The function is renamed using the former map *)
-    FunctionDef (safe_map (id,Store) id_map,
+    FunctionDef (safe_map id id_map,
                  make_arguments new_map args,
                  rename_stmt_list new_map new_address body,
                  dec,a)
