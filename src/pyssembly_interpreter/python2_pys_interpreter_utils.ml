@@ -59,16 +59,26 @@ let allocate_memory (h : Heap.t) (v : value) : Heap.t * memloc =
   new_heap, m
 ;;
 
+let convert_builtin b =
+  let module Ast = Python2_ast_types in
+  match b with
+  | Ast.Builtin_bool -> Function(Builtin_func(Builtin_bool))
+  | Ast.Builtin_slice -> Function(Builtin_func(Builtin_slice))
+  | Ast.Builtin_type -> Function(Builtin_func(Builtin_type))
+  | Ast.Builtin_AttributeError -> Builtin_exception(Builtin_AttributeError)
+  | Ast.Builtin_ValueError -> Builtin_exception(Builtin_ValueError)
+;;
+
 let literal_to_value (l : literal) (curr_m : memloc): value =
   let module Normalized = Python2_normalized_ast in
   match l with
   | Normalized.Num (n)     -> Num(n)
   | Normalized.Str (s)     -> Str(s)
   | Normalized.Bool (b)    -> Bool(b)
-  | Normalized.Builtin (b) -> Builtin(b)
+  | Normalized.Builtin (b) -> convert_builtin b
   | Normalized.NoneVal     -> NoneVal
   | Normalized.FunctionVal (args, body)
-    -> Function (curr_m, args, Body.create body)
+    -> Function (User_func(curr_m, args, Body.create body))
 ;;
 
 let simple_advance_stack (frame : Stack_frame.t) (stack : Program_stack.t)

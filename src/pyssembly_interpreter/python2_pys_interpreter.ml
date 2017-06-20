@@ -16,14 +16,17 @@ let step_program (prog : program) : program =
   | Some(s) ->
     begin
       match s.body with
+      (* Assignment from literal (including Function Value) *)
       | Assign (id,
                 {body =
                    Literal(l)
                 ; _}) ->
+        (* Bind the value to a memory address *)
         let lval = literal_to_value l prog.m in
         let val_heap, val_memloc = allocate_memory prog.heap lval in
         let val_obj = make_literal_obj val_memloc l in
         let new_heap, new_memloc = allocate_memory val_heap @@ Bindings(val_obj) in
+        (* Bind the memory address to our variable *)
         let new_heap2 = bind_var new_heap prog.m id new_memloc in
         let new_stack = simple_advance_stack curr_frame stack_body in
         { stack = new_stack; heap = new_heap2; parents = prog.parents; m = prog.m }
@@ -91,7 +94,7 @@ let step_program (prog : program) : program =
         let id_loc = lookup prog.heap prog.parents prog.m id in
         begin
           match id_loc with
-          | None -> throw_exception prog @@ Builtin_memloc(Builtin_NameError) (* TODO: Call constructor *)
+          | None -> throw_exception prog @@ Builtin_exn_memloc(Builtin_NameError) (* TODO: Call constructor *)
           | Some(m) -> throw_exception prog m
         end
 

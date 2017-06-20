@@ -33,6 +33,5 @@ type builtin =
   | Builtin_type
   | Builtin_ValueError
   | Builtin_AttributeError
-  | Builtin_NameError
 [@@deriving eq, ord, show, to_yojson]
 ;;

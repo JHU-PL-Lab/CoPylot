@@ -1,6 +1,21 @@
 open Batteries;;
-open Python2_ast_types;;
 open Python2_normalized_ast;;
+
+type uid = Python2_ast_types.uid
+[@@deriving eq, ord, show]
+;;
+
+type identifier = Python2_ast_types.identifier
+[@@deriving eq, ord, show]
+;;
+
+type number = Python2_ast_types.number
+[@@deriving eq, ord, show]
+;;
+
+type str = Python2_ast_types.str
+[@@deriving eq, ord, show]
+;;
 
 type label =
   | Uid of uid
@@ -8,17 +23,38 @@ type label =
 [@@deriving eq, ord, show]
 ;;
 
+type builtin_exception =
+  | Builtin_AttributeError
+  | Builtin_NameError
+  | Builtin_ValueError
+[@@deriving eq, ord, show]
+;;
+
+type builtin_function =
+  | Builtin_bool
+  | Builtin_slice
+  | Builtin_type
+[@@deriving eq, ord, show]
+;;
+
+type builtin_method =
+  | Builtin_call
+[@@deriving eq, ord, show]
+;;
+
 (* A location in memory. Corresponds to "m" in the grammar. *)
 type memloc =
   | Memloc of int
-  | Builtin_memloc of builtin
+  | Builtin_exn_memloc of builtin_exception
+  | Builtin_fun_memloc of builtin_function
+  | Builtin_method_memloc of builtin_method
 [@@deriving eq, ord, show]
 ;;
 
 (* If the memloc is not a builtin, get its value *)
 let memloc_to_int = function
   | Memloc(v) -> v
-  | Builtin_memloc _ -> 0
+  | _ -> 0
 ;;
 
 (* A list of statements to be executed, all in the same scope.
@@ -57,6 +93,8 @@ struct
   let compare t1 t2 = List.compare compare_annotated_stmt t1.stmts t2.stmts;;
   let equal t1 t2 = List.eq equal_annotated_stmt t1.stmts t2.stmts;;
   let pp fmt t1 = List.iter (pp_annotated_stmt fmt) t1.stmts;; (* TODO: Not sure this works *)
+
+  open Python2_ast_types;;
 
   let get_first_uid b =
     let fst = List.hd b.stmts in fst.uid;;
@@ -215,6 +253,16 @@ struct
 end
 ;;
 
+type function_val =
+  | Builtin_func of builtin_function
+  | User_func of memloc (* Bound scope *) * identifier list (* arglist *) * Body.t
+[@@deriving eq, ord, show]
+;;
+
+type method_val =
+  | Builtin_method of memloc (* self *) * builtin_method
+  | User_method of memloc (* self *) * memloc (* Bound scope *) * identifier list (* args *) * Body.t
+
 (* The possible values in the program. Corresponds to "v" in the grammar. *)
 type value =
   | Bindings of Bindings.t
@@ -223,9 +271,9 @@ type value =
   | Bool of bool
   | ListVal of memloc list
   | TupleVal of memloc list
-  | Builtin of builtin
-  | Function of memloc (* Bound scope *) * identifier list (* arglist *) * Body.t
-  | Method of memloc (* Bound scope *) * memloc (* self *) * identifier list (* args *) * Body.t
+  | Builtin_exception of builtin_exception
+  | Function of function_val
+  | Method of method_val
   | NoneVal
   (* [@@deriving eq, ord, show] *)
 ;;
