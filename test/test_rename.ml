@@ -328,41 +328,108 @@ let easy_while_test = gen_module_test "easy_while_test"
 
 let triangle_def =
   "def triangle(n):" ^
-     "\n\tcount = 0" ^
-     "\n\ti=0" ^
-     "\n\twhile count < n:" ^
-     "\n\t\ti += count" ^
-     "\n\t\tcount = count + 1" ^
-     "\n\treturn i" ^
-     "\n"
-  (* "def t(n):" ^
-  (* "\n\tpass" ^ *)
-  (* "\n\tn=c" ^ *)
-  (* "\n\tc=0" ^ *)
-  "\n\tc=n" ^
-  (* "\n\tdef n(n):" ^ *)
-  (* "\n\t\tn=c" ^ *)
-  "\n" *)
+  "\n\tcount = 0" ^
+  "\n\ti=0" ^
+  "\n\twhile count < n:" ^
+  "\n\t\ti += count" ^
+  "\n\t\tcount = count + 1" ^
+  "\n\treturn i" ^
+  "\n"
 ;;
 
 let triangle_test = gen_module_test "triangle_test"
     triangle_def
-    [FunctionDef(
-        "f",
-        ([Name("f$1_x", Param, annot)],None, None, []),
-        [While(
-            Name("f$1_x", Load, annot),
-            [AugAssign(
-                Name("f$1_x", Store, annot),
-                Sub,
-                Num(Int(1), annot),
-                annot
-              )
-            ],
-            [], annot)
-        ],
-        [], annot)
+    [FunctionDef ("triangle",
+                  ([Name ("triangle$1_n", Python2_ast.Param, annot)], None,
+                   None, []),
+                  [Assign (
+                      [Name ("triangle$1_count", Python2_ast.Store, annot)],
+                      Num (Int 0, annot), annot);
+                   Assign (
+                     [Name ("triangle$1_i", Python2_ast.Store, annot)],
+                     Num (Int 0, annot), annot);
+                   While (
+                     Compare (
+                       Name ("triangle$1_count", Python2_ast.Load, annot),
+                       [Python2_ast.Lt],
+                       [Name ("triangle$1_n", Python2_ast.Load, annot)], annot),
+                     [AugAssign (
+                         Name ("triangle$1_i", Python2_ast.Store, annot),
+                         Python2_ast.Add,
+                         Name ("triangle$1_count", Python2_ast.Load, annot),
+                         annot);
+                      Assign (
+                        [Name ("triangle$1_count", Python2_ast.Store,
+                               annot)
+                        ],
+                        BinOp (
+                          Name ("triangle$1_count", Python2_ast.Load,
+                                annot),
+                          Python2_ast.Add,
+                          Num (Int 1, annot), annot),
+                        annot)
+                     ],
+                     [], annot);
+                   Return (
+                     Some (Name ("triangle$1_i", Python2_ast.Load, annot)),
+                           annot)
+                  ],
+                  [], annot)
     ]
+
+
+let nested_function =
+  "def f(x):" ^
+  "\n\tdef f(x):" ^
+  "\n\t\tdef f(x):" ^
+  "\n\t\t\tdef f(x):" ^
+  "\n\t\t\t\tdef f(x):" ^
+  "\n\t\t\t\t\tx" ^
+  "\n\t\t\t\tx" ^
+  "\n\t\t\tx" ^
+  "\n\t\tx" ^
+  "\n\tx" ^
+  "\nx"
+
+
+let nested_function_test = gen_module_test "nested_function_test"
+    nested_function
+    [FunctionDef ("f",
+                  ([Name ("f$1_x", Python2_ast.Param, annot)], None, None, []),
+                  [FunctionDef ("f$1_f",
+                                ([Name ("f$2_x", Python2_ast.Param, annot)], None, None,
+                                 []),
+                                [FunctionDef ("f$2_f",
+                                              ([Name ("f$3_x", Python2_ast.Param, annot)], None,
+                                               None, []),
+                                              [FunctionDef ("f$3_f",
+                                                            ([Name ("f$4_x", Python2_ast.Param, annot)],
+                                                             None, None, []),
+                                                            [FunctionDef ("f$4_f",
+                                                                          ([Name ("f$5_x", Python2_ast.Param, annot)],
+                                                                           None, None, []),
+                                                                          [Expr (
+                                                                              Name ("f$5_x", Python2_ast.Load, annot),
+                                                                              annot)
+                                                                          ],
+                                                                          [], annot);
+                                                             Expr (
+                                                               Name ("f$4_x", Python2_ast.Load, annot), annot)
+                                                            ],
+                                                            [], annot);
+                                               Expr (
+                                                 Name ("f$3_x", Python2_ast.Load, annot), annot)
+                                              ],
+                                              [], annot);
+                                 Expr (
+                                   Name ("f$2_x", Python2_ast.Load, annot), annot)
+                                ],
+                                [], annot);
+                   Expr (Name ("f$1_x", Python2_ast.Load, annot),
+                         annot)
+                  ],
+                  [], annot);
+     Expr (Name ("x", Python2_ast.Load, annot), annot)]
 
 let tests =
   "rename_ast">:::
@@ -375,5 +442,6 @@ let tests =
     tricky_param_test;
     tricky_for_test;
     easy_while_test;
-    (* triangle_test; *)
+    triangle_test;
+    nested_function_test;
   ]
