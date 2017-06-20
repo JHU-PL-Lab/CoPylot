@@ -19,22 +19,25 @@ end
 module Id_map = Map.Make (ID_tuple);;
 
 (* If a map does not exist, do nothing *)
-let safe_map (id,ctx) id_map =
-  try Id_map.find (id,ctx) id_map with
+let safe_map (id,_) id_map =
+  try Id_map.find (id,Load) id_map with
     Not_found -> id
 ;;
 
 (* Let us add maps with regard to context *)
-let safe_add (id,ctx) path id_map =
-  match ctx with
-  | Param ->
-    let new_map = Id_map.add (id,ctx) path id_map in
-    let new_map = Id_map.add (id,Store) path new_map in
-    Id_map.add (id,Load) path new_map
-  | Store ->
-    let new_map = Id_map.add (id,ctx) path id_map in
-    Id_map.add (id,Load) path new_map
-  | _ -> id_map
+let safe_add (id,_) new_id id_map =
+  (* match ctx with
+     | Param ->
+     let new_map = Id_map.add (id,ctx) path id_map in
+     let new_map = Id_map.add (id,Store) path new_map in
+     Id_map.add (id,Load) path new_map
+     | Store ->
+     let new_map = Id_map.add (id,ctx) path id_map in
+     Id_map.add (id,Load) path new_map
+     | _ -> id_map *)
+  (* let new_map = Id_map.add (id,Param) new_id id_map in *)
+  (* let new_map_2 = Id_map.add (id,Store) new_id new_map in *)
+  Id_map.add (id,Load) new_id id_map
 ;;
 
 (* Getting (identifier, context) tuples of Nodes in the tree *)
@@ -212,7 +215,7 @@ let rec update_map id_map id_list address =
 let rec filter_id = function
   | [] -> []
   | (id,ctx) :: rest ->
-    if ctx = Load
+    if ctx == Load
     then filter_id rest
     else (id,ctx) :: (filter_id rest)
 ;;
@@ -263,7 +266,7 @@ and rename_stmt_func id_map address (node : 'a stmt) =
                  make_arguments new_map args,
                  rename_stmt_list new_map new_address body,
                  dec,a)
-  | _ -> failwith "Wrong door: FunctionDef."
+  | _ -> failwith "Wrong way: FunctionDef."
 
 and rename_stmt_simple id_map (node : 'a stmt) =
   make_stmt id_map node
