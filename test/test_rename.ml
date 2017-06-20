@@ -326,6 +326,44 @@ let easy_while_test = gen_module_test "easy_while_test"
         [], annot)
     ]
 
+let triangle_def =
+  "def triangle(n):" ^
+     "\n\tcount = 0" ^
+     "\n\ti=0" ^
+     "\n\twhile count < n:" ^
+     "\n\t\ti += count" ^
+     "\n\t\tcount = count + 1" ^
+     "\n\treturn i" ^
+     "\n"
+  (* "def t(n):" ^
+  (* "\n\tpass" ^ *)
+  (* "\n\tn=c" ^ *)
+  (* "\n\tc=0" ^ *)
+  "\n\tc=n" ^
+  (* "\n\tdef n(n):" ^ *)
+  (* "\n\t\tn=c" ^ *)
+  "\n" *)
+;;
+
+let triangle_test = gen_module_test "triangle_test"
+    triangle_def
+    [FunctionDef(
+        "f",
+        ([Name("f$1_x", Param, annot)],None, None, []),
+        [While(
+            Name("f$1_x", Load, annot),
+            [AugAssign(
+                Name("f$1_x", Store, annot),
+                Sub,
+                Num(Int(1), annot),
+                annot
+              )
+            ],
+            [], annot)
+        ],
+        [], annot)
+    ]
+
 let tests =
   "rename_ast">:::
   [
@@ -337,4 +375,5 @@ let tests =
     tricky_param_test;
     tricky_for_test;
     easy_while_test;
+    (* triangle_test; *)
   ]
