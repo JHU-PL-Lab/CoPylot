@@ -9,8 +9,16 @@ type label =
 ;;
 
 (* A location in memory. Corresponds to "m" in the grammar. *)
-type memloc = Memloc of int
+type memloc =
+  | Memloc of int
+  | Builtin_memloc of builtin
 [@@deriving eq, ord, show]
+;;
+
+(* If the memloc is not a builtin, get its value *)
+let memloc_to_int = function
+  | Memloc(v) -> v
+  | Builtin_memloc _ -> 0
 ;;
 
 (* A list of statements to be executed, all in the same scope.
@@ -256,8 +264,7 @@ struct
 
   let update_binding mem value heap =
     let new_map = Memloc_map.add mem value heap.map in
-    let Memloc(mem_val) = mem in
-    let new_max = max heap.maxval mem_val in
+    let new_max = max heap.maxval (memloc_to_int mem) in
     { map = new_map; maxval = new_max };;
 
   let get_value mem heap =
@@ -271,7 +278,7 @@ struct
 
   let singleton mem value =
     let map = Memloc_map.singleton mem value in
-    let Memloc(memval) = mem in
+    let memval = memloc_to_int mem in
     { map = map; maxval = memval};;
 end
 ;;

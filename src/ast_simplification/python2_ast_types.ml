@@ -23,15 +23,16 @@ type number =
 ;;
 
 type str =
-    | StringLiteral of string
+  | StringLiteral of string
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
 type builtin =
-    | Builtin_bool
+  | Builtin_bool
   | Builtin_slice
   | Builtin_type
   | Builtin_ValueError
   | Builtin_AttributeError
+  | Builtin_NameError
 [@@deriving eq, ord, show, to_yojson]
 ;;
