@@ -17,7 +17,7 @@ let make_literal_obj (m : memloc) (l : literal) : Bindings.t =
   | Normalized.Builtin _     ->   make_function_obj m
 ;;
 
-let retrieve_binding (heap : Heap.t) (m : memloc) : Bindings.t =
+let retrieve_binding_or_fail (heap : Heap.t) (m : memloc) : Bindings.t =
   let hval = Heap.get_value m heap in
   let bindings =
     match hval with
@@ -47,7 +47,7 @@ let bind_var
     (var : identifier)
     (target : memloc)
   : Heap.t =
-  let bindings = retrieve_binding heap bindings_loc in
+  let bindings = retrieve_binding_or_fail heap bindings_loc in
   let new_bindings = Bindings.update_binding var target bindings in
   let new_env = Heap.update_binding bindings_loc (Bindings(new_bindings)) heap in
   new_env
@@ -85,7 +85,7 @@ let rec lookup
     (bindings_loc : memloc)
     (id: identifier)
   : memloc option =
-  let bindings = retrieve_binding heap bindings_loc in
+  let bindings = retrieve_binding_or_fail heap bindings_loc in
   let m = Bindings.get_memloc id bindings in
   match m with
   | Some _ -> m
@@ -96,7 +96,7 @@ let rec lookup
     | Some(p) -> lookup heap parents p id
 ;;
 
-let lookup_or_error
+let lookup_or_error (* TODO: Remove this function *)
     (heap : Heap.t)
     (parents : Parents.t)
     (bindings_loc : memloc)
@@ -121,4 +121,37 @@ let get_obj_value (heap : Heap.t) (m : memloc) : value option =
         Some(actual_value)
     end
   | _ -> failwith "Asked to find *value of non-object"
+;;
+
+(* Given a program and a location where an exception is stored, pop stack frames
+   until you see a catch statement, and bind the given memory location to the
+   specified variable. *)
+let rec throw_exception prog memloc =
+  let stack_top, stack_body = Program_stack.pop prog.stack in
+  let active = get_active_or_fail stack_top in
+  match active.exception_target with
+  | None -> (* No exception target *)
+    let prev_m = get_parent_or_fail prog.parents prog.m in
+    (* Base case: empty stack, nothing more to pop *)
+    if Program_stack.is_empty stack_body then
+      { stack = stack_body; heap = prog.heap; parents = prog.parents; m = prog.m }
+    else
+      (* No catch here, go to the next stack frame *)
+      throw_exception
+        { stack = stack_body; heap = prog.heap; parents = prog.parents; m = prev_m }
+        memloc
+
+  | Some(target) -> (* Hopefully target points to a catch *)
+    begin
+      match Stack_frame.get_stmt stack_top target with
+      | Some({body = Catch(id); _}) ->
+        (* Bind the given exception to id *)
+        let new_heap = bind_var prog.heap prog.m id memloc in
+        (* Update stack_top so that it's active stmt is the catch we just ran *)
+        let updated_frame = Stack_frame.advance stack_top @@ Uid(target) in
+        (* Move the active stmt pointer once more, past the catch *)
+        let new_stack = simple_advance_stack updated_frame stack_body  in
+        { stack = new_stack; heap = new_heap; parents = prog.parents; m = prog.m }
+      | _ -> failwith "Exception target did not point to catch in scope"
+    end
 ;;

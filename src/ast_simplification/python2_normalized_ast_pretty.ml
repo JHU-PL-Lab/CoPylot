@@ -88,7 +88,7 @@ and pp_id fmt id =
   then
     failwith (id ^ "is not a valid identifier!")
   else
-  fprintf fmt "%s" id
+    fprintf fmt "%s" id
 
 and pp_literal indent fmt = function
   | Num (n)      -> pp_num fmt n
@@ -111,6 +111,7 @@ and pp_builtin fmt = function
   | Builtin_type  -> fprintf fmt "builtin_type"
   | Builtin_AttributeError -> fprintf fmt "builtin_AttributeError"
   | Builtin_ValueError -> fprintf fmt "builtin_ValueError"
+  | Builtin_NameError -> fprintf fmt "builtin_NameError"
 
 and pp_functionval indent fmt args body =
   fprintf fmt "def (%a) {\n%a\n}"
