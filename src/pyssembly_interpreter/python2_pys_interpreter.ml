@@ -139,6 +139,20 @@ let execute_micro_command (prog : program_state) : program_state =
     let parent_eta = get_parent_or_fail prog.eta prog.parents in
     { prog with stack = stack_body; eta = parent_eta}
 
+  | LIST (size) ->
+    let elts, popped_micro = pop_n_memlocs size [] rest_of_stack in
+    let new_micro = MIS.insert popped_micro @@
+      MIS.create [ Inert(Micro_value(ListVal(elts))); ]
+    in
+    { prog with micro = new_micro}
+
+  | TUPLE (size) ->
+    let elts, popped_micro = pop_n_memlocs size [] rest_of_stack in
+    let new_micro = MIS.insert popped_micro @@
+      MIS.create [ Inert(Micro_value(TupleVal(elts))); ]
+    in
+    { prog with micro = new_micro}
+
   | ALLOCNAMEERROR -> raise @@ Not_yet_implemented "ALLOCNAMEERROR"
 ;;
 
@@ -171,6 +185,34 @@ let execute_stmt (prog : program_state) : program_state =
           Inert(Micro_var(x2));
           Command(LOOKUP);
           Inert(Micro_var(x1));
+          Command(BIND);
+          Command(ADVANCE);
+        ]
+
+      (* Assign from list *)
+      | Assign(x, {body = List(elts); _}) ->
+        let lookups = List.concat @@ List.map
+            (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
+            elts
+        in
+        lookups @
+        [
+          Command(LIST(List.length elts));
+          Inert(Micro_var(x));
+          Command(BIND);
+          Command(ADVANCE);
+        ]
+
+      (* Assign from tuple *)
+      | Assign(x, {body = Tuple(elts); _}) ->
+        let lookups = List.concat @@ List.map
+            (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
+            elts
+        in
+        lookups @
+        [
+          Command(TUPLE(List.length elts));
+          Inert(Micro_var(x));
           Command(BIND);
           Command(ADVANCE);
         ]
