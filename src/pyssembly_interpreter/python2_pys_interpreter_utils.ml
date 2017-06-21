@@ -26,7 +26,8 @@ let literal_to_value (l : literal) (curr_m : memloc): value =
   | Normalized.FunctionVal (args, body)
     -> Function (User_func(curr_m, args, Body.create body))
 ;;
-
+(* TODO: Change to take in the name of the command rather than a failuremsg,
+   and construct the method dynamically based on that *)
 let pop_var_or_fail
     (micro: Micro_instruction_stack.t)
     (failmsg: string)

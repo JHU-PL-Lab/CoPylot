@@ -387,6 +387,8 @@ type micro_command =
   | POP
   | LIST of int (* size *)
   | TUPLE of int (* size *)
+  | GOTO of label
+  | GOTOIFNOT of label
   | ALLOCNAMEERROR
   (* [@@deriving eq, ord, show] *)
 ;;

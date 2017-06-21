@@ -137,21 +137,51 @@ let execute_micro_command (prog : program_state) : program_state =
   | POP ->
     let _, stack_body = Program_stack.pop prog.stack in
     let parent_eta = get_parent_or_fail prog.eta prog.parents in
-    { prog with stack = stack_body; eta = parent_eta}
+    { prog with stack = stack_body; eta = parent_eta }
 
+  (* LIST command: expects there to be size memlocs above it in the stack. Creates
+     a list value containing those memlocs, with memlocs closer to the LIST command
+     being further down the list *)
   | LIST (size) ->
     let elts, popped_micro = pop_n_memlocs size [] rest_of_stack in
     let new_micro = MIS.insert popped_micro @@
       MIS.create [ Inert(Micro_value(ListVal(elts))); ]
     in
-    { prog with micro = new_micro}
+    { prog with micro = new_micro }
 
+  (* TUPLE command: Exactly the same as LIST, but returns a tuple *)
   | TUPLE (size) ->
     let elts, popped_micro = pop_n_memlocs size [] rest_of_stack in
     let new_micro = MIS.insert popped_micro @@
       MIS.create [ Inert(Micro_value(TupleVal(elts))); ]
     in
-    { prog with micro = new_micro}
+    { prog with micro = new_micro }
+
+  (* GOTO command: Takes no arguments, and moves the instruction pointer on the
+     current stack frame to the specified label. *)
+  | GOTO l ->
+    let curr_frame, stack_body = Program_stack.pop prog.stack in
+    let next_frame = Stack_frame.advance curr_frame l in
+    let new_stack = Program_stack.push stack_body next_frame in
+    { prog with micro = rest_of_stack; stack = new_stack }
+
+    (* GOTOIFNOT command: Takes a memloc, and moves the instruction pointer on the
+       current stack frame to the specified label if the value at that memory
+       address is "false". If the value is "true" it does nothing. If the value
+       is any non-boolean, the program fails.*)
+  | GOTOIFNOT l ->
+    let m, popped_stack =
+      pop_memloc_or_fail rest_of_stack "GOTOIFNOT not given a memloc!"
+    in
+    let value = Heap.get_value m prog.heap in
+    let new_micro_list =
+      match value with
+      | Bool(true)  -> [ Command(ADVANCE); ]
+      | Bool(false) -> [ Command(GOTO l); ]
+      | _ -> failwith "GOTOIFNOT not given a boolean value!"
+    in
+    let new_micro = MIS.insert popped_stack @@ MIS.create new_micro_list in
+    { prog with micro = new_micro }
 
   | ALLOCNAMEERROR -> raise @@ Not_yet_implemented "ALLOCNAMEERROR"
 ;;
