@@ -4,164 +4,204 @@ open Python2_ast_types;;
 module Normalized = Python2_normalized_ast;;
 open Normalized;;
 open Python2_pys_interpreter_types;;
-open Python2_pys_interpreter_builtin_objects;;
+(* open Python2_pys_interpreter_builtin_objects;; *)
 open Python2_pys_interpreter_utils;;
 
-let step_program (prog : program) : program =
-  (* TODO: Use the option monad? *)
-  let curr_frame, stack_body = Program_stack.pop prog.stack in
-  let active = Stack_frame.active_stmt curr_frame in
-  match active with
-  | None -> raise @@ Not_yet_implemented "NYI: Throw NameError" (* TODO: pop a stack frame *)
-  | Some(s) ->
+let execute_micro_command (prog : program_state) : program_state =
+  let module MIS = Micro_instruction_stack in
+  let command, rest_of_stack =
+    MIS.pop_first_command prog.micro
+  in
+  match command with
+  (* STORE command; takes a value and binds it to a fresh memory location on
+     the heap. Returns the fresh memory location. *)
+  | STORE ->
+    let val_to_store, popped_stack =
+      pop_value_or_fail rest_of_stack "STORE command not given a value"
+    in
+    let fresh_memloc = Heap.get_new_memloc prog.heap in
+    let new_heap = Heap.update_binding fresh_memloc val_to_store prog.heap in
+    let new_micro = MIS.insert popped_stack @@
+      MIS.create [Inert(Micro_memloc(fresh_memloc))]
+    in
+    {
+      prog with
+      micro = new_micro;
+      heap = new_heap;
+    }
+
+  (* WRAP command: takes a memory location. If that memloc points to a value, it
+     wraps the value in the appropriate object type, and returns that object.
+     If the memloc points to an already-existing object, it simply returns that
+     object. *)
+  | WRAP ->
+    let m, popped_stack =
+      pop_memloc_or_fail rest_of_stack "WRAP command not given a memloc"
+    in
+    ignore m; ignore popped_stack;
+    raise @@ Not_yet_implemented "GetObj (in WRAP command)"
+
+  (* BIND command: takes an identifier and a memloc. Binds the memloc to the id,
+     and returns nothing *)
+  | BIND ->
+    let x, popped_stack1 =
+      pop_var_or_fail rest_of_stack "BIND command not given an identifier first"
+    in
+    let m, popped_stack2 =
+      pop_memloc_or_fail popped_stack1 "BIND command not given a memloc second"
+    in
+    let bindings = retrieve_binding_or_fail prog.heap prog.eta in
+    let new_bindings = Bindings.update_binding x m bindings in
+    let new_heap =
+      Heap.update_binding prog.eta (Bindings(new_bindings)) prog.heap
+    in
+    {
+      prog with
+      micro = popped_stack2;
+      heap = new_heap;
+    }
+
+  (* ADVANCE command: takes no arguments, and advances the current stack frame's
+     instruction pointer to the next label. Note that this advances to the next
+     statement lexically, and hence should not be used with GOTOs *)
+  | ADVANCE ->
+    let curr_frame, stack_body = Program_stack.pop prog.stack in
+    let next_label = Stack_frame.get_next_label curr_frame in
+    let next_frame = Stack_frame.advance curr_frame next_label in
+    let new_stack = Program_stack.push stack_body next_frame in
+    { prog with stack = new_stack }
+
+  (* LOOKUP command: takes an identifier, and returns the memory address bound to
+     that variable in the closest scope in which it is bound. Raises a NameError
+     if the variable is unbound. *)
+  | LOOKUP ->
+    let target, popped_stack =
+      pop_var_or_fail rest_of_stack "LOOKUP command not given an identifier"
+    in
+    let lookup_result = lookup prog.eta prog.parents prog.heap target in
+    let new_micro =
+      match lookup_result with
+      | None -> (* Lookup failed, raise a NameError *)
+        MIS.create [ Command(ALLOCNAMEERROR); Command(RAISE); ]
+
+      | Some(m) ->
+        MIS.insert popped_stack @@ MIS.create [ Inert(Micro_memloc(m)); ]
+    in
+    {prog with micro = new_micro}
+
+  (* RAISE command: takes no arguments (though there should be a memloc
+     immediately before it for future instructions to use). It examines the
+     currently active statement. If it has no exception label, we pop a stack
+     frame. Otherwise, if the exception statement points to a catch statement,
+     we move to that catch and execute it. *)
+  | RAISE ->
+    let stack_top, stack_body = Program_stack.pop prog.stack in
+    let active = get_active_or_fail stack_top in
     begin
-      match s.body with
-      (* Assignment from literal (including Function Value) *)
-      | Assign (id,
-                {body =
-                   Literal(l)
-                ; _}) ->
-        (* Bind the value to a memory address *)
-        let lval = literal_to_value l prog.m in
-        let val_heap, val_memloc = allocate_memory prog.heap lval in
-        let val_obj = make_literal_obj val_memloc l in
-        let new_heap, new_memloc = allocate_memory val_heap @@ Bindings(val_obj) in
-        (* Bind the memory address to our variable *)
-        let new_heap2 = bind_var new_heap prog.m id new_memloc in
-        let new_stack = simple_advance_stack curr_frame stack_body in
-        { stack = new_stack; heap = new_heap2; parents = prog.parents; m = prog.m }
+      match active.exception_target with
+      | None -> (* No exception target, pop a stack frame *)
+        let prev_eta = get_parent_or_fail prog.eta prog.parents in
+        { prog with stack = stack_body; eta = prev_eta; }
+      | Some(uid) ->
+        let catch_stmt = Stack_frame.get_stmt stack_top uid in
+        match catch_stmt with
+        | Some({body = Catch (x);_}) ->
+          let new_micro = MIS.insert prog.micro @@
+            MIS.create [ Inert(Micro_var(x)); Command(BIND); Command(ADVANCE); ]
+          in
+          let catch_frame = Stack_frame.advance stack_top @@ Uid(uid) in
+          let new_stack = Program_stack.push stack_body catch_frame in
+          { prog with micro = new_micro; stack = new_stack; }
 
-      | Assign (id,
-                {body =
-                   Name(id2)
-                ; _}) ->
-        let memloc = lookup_or_error prog.heap prog.parents prog.m id2 in
-        let new_heap = bind_var prog.heap prog.m id memloc in
-        let new_stack = simple_advance_stack curr_frame stack_body  in
-        { stack = new_stack; heap = new_heap; parents = prog.parents; m = prog.m }
-
-      | Assign (id, {body =
-                       Normalized.List(elts)
-                    ; _ }) ->
-        let memlocs =
-          List.map (lookup_or_error prog.heap prog.parents prog.m) elts
-        in
-        let lval = ListVal(memlocs) in
-        let val_heap, val_memloc = allocate_memory prog.heap lval in
-        let val_obj = make_list_obj val_memloc in
-        let obj_heap, obj_memloc =
-          allocate_memory val_heap @@ Bindings(val_obj)
-        in
-        let new_heap = bind_var obj_heap prog.m id obj_memloc in
-        let new_stack = simple_advance_stack curr_frame stack_body in
-        { stack = new_stack; heap = new_heap; parents = prog.parents; m = prog.m }
-
-      | Assign (id, {body =
-                       Normalized.Tuple(elts)
-                    ; _ }) ->
-        let memlocs =
-          List.map (lookup_or_error prog.heap prog.parents prog.m) elts
-        in
-        let lval = TupleVal(memlocs) in
-        let val_heap, val_memloc = allocate_memory prog.heap lval in
-        let val_obj = make_tuple_obj val_memloc in
-        let obj_heap, obj_memloc =
-          allocate_memory val_heap @@ Bindings(val_obj)
-        in
-        let new_heap = bind_var obj_heap prog.m id obj_memloc in
-        let new_stack = simple_advance_stack curr_frame stack_body in
-        { stack = new_stack; heap = new_heap; parents = prog.parents; m = prog.m }
-
-      | Assign (id, {body =
-                       Normalized.Call(func, args)
-                    ; _ }) ->
-        let func_memloc = lookup_or_error prog.heap prog.parents prog.m func in
-        let callable_memloc = get_call heap func_memloc in
-        let lval = call_function callable_memloc in
-        let val_heap, val_memloc = allocate_memory prog.heap lval in
-        let val_obj = make_tuple_obj val_memloc in
-        let obj_heap, obj_memloc =
-          allocate_memory val_heap @@ Bindings(val_obj)
-        in
-        let new_heap = bind_var obj_heap prog.m id obj_memloc in
-        let new_stack = simple_advance_stack curr_frame stack_body in
-        { stack = new_stack; heap = new_heap; parents = prog.parents; m = prog.m }
-
-      | Raise (id) ->
-        let id_loc = lookup prog.heap prog.parents prog.m id in
-        begin
-          match id_loc with
-          | None -> throw_exception prog @@ Builtin_exn_memloc(Builtin_NameError) (* TODO: Call constructor *)
-          | Some(m) -> throw_exception prog m
-        end
-
-      | Catch _ ->
-        failwith "SyntaxError: Reached catch statement with no raised value"
-
-      | Pass ->
-        let new_stack = simple_advance_stack curr_frame stack_body in
-        { stack = new_stack; heap = prog.heap; parents = prog.parents; m = prog.m }
-
-      | Return (id) ->
-        let id_loc = lookup_or_error prog.heap prog.parents prog.m id in
-        let prev_frame, rest_of_stack = Program_stack.pop stack_body in
-        let callsite_binding_id =
-          begin
-            let callsite = Stack_frame.active_stmt prev_frame in
-            match callsite with
-            | Some({body = Assign(id, {body = Call(_); _}); _}) -> id
-            | _ -> failwith "Did not see callsite on return from function"
-          end in
-        let new_heap = bind_var prog.heap prog.m callsite_binding_id id_loc in
-        let prev_m =
-          begin
-            let parent = Parents.get_parent prog.m prog.parents in
-            match parent with
-            | None -> failwith "No parent scope on returning from function."
-            | Some (p) -> p
-          end
-        in
-        let new_stack = simple_advance_stack prev_frame rest_of_stack in
-        { stack = new_stack; heap = new_heap; parents = prog.parents; m = prev_m}
-
-      | Goto (uid) ->
-        let new_frame = Stack_frame.advance curr_frame @@ Uid(uid) in
-        let new_stack = Program_stack.push prog.stack new_frame in
-        { stack = new_stack; heap = prog.heap; parents = prog.parents; m = prog.m }
-
-      | GotoIfNot (id, uid) ->
-        let id_memloc = lookup_or_error prog.heap prog.parents prog.m id in
-        let id_val = get_obj_value prog.heap id_memloc in
-        let new_stack =
-          begin
-            match id_val with
-            | None -> failwith "GotoIfNot passed on object with no *value field"
-            | Some(Bool(false)) ->
-              let new_frame = Stack_frame.advance curr_frame @@ Uid(uid) in
-              Program_stack.push prog.stack new_frame
-            | Some(Bool(true)) ->
-              simple_advance_stack curr_frame stack_body
-            | _ -> failwith "GotoIfNot passed non-boolean object"
-          end
-        in
-        { stack = new_stack; heap = prog.heap; parents = prog.parents; m = prog.m }
-
-      | _ -> prog
+        | _ -> failwith "Exception label did not point to a catch in the same scope!"
     end
+
+  | ALLOCNAMEERROR -> raise @@ Not_yet_implemented "ALLOCNAMEERROR"
+;;
+
+let execute_stmt (prog : program_state) : program_state =
+  (* Helper function, since we usually just want to use the same program with
+     a different micro_instruction stack *)
+  let curr_frame, _ = Program_stack.pop prog.stack in
+  match Stack_frame.active_stmt curr_frame with
+  | None -> raise @@ Not_yet_implemented "Can't pop stack frames yet" (* Pop a stack frame *)
+  | Some(stmt) ->
+    match stmt.body with
+    (* Assignment from literal *)
+    | Assign(x, {body = Literal(l); _}) ->
+      let lval = literal_to_value l prog.eta in
+      let new_micro = Micro_instruction_stack.create
+          [
+            Inert(Micro_value(lval));
+            Command(STORE);
+            Command(WRAP);
+            Command(STORE);
+            Inert(Micro_var(x));
+            Command(BIND);
+            Command(ADVANCE);
+          ]
+      in
+      {prog with micro = new_micro;}
+
+    (* Variable Aliasing *)
+    | Assign(x1, {body = Name(x2); _}) ->
+      let new_micro = Micro_instruction_stack.create
+          [
+            Inert(Micro_var(x1));
+            Command(LOOKUP);
+            Inert(Micro_var(x2));
+            Command(BIND);
+            Command(ADVANCE);
+          ]
+      in
+      {prog with micro = new_micro;}
+
+    (* Raise statement *)
+    | Raise(x) ->
+      let new_micro = Micro_instruction_stack.create
+          [
+            Inert(Micro_var(x));
+            Command(LOOKUP);
+            Command(RAISE);
+          ]
+      in
+      {prog with micro = new_micro;}
+
+    | _ -> raise @@ Not_yet_implemented "Execute stmt is incomplete"
+;;
+
+let rec step_program (prog : program_state) : program_state =
+  (* TODO: Replace with actual termination condition if we make it something
+     different *)
+  if Program_stack.is_empty prog.stack then
+    prog
+  else
+    let next_prog =
+      if Micro_instruction_stack.is_empty prog.micro
+      then
+        execute_stmt prog
+      else
+        execute_micro_command prog
+    in
+    step_program next_prog
+
 ;;
 
 let interpret_program (prog : modl) =
   let Module(stmts, _) = prog in
   let starting_frame = Stack_frame.create (Body.create stmts) in
   let starting_stack = Program_stack.singleton starting_frame in
+  (* TODO: Probably add default bindings for the builtins *)
   let starting_bindings = Bindings.empty in
   let global_memloc = Memloc(0) in
   let starting_heap =
     Heap.singleton global_memloc @@ Bindings(starting_bindings) in
   let starting_parents = Parents.empty in
+  let starting_micro = Micro_instruction_stack.create [] in
   let starting_program =
     {
       parents = starting_parents;
+      micro = starting_micro;
       stack = starting_stack;
       heap = starting_heap;
       eta = global_memloc;

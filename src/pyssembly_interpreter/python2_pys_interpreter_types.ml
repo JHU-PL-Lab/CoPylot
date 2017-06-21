@@ -371,9 +371,9 @@ struct
 end;;
 
 type micro_inert =
-  | Var of identifier
-  | Memloc of memloc
-  | Value of value
+  | Micro_var of identifier
+  | Micro_memloc of memloc
+  | Micro_value of value
   (* [@@deriving eq, ord, show] *)
 ;;
 
@@ -384,6 +384,7 @@ type micro_command =
   | ADVANCE
   | LOOKUP
   | RAISE
+  | ALLOCNAMEERROR
   (* [@@deriving eq, ord, show] *)
 ;;
 
@@ -405,11 +406,11 @@ sig
   val get_first_command: t -> micro_command
   val pop_first_command: t -> micro_command * t
 
-  (* Returns the last inert micro_instruction BEFORE the first command in the
-     stack. Fails if there is none.
+  (* Returns the inert micro_instruction immediately before the first command
+     in the stack. Fails if there is none.
      If pop was called, also returns the stack with the that element removed *)
-  val get_last_inert: t -> micro_inert
-  val pop_last_inert: t -> micro_inert * t
+  val get_first_inert: t -> micro_inert
+  val pop_first_inert: t -> micro_inert * t
 
   val is_empty: t -> bool
 
@@ -418,7 +419,7 @@ sig
 
      The parts of the first stack before and after the site of the location
       are unaffected. *)
-  val insert_instruction: t -> t -> t
+  val insert: t -> t -> t
 
 end =
 struct
@@ -447,13 +448,13 @@ struct
       | Command c -> c, (fst stack, rest)
   ;;
 
-  let get_last_inert (stack : t) : micro_inert =
+  let get_first_inert (stack : t) : micro_inert =
     match fst stack with
     | [] -> failwith "No inerts at beginning of MI stack"
     | hd::_ -> hd
   ;;
 
-  let pop_last_inert (stack : t) : micro_inert * t =
+  let pop_first_inert (stack : t) : micro_inert * t =
     match fst stack with
     | [] -> failwith "Can't get from empty Micro instruction stack"
     | hd::rest ->
@@ -476,7 +477,7 @@ struct
     gather_inerts [] lst
   ;;
 
-  let insert_instruction (stack: t) (inserted: t) =
+  let insert (stack: t) (inserted: t) =
     fst stack @ fst inserted, snd stack @ snd inserted
   ;;
 
