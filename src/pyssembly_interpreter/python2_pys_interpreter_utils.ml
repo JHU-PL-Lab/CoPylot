@@ -58,17 +58,17 @@ let pop_value_or_fail
 ;;
 
 (* let make_literal_obj (m : memloc) (l : literal) : Bindings.t =
-  let module Normalized = Python2_normalized_ast in
-  match l with
-  | Normalized.Num (Int _)   ->   make_int_obj m
-  | Normalized.Num (Float _) ->   make_float_obj m
-  | Normalized.Str _         ->   make_string_obj m
-  | Normalized.Bool _        ->   make_bool_obj m
-  | Normalized.FunctionVal _ ->   make_function_obj m
-  | Normalized.NoneVal       ->   make_none_obj m
-  | Normalized.Builtin _     ->   failwith "NYI: Builtin object"
+   let module Normalized = Python2_normalized_ast in
+   match l with
+   | Normalized.Num (Int _)   ->   make_int_obj m
+   | Normalized.Num (Float _) ->   make_float_obj m
+   | Normalized.Str _         ->   make_string_obj m
+   | Normalized.Bool _        ->   make_bool_obj m
+   | Normalized.FunctionVal _ ->   make_function_obj m
+   | Normalized.NoneVal       ->   make_none_obj m
+   | Normalized.Builtin _     ->   failwith "NYI: Builtin object"
 
-;; *)
+   ;; *)
 
 let extract_option_or_fail (opt: 'a option) (failmsg: string) : 'a =
   match opt with
@@ -96,13 +96,29 @@ let get_parent_or_fail (child : memloc) (parents : Parents.t) : memloc =
   extract_option_or_fail parent "Failed to find parent scope"
 ;;
 
-
+(* Pop n elements from mstack, all of which must be memlocs. Return a list of
+   the popped memlocs with the most recently popped ones first, and the mstack
+   with the elements popped off*)
+let rec pop_n_memlocs
+    (n : int)
+    (lst : memloc list)
+    (mstack : Micro_instruction_stack.t)
+  : memloc list * Micro_instruction_stack.t =
+  if n = 0
+  then
+    lst, mstack
+  else
+    let next_memloc, next_mstack =
+      pop_memloc_or_fail mstack "List argument was not a memloc!"
+    in
+    pop_n_memlocs (n-1) (next_memloc::lst) next_mstack
+;;
 
 (* let get_obj_value (heap : Heap.t) (m : memloc) (attr : identifier)
-  : value option =
-  let obj = Heap.get_value m heap in
-  match obj with
-  | Bindings(bindings) ->
+   : value option =
+   let obj = Heap.get_value m heap in
+   match obj with
+   | Bindings(bindings) ->
     let value_memloc = Bindings.get_memloc "*value" bindings in
     begin
       match value_memloc with
@@ -111,15 +127,15 @@ let get_parent_or_fail (child : memloc) (parents : Parents.t) : memloc =
         let actual_value = Heap.get_value memloc heap in
         Some(actual_value)
     end
-  | _ -> failwith "Asked to find *value of non-object"
-;; *)
+   | _ -> failwith "Asked to find *value of non-object"
+   ;; *)
 
 (* Warning: This can loop infinitely if the code does something like
    x.__call__ = x *)
 (* let rec get_call (heap : Heap.t) (m: memloc) : memloc option =
-  let obj = Heap.get_value m heap in
-  match obj with
-  | Bindings(bindings) ->
+   let obj = Heap.get_value m heap in
+   match obj with
+   | Bindings(bindings) ->
     let value_memloc = Bindings.get_memloc "__call__" bindings in
     begin
       match value_memloc with
@@ -133,5 +149,5 @@ let get_parent_or_fail (child : memloc) (parents : Parents.t) : memloc =
         | _ -> None (* Not callable *)
 
     end
-  | _ -> None (* Not callable *)
-;; *)
+   | _ -> None (* Not callable *)
+   ;; *)

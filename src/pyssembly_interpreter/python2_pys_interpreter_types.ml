@@ -385,6 +385,8 @@ type micro_command =
   | LOOKUP
   | RAISE
   | POP
+  | LIST of int (* size *)
+  | TUPLE of int (* size *)
   | ALLOCNAMEERROR
   (* [@@deriving eq, ord, show] *)
 ;;
