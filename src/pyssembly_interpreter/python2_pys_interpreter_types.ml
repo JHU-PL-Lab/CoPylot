@@ -384,6 +384,7 @@ type micro_command =
   | ADVANCE
   | LOOKUP
   | RAISE
+  | POP
   | ALLOCNAMEERROR
   (* [@@deriving eq, ord, show] *)
 ;;

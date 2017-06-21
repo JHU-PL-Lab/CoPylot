@@ -100,13 +100,15 @@ let execute_micro_command (prog : program_state) : program_state =
     begin
       match active.exception_target with
       | None -> (* No exception target, pop a stack frame *)
-        let prev_eta = get_parent_or_fail prog.eta prog.parents in
-        { prog with stack = stack_body; eta = prev_eta; }
+        let new_micro = MIS.insert rest_of_stack @@
+          MIS.create [ Command(POP); Command(RAISE); ]
+        in
+        { prog with micro = new_micro }
       | Some(uid) ->
         let catch_stmt = Stack_frame.get_stmt stack_top uid in
         match catch_stmt with
         | Some({body = Catch (x);_}) ->
-          let new_micro = MIS.insert prog.micro @@
+          let new_micro = MIS.insert rest_of_stack @@
             MIS.create [ Inert(Micro_var(x)); Command(BIND); Command(ADVANCE); ]
           in
           let catch_frame = Stack_frame.advance stack_top @@ Uid(uid) in
@@ -115,6 +117,13 @@ let execute_micro_command (prog : program_state) : program_state =
 
         | _ -> failwith "Exception label did not point to a catch in the same scope!"
     end
+
+  (* POP command: Takes no arguments. Removes the current stack frame, and
+     updates eta accordingly. *)
+  | POP ->
+    let _, stack_body = Program_stack.pop prog.stack in
+    let parent_eta = get_parent_or_fail prog.eta prog.parents in
+    { prog with stack = stack_body; eta = parent_eta}    
 
   | ALLOCNAMEERROR -> raise @@ Not_yet_implemented "ALLOCNAMEERROR"
 ;;
