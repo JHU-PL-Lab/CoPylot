@@ -159,9 +159,9 @@ let execute_micro_command (prog : program_state) : program_state =
 
   (* GOTO command: Takes no arguments, and moves the instruction pointer on the
      current stack frame to the specified label. *)
-  | GOTO l ->
+  | GOTO uid ->
     let curr_frame, stack_body = Program_stack.pop prog.stack in
-    let next_frame = Stack_frame.advance curr_frame l in
+    let next_frame = Stack_frame.advance curr_frame (Uid(uid)) in
     let new_stack = Program_stack.push stack_body next_frame in
     { prog with micro = rest_of_stack; stack = new_stack }
 
@@ -169,7 +169,7 @@ let execute_micro_command (prog : program_state) : program_state =
        current stack frame to the specified label if the value at that memory
        address is "false". If the value is "true" it does nothing. If the value
        is any non-boolean, the program fails.*)
-  | GOTOIFNOT l ->
+  | GOTOIFNOT uid ->
     let m, popped_stack =
       pop_memloc_or_fail rest_of_stack "GOTOIFNOT not given a memloc!"
     in
@@ -177,7 +177,7 @@ let execute_micro_command (prog : program_state) : program_state =
     let new_micro_list =
       match value with
       | Bool(true)  -> [ Command(ADVANCE); ]
-      | Bool(false) -> [ Command(GOTO l); ]
+      | Bool(false) -> [ Command(GOTO(uid)); ]
       | _ -> failwith "GOTOIFNOT not given a boolean value!"
     in
     let new_micro = MIS.insert popped_stack @@ MIS.create new_micro_list in
@@ -251,6 +251,20 @@ let execute_stmt (prog : program_state) : program_state =
           Inert(Micro_var(x));
           Command(BIND);
           Command(ADVANCE);
+        ]
+
+      (* Goto statement *)
+      | Goto (uid) ->
+        [
+          Command(GOTO(uid));
+        ]
+
+      (* Goto statement *)
+      | GotoIfNot (x, uid) ->
+        [
+          Inert(Micro_var(x));
+          Command(LOOKUP);
+          Command(GOTO(uid));
         ]
 
       (* Pass statement *)
