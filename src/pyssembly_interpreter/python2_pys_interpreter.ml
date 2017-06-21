@@ -69,7 +69,7 @@ let execute_micro_command (prog : program_state) : program_state =
     let next_label = Stack_frame.get_next_label curr_frame in
     let next_frame = Stack_frame.advance curr_frame next_label in
     let new_stack = Program_stack.push stack_body next_frame in
-    { prog with stack = new_stack }
+    { prog with micro = rest_of_stack; stack = new_stack }
 
   (* LOOKUP command: takes an identifier, and returns the memory address bound to
      that variable in the closest scope in which it is bound. Raises a NameError
@@ -78,7 +78,21 @@ let execute_micro_command (prog : program_state) : program_state =
     let target, popped_stack =
       pop_var_or_fail rest_of_stack "LOOKUP command not given an identifier"
     in
-    let lookup_result = lookup prog.eta prog.parents prog.heap target in
+    let rec lookup
+        (eta : memloc)
+        (id: identifier)
+      : memloc option =
+      let bindings = retrieve_binding_or_fail prog.heap eta in
+      let m = Bindings.get_memloc id bindings in
+      match m with
+      | Some _ -> m
+      | None ->
+        let parent = Parents.get_parent eta prog.parents in
+        match parent with
+        | None -> None
+        | Some(p) -> lookup p id
+    in
+    let lookup_result = lookup prog.eta target in
     let new_micro =
       match lookup_result with
       | None -> (* Lookup failed, raise a NameError *)
@@ -123,60 +137,61 @@ let execute_micro_command (prog : program_state) : program_state =
   | POP ->
     let _, stack_body = Program_stack.pop prog.stack in
     let parent_eta = get_parent_or_fail prog.eta prog.parents in
-    { prog with stack = stack_body; eta = parent_eta}    
+    { prog with stack = stack_body; eta = parent_eta}
 
   | ALLOCNAMEERROR -> raise @@ Not_yet_implemented "ALLOCNAMEERROR"
 ;;
 
 let execute_stmt (prog : program_state) : program_state =
-  (* Helper function, since we usually just want to use the same program with
-     a different micro_instruction stack *)
-  let curr_frame, _ = Program_stack.pop prog.stack in
-  match Stack_frame.active_stmt curr_frame with
-  | None -> raise @@ Not_yet_implemented "Can't pop stack frames yet" (* Pop a stack frame *)
-  | Some(stmt) ->
-    match stmt.body with
-    (* Assignment from literal *)
-    | Assign(x, {body = Literal(l); _}) ->
-      let lval = literal_to_value l prog.eta in
-      let new_micro = Micro_instruction_stack.create
-          [
-            Inert(Micro_value(lval));
-            Command(STORE);
-            Command(WRAP);
-            Command(STORE);
-            Inert(Micro_var(x));
-            Command(BIND);
-            Command(ADVANCE);
-          ]
-      in
-      {prog with micro = new_micro;}
+  (* Each statement generates a list of micro-instructions, which are then
+     executed. This should not be called if the current micro-instruction list
+     is nonempty! *)
+  let new_micro_list =
+    let curr_frame, _ = Program_stack.pop prog.stack in
+    match Stack_frame.active_stmt curr_frame with
+    | None -> raise @@ Not_yet_implemented "Can't pop stack frames yet" (* Pop a stack frame *)
+    | Some(stmt) ->
+      match stmt.body with
+      (* Assignment from literal *)
+      | Assign(x, {body = Literal(l); _}) ->
+        let lval = literal_to_value l prog.eta in
+        [
+          Inert(Micro_value(lval));
+          Command(STORE);
+          Command(WRAP);
+          Command(STORE);
+          Inert(Micro_var(x));
+          Command(BIND);
+          Command(ADVANCE);
+        ]
 
-    (* Variable Aliasing *)
-    | Assign(x1, {body = Name(x2); _}) ->
-      let new_micro = Micro_instruction_stack.create
-          [
-            Inert(Micro_var(x1));
-            Command(LOOKUP);
-            Inert(Micro_var(x2));
-            Command(BIND);
-            Command(ADVANCE);
-          ]
-      in
-      {prog with micro = new_micro;}
+      (* Variable Aliasing *)
+      | Assign(x1, {body = Name(x2); _}) ->
+        [
+          Inert(Micro_var(x2));
+          Command(LOOKUP);
+          Inert(Micro_var(x1));
+          Command(BIND);
+          Command(ADVANCE);
+        ]
 
-    (* Raise statement *)
-    | Raise(x) ->
-      let new_micro = Micro_instruction_stack.create
-          [
-            Inert(Micro_var(x));
-            Command(LOOKUP);
-            Command(RAISE);
-          ]
-      in
-      {prog with micro = new_micro;}
+      (* Pass statement *)
+      | Pass ->
+        [
+          Command(ADVANCE);
+        ]
 
-    | _ -> raise @@ Not_yet_implemented "Execute stmt is incomplete"
+      (* Raise statement *)
+      | Raise(x) ->
+        [
+          Inert(Micro_var(x));
+          Command(LOOKUP);
+          Command(RAISE);
+        ]
+
+      | _ -> raise @@ Not_yet_implemented "Execute stmt is incomplete"
+  in
+  {prog with micro = Micro_instruction_stack.create new_micro_list}
 ;;
 
 let rec step_program (prog : program_state) : program_state =
@@ -186,7 +201,7 @@ let rec step_program (prog : program_state) : program_state =
     prog
   else
     let next_prog =
-      if Micro_instruction_stack.is_empty prog.micro
+      if (Micro_instruction_stack.is_empty prog.micro)
       then
         execute_stmt prog
       else

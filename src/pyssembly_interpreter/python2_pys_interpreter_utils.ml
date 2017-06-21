@@ -96,22 +96,7 @@ let get_parent_or_fail (child : memloc) (parents : Parents.t) : memloc =
   extract_option_or_fail parent "Failed to find parent scope"
 ;;
 
-let rec lookup
-    (eta : memloc)
-    (parents : Parents.t)
-    (heap : Heap.t)
-    (id: identifier)
-  : memloc option =
-  let bindings = retrieve_binding_or_fail heap eta in
-  let m = Bindings.get_memloc id bindings in
-  match m with
-  | Some _ -> m
-  | None ->
-    let parent = Parents.get_parent eta parents in
-    match parent with
-    | None -> None
-    | Some(p) -> lookup p parents heap id
-;;
+
 
 (* let get_obj_value (heap : Heap.t) (m : memloc) (attr : identifier)
   : value option =
