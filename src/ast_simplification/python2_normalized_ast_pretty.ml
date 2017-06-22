@@ -80,6 +80,7 @@ and pp_compound_expr indent fmt {uid=_;exception_target=_;multi=_;body} =
       (pp_list pp_id) lst
   | Literal (l) -> (pp_literal indent) fmt l
   | Name (id)   -> pp_id fmt id
+  | NoneExpr    -> fprintf fmt "None"
 
 and pp_id fmt id =
   if id = "None" || id = "True" || id = "False"
@@ -93,7 +94,6 @@ and pp_literal indent fmt = function
   | Str (s)      -> pp_str fmt s
   | Bool (b)     -> pp_print_bool fmt b
   | Builtin (bi) -> pp_builtin fmt bi
-  | NoneVal      -> fprintf fmt "None"
   | FunctionVal (args, body) -> pp_functionval indent fmt args body
 
 and pp_num fmt = function

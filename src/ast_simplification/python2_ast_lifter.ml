@@ -51,6 +51,8 @@ and lift_expr { uid = u; exception_target = ex; multi = m; body = old_body } =
       Abstract.Tuple (elts)
     | Concrete.Literal (l) ->
       Abstract.Literal(lift_literal l)
+    | Concrete.NoneExpr ->
+      Abstract.NoneExpr
   in
   { uid = u; exception_target = ex; multi = m; body = new_body }
 
@@ -66,8 +68,6 @@ and lift_literal l =
     Abstract.Builtin (b)
   | Concrete.FunctionVal (args, body) ->
     Abstract.FunctionVal (args, List.map lift_stmt body)
-  | Concrete.NoneVal ->
-    Abstract.NoneVal
 
 and lift_number n =
   match n with

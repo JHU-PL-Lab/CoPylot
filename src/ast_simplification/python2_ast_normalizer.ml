@@ -550,7 +550,7 @@ and normalize_expr
   | Simplified.NoneExpr (annot) ->
     gen_normalized_assignment ctx annot @@
     annotate_expr @@
-    Normalized.Literal(Normalized.NoneVal)
+    Normalized.NoneExpr
 
   | Simplified.Attribute (obj, attr, annot) ->
     let obj_bindings, obj_result = normalize_expr ctx in_loop exception_target obj in

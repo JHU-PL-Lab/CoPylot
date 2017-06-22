@@ -22,7 +22,6 @@ let literal_to_value (l : literal) (curr_m : memloc): value =
   | Normalized.Str (s)     -> Str(s)
   | Normalized.Bool (b)    -> Bool(b)
   | Normalized.Builtin (b) -> convert_builtin b
-  | Normalized.NoneVal     -> NoneVal
   | Normalized.FunctionVal (args, body)
     -> Function (User_func(curr_m, args, Body.create body))
 ;;

@@ -270,8 +270,8 @@ let execute_stmt (prog : program_state) : program_state =
           | _ -> failwith "Did not see assign on return from call!"
         in
         [
-          Inert(Micro_memloc(None_memloc));
           Command(POP);
+          Inert(Micro_memloc(None_memloc));
           Inert(Micro_var(x));
           Command(BIND);
           Command(ADVANCE);
@@ -279,7 +279,7 @@ let execute_stmt (prog : program_state) : program_state =
 
     | Some(stmt) ->
       match stmt.body with
-      (* Assignment from literal *)
+      (* Assignment from literal (also includes function values) *)
       | Assign(x, {body = Literal(l); _}) ->
         let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
         let lval = literal_to_value l curr_eta in
@@ -288,6 +288,15 @@ let execute_stmt (prog : program_state) : program_state =
           Command(STORE);
           Command(WRAP);
           Command(STORE);
+          Inert(Micro_var(x));
+          Command(BIND);
+          Command(ADVANCE);
+        ]
+
+      (* Assignment from None *)
+      | Assign(x, {body = NoneExpr; _}) ->
+        [
+          Inert(Micro_memloc(None_memloc));
           Inert(Micro_var(x));
           Command(BIND);
           Command(ADVANCE);

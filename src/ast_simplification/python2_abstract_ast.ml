@@ -28,6 +28,7 @@ and expr =
   | Tuple of identifier list (* elts *)
   | Literal of literal
   | Name of identifier (* id *)
+  | NoneExpr 
 [@@deriving eq, ord, show, to_yojson]
 
 and literal =
@@ -36,7 +37,6 @@ and literal =
   | Bool of bool
   | Builtin of builtin
   | FunctionVal of identifier list (* args *) * annotated_stmt list (* body *)
-  | NoneVal
 [@@deriving eq, ord, show, to_yojson]
 
 and sign = Pos | Neg | Zero

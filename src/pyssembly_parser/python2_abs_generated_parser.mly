@@ -131,7 +131,7 @@ expr:
   | LPAREN lst RPAREN { Tuple($2) }
   | literal { Literal($1) }
   | NAME { Name($1) }
-
+  | NONE { NoneExpr }
 
 literal:
   | NUM { Num($1) }
@@ -141,7 +141,6 @@ literal:
   | BI_BOOL { Builtin(Builtin_bool) }
   | BI_TYPE { Builtin(Builtin_type) }
   | funcval {$1}
-  | NONE { NoneVal }
 
 funcval:
   /*def (<params>){<stmt_list>}*/
