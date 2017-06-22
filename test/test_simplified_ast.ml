@@ -1086,7 +1086,7 @@ let binop_tests =
 (* Run the tests *)
 
 let tests =
-  "concrete_ast">:::
+  "Test_simplified_ast">:::
   [
     int_test;
     none_test;

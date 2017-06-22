@@ -102,7 +102,7 @@ let alias_test = gen_analysis_test_end "alias_test"
    ) *)
 
 let tests =
-  "analysis_ast">:::
+  "test_analysis_integration">:::
   [
     int_test;
     str_test;

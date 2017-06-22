@@ -319,10 +319,19 @@ and normalize_stmt_full
       | Some(u) -> [annotate_stmt @@ Normalized.Goto(u)]
     end
 
-  | Simplified.Expr (e, _) ->
-    let bindings, result = normalize_expr ctx in_loop exception_target e in
-    bindings @
-    [annotate_stmt @@ Normalized.NameStmt(result)]
+  | Simplified.Expr (e, annot) ->
+    let bindings, _ =
+      match e with
+      (* If this is just a name, we generate a useless assignment so that
+         we can fit it into an assignment statement format. For all other
+         exprs, normalize_expr will do this for us *)
+      | Simplified.Name (id, _) ->
+        gen_normalized_assignment ctx annot @@
+        annotate_expr @@ Normalized.Name(id)
+      | _ ->
+        normalize_expr ctx in_loop exception_target e
+    in
+    bindings
 
 (* Given a simplified expr, returns a list of statements, corresponding to
    the assignments necessary to compute it, and the name of the final

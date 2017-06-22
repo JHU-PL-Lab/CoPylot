@@ -196,7 +196,7 @@ let modl_test = gen_module_test "modl_test"
 (* Run the tests *)
 
 let tests =
-  "abstract_ast">:::
+  "test_intentional_failures">:::
   [
     modl_test
   ]

@@ -102,7 +102,6 @@ stmt:
   | PASS { Pass }
   | GOTO INT IFN NAME { GotoIfNot($4,$2) }
   | GOTO INT { Goto($2) }
-  | NAME { NameStmt($1) }
 
 assign:
   /*<name> = <expr>*/

@@ -33,8 +33,6 @@ and lift_stmt { uid = u; exception_target = ex; multi = m; body = old_body } =
       Abstract.Goto (dest)
     | Concrete.GotoIfNot (id, dest) ->
       Abstract.GotoIfNot (id, dest)
-    | Concrete.NameStmt (id) ->
-      Abstract.NameStmt (id)
   in
   { uid = u; exception_target = ex; multi = m; body = new_body }
 

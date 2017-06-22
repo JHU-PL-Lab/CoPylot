@@ -103,7 +103,6 @@ stmt:
   | PASS { Pass }
   | GOTO UID IFN NAME { GotoIfNot($4,$2) }
   | GOTO UID { Goto($2) }
-  | NAME { NameStmt($1) }
 
 assign:
   /*<name> = <expr>*/

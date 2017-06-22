@@ -561,7 +561,7 @@ let for_test = gen_module_test "for_test"
 ;;
 
 let tests =
-  "normalized_pp">:::
+  "test_normalized_pp">:::
   literal_tests @
   stmt_tests @
   operator_tests @

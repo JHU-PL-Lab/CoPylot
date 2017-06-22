@@ -184,7 +184,7 @@ let builtin_test = gen_module_test "builtin_test"
 ;;
 
 let tests =
-  "pys_parser">:::
+  "test_pys_parser">:::
   [
     int_test;
     assign_test;

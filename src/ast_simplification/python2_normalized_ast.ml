@@ -19,7 +19,6 @@ and stmt =
   | Pass
   | Goto of uid (* dest *)
   | GotoIfNot of identifier (* test *) * uid (* dest *) (* Jump iff test is falsey *)
-  | NameStmt of identifier
 [@@deriving eq, ord, show, to_yojson]
 
 and expr =

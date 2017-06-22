@@ -59,8 +59,6 @@ and pp_stmt indent fmt {uid=uid;exception_target=exc;multi=multi;body} =
       fprintf fmt "goto %a if not %a"
         pp_print_int dest
         pp_id test
-    | NameStmt (name) ->
-      pp_id fmt name
   end;
   fprintf fmt "%s" ";"
 

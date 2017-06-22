@@ -674,7 +674,7 @@ let binop_tests =
 (* Run the tests *)
 
 let tests =
-  "parser">:::
+  "test_parser">:::
   [
     int_test;
     none_test;

@@ -220,7 +220,7 @@ let skip_and_alias_test =
   )
 
 let tests =
-  "analysis_ast">:::
+  "test_analysis">:::
   [
     test_lex_cfg;
     test_ctrl_cfg;

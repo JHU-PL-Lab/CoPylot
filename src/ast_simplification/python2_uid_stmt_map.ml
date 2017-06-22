@@ -21,7 +21,6 @@ and collect_uids_stmt (tbl : annotated_stmt Uid_hashtbl.t) {uid=u;exception_targ
   | Pass
   | Goto (_)
   | GotoIfNot (_)
-  | NameStmt (_)
     ->
     Uid_hashtbl.add tbl u {uid=u;exception_target=except;multi=in_loop;body}; tbl
 

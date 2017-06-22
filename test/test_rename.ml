@@ -432,7 +432,7 @@ let nested_function_test = gen_module_test "nested_function_test"
      Expr (Name ("x", Python2_ast.Load, annot), annot)]
 
 let tests =
-  "rename_ast">:::
+  "test_rename">:::
   [
     simple_test;
     evil_test;
