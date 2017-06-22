@@ -45,6 +45,7 @@ type builtin_method =
 (* A location in memory. Corresponds to "m" in the grammar. *)
 type memloc =
   | Memloc of int
+  | None_memloc
   | Builtin_exn_memloc of builtin_exception
   | Builtin_fun_memloc of builtin_function
   | Builtin_method_memloc of builtin_method

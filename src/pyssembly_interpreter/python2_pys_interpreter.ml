@@ -275,9 +275,28 @@ let execute_stmt (prog : program_state) : program_state =
      executed. This should not be called if the current micro-instruction list
      is nonempty! *)
   let new_micro_list =
-    let curr_frame, _ = Program_stack.pop prog.stack in
+    let curr_frame, stack_body = Program_stack.pop prog.stack in
     match Stack_frame.active_stmt curr_frame with
-    | None -> raise @@ Not_yet_implemented "Can't pop stack frames yet" (* Pop a stack frame *)
+    | None ->
+      if Program_stack.is_empty stack_body then
+        (* End of program *)
+        [ Command(POP) ]
+      else
+        (* End of function: treat the same as "return None" *)
+        let caller = Program_stack.top stack_body in
+        let x =
+          match Stack_frame.active_stmt caller with
+          | Some({body = Assign(id, _); _}) -> id
+          | _ -> failwith "Did not see assign on return from call!"
+        in
+        [
+          Inert(Micro_memloc(None_memloc));
+          Command(POP);
+          Inert(Micro_var(x));
+          Command(BIND);
+          Command(ADVANCE);
+        ]
+
     | Some(stmt) ->
       match stmt.body with
       (* Assignment from literal *)
@@ -349,7 +368,24 @@ let execute_stmt (prog : program_state) : program_state =
         [
           Inert(Micro_var(x));
           Command(LOOKUP);
-          Command(GOTO(uid));
+          Command(GOTOIFNOT(uid));
+        ]
+
+      (* Return statement *)
+      | Return (x) ->
+        let caller = Program_stack.top stack_body in
+        let x2 =
+          match Stack_frame.active_stmt caller with
+          | Some({body = Assign(id, _); _}) -> id
+          | _ -> failwith "Did not see assign on return from call!"
+        in
+        [
+          Inert(Micro_var(x));
+          Command(LOOKUP);
+          Command(POP);
+          Inert(Micro_var(x2));
+          Command(BIND);
+          Command(ADVANCE);
         ]
 
       (* Pass statement *)
