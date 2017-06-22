@@ -50,10 +50,12 @@ let execute_micro_command (prog : program_state) : program_state =
     let m, popped_stack2 =
       pop_memloc_or_fail popped_stack1 "BIND command not given a memloc second"
     in
-    let bindings = retrieve_binding_or_fail prog.heap prog.eta in
+    let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
+    let bindings =
+      retrieve_binding_or_fail prog.heap curr_eta in
     let new_bindings = Bindings.update_binding x m bindings in
     let new_heap =
-      Heap.update_binding prog.eta (Bindings(new_bindings)) prog.heap
+      Heap.update_binding curr_eta (Bindings(new_bindings)) prog.heap
     in
     {
       prog with
@@ -92,7 +94,8 @@ let execute_micro_command (prog : program_state) : program_state =
         | None -> None
         | Some(p) -> lookup p id
     in
-    let lookup_result = lookup prog.eta target in
+    let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
+    let lookup_result = lookup curr_eta target in
     let new_micro =
       match lookup_result with
       | None -> (* Lookup failed, raise a NameError *)
@@ -136,8 +139,7 @@ let execute_micro_command (prog : program_state) : program_state =
      updates eta accordingly. *)
   | POP ->
     let _, stack_body = Program_stack.pop prog.stack in
-    let parent_eta = get_parent_or_fail prog.eta prog.parents in
-    { prog with stack = stack_body; eta = parent_eta }
+    { prog with stack = stack_body }
 
   (* LIST command: expects there to be size memlocs above it in the stack. Creates
      a list value containing those memlocs, with memlocs closer to the LIST command
@@ -165,10 +167,10 @@ let execute_micro_command (prog : program_state) : program_state =
     let new_stack = Program_stack.push stack_body next_frame in
     { prog with micro = rest_of_stack; stack = new_stack }
 
-    (* GOTOIFNOT command: Takes a memloc, and moves the instruction pointer on the
-       current stack frame to the specified label if the value at that memory
-       address is "false". If the value is "true" it does nothing. If the value
-       is any non-boolean, the program fails.*)
+  (* GOTOIFNOT command: Takes a memloc, and moves the instruction pointer on the
+     current stack frame to the specified label if the value at that memory
+     address is "false". If the value is "true" it does nothing. If the value
+     is any non-boolean, the program fails.*)
   | GOTOIFNOT uid ->
     let m, popped_stack =
       pop_memloc_or_fail rest_of_stack "GOTOIFNOT not given a memloc!"
@@ -198,7 +200,8 @@ let execute_stmt (prog : program_state) : program_state =
       match stmt.body with
       (* Assignment from literal *)
       | Assign(x, {body = Literal(l); _}) ->
-        let lval = literal_to_value l prog.eta in
+        let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
+        let lval = literal_to_value l curr_eta in
         [
           Inert(Micro_value(lval));
           Command(STORE);
@@ -305,11 +308,11 @@ let rec step_program (prog : program_state) : program_state =
 
 let interpret_program (prog : modl) =
   let Module(stmts, _) = prog in
-  let starting_frame = Stack_frame.create (Body.create stmts) in
+  let global_memloc = Memloc(0) in
+  let starting_frame = Stack_frame.create global_memloc (Body.create stmts) in
   let starting_stack = Program_stack.singleton starting_frame in
   (* TODO: Probably add default bindings for the builtins *)
   let starting_bindings = Bindings.empty in
-  let global_memloc = Memloc(0) in
   let starting_heap =
     Heap.singleton global_memloc @@ Bindings(starting_bindings) in
   let starting_parents = Parents.empty in
@@ -320,7 +323,6 @@ let interpret_program (prog : modl) =
       micro = starting_micro;
       stack = starting_stack;
       heap = starting_heap;
-      eta = global_memloc;
     }
   in
   step_program starting_program

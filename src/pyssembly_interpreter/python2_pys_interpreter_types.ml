@@ -180,18 +180,19 @@ module Stack_frame : sig
      next statement we execute *)
   val active_stmt: t -> annotated_stmt option
   val get_next_label: t -> label
+  val get_eta: t -> memloc
 
   (* Advance the frame to the specified label *)
   val advance: t -> label -> t
 
   (* Create a new stack frame from a statement body *)
-  val create: Body.t -> t
+  val create: memloc -> Body.t -> t
 
   (* Retrieve the method with the specified uid, if one exists *)
   val get_stmt: t -> uid -> annotated_stmt option
 end =
 struct
-  type t = { curr_label: label; body: Body.t }
+  type t = { eta: memloc; curr_label: label; body: Body.t }
   [@@deriving eq, ord, show]
   ;;
   ignore @@ show;; (* The fact that we need this is definitely a bug *)
@@ -213,19 +214,21 @@ struct
     | Some(l) -> l
   ;;
 
+  let get_eta (frame : t) = frame.eta;;
+
   let advance (frame : t) (new_label : label) : t =
     match new_label with
-    | End -> { curr_label = End; body = frame.body }
+    | End -> { frame with curr_label = End }
     | Uid(uid) ->
       match Body.get_stmt frame.body uid with
-      | None -> failwith "Tried to goto a uid not in the stack frame"
+      | None -> failwith "Tried to goto a uid not in the same stack frame"
       | Some _ ->
-        { curr_label = new_label; body = frame.body }
+        { frame with curr_label = new_label }
   ;;
 
-  let create (body : Body.t) : t =
+  let create (eta: memloc) (body : Body.t) : t =
     let start_uid = Body.get_first_uid body in
-    { curr_label = Uid(start_uid); body = body }
+    { eta = eta; curr_label = Uid(start_uid); body = body }
   ;;
 
   let get_stmt (frame: t) (uid: uid) : annotated_stmt option =
@@ -495,5 +498,4 @@ type program_state =
     micro: Micro_instruction_stack.t;
     stack: Program_stack.t;
     heap: Heap.t;
-    eta: memloc
   }
