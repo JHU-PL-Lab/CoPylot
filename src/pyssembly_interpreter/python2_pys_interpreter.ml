@@ -16,9 +16,7 @@ let execute_micro_command (prog : program_state) : program_state =
   (* STORE command; takes a value and binds it to a fresh memory location on
      the heap. Returns the fresh memory location. *)
   | STORE ->
-    let val_to_store, popped_stack =
-      pop_value_or_fail rest_of_stack "STORE command not given a value"
-    in
+    let val_to_store, popped_stack = pop_value_or_fail rest_of_stack "STORE" in
     let fresh_memloc = Heap.get_new_memloc prog.heap in
     let new_heap = Heap.update_binding fresh_memloc val_to_store prog.heap in
     let new_micro = MIS.insert popped_stack @@
@@ -35,21 +33,15 @@ let execute_micro_command (prog : program_state) : program_state =
      If the memloc points to an already-existing object, it simply returns that
      object. *)
   | WRAP ->
-    let m, popped_stack =
-      pop_memloc_or_fail rest_of_stack "WRAP command not given a memloc"
-    in
+    let m, popped_stack = pop_memloc_or_fail rest_of_stack "WRAP" in
     ignore m; ignore popped_stack;
     raise @@ Not_yet_implemented "GetObj (in WRAP command)"
 
   (* BIND command: takes an identifier and a memloc. Binds the memloc to the id,
      and returns nothing *)
   | BIND ->
-    let x, popped_stack1 =
-      pop_var_or_fail rest_of_stack "BIND command not given an identifier first"
-    in
-    let m, popped_stack2 =
-      pop_memloc_or_fail popped_stack1 "BIND command not given a memloc second"
-    in
+    let x, popped_stack1 = pop_var_or_fail rest_of_stack "BIND" in
+    let m, popped_stack2 = pop_memloc_or_fail popped_stack1 "BIND"in
     let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
     let bindings =
       retrieve_binding_or_fail prog.heap curr_eta in
@@ -77,9 +69,7 @@ let execute_micro_command (prog : program_state) : program_state =
      that variable in the closest scope in which it is bound. Raises a NameError
      if the variable is unbound. *)
   | LOOKUP ->
-    let target, popped_stack =
-      pop_var_or_fail rest_of_stack "LOOKUP command not given an identifier"
-    in
+    let target, popped_stack = pop_var_or_fail rest_of_stack "LOOKUP" in
     let rec lookup
         (eta : memloc)
         (id: identifier)
@@ -144,9 +134,7 @@ let execute_micro_command (prog : program_state) : program_state =
   (* PUSH command: Takes a memloc as an argument. Creates a new stack frame with
      its body and that memloc, and pushes that frame to the stack. *)
   | PUSH (body) ->
-    let eta, popped_micro =
-      pop_memloc_or_fail rest_of_stack "PUSH was not given a memloc!"
-    in
+    let eta, popped_micro = pop_memloc_or_fail rest_of_stack "PUSH" in
     let new_frame = Stack_frame.create eta body in
     let new_stack = Program_stack.push prog.stack new_frame in
     { prog with micro = popped_micro; stack = new_stack }
@@ -182,9 +170,7 @@ let execute_micro_command (prog : program_state) : program_state =
      address is "false". If the value is "true" it does nothing. If the value
      is any non-boolean, the program fails.*)
   | GOTOIFNOT uid ->
-    let m, popped_stack =
-      pop_memloc_or_fail rest_of_stack "GOTOIFNOT not given a memloc!"
-    in
+    let m, popped_stack = pop_memloc_or_fail rest_of_stack "GOTOIFNOT" in
     let value = Heap.get_value m prog.heap in
     let new_micro_list =
       match value with
@@ -201,9 +187,7 @@ let execute_micro_command (prog : program_state) : program_state =
      binds all the arguments appropriately. *)
   | CALL numargs ->
     let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack in
-    let func_loc, popped_micro2 =
-      pop_memloc_or_fail popped_micro "CALL not given a function memloc!"
-    in
+    let func_loc, popped_micro2 = pop_memloc_or_fail popped_micro "CALL" in
     let value = Heap.get_value func_loc prog.heap in
     let new_micro =
       match value with
@@ -246,12 +230,8 @@ let execute_micro_command (prog : program_state) : program_state =
   (* RETRIEVE command: Takes a memloc which points to an object, and an
      identifier. Retrieves the object field corresponding to that identifier. *)
   | RETRIEVE ->
-    let member, popped_stack =
-      pop_var_or_fail rest_of_stack "RETRIEVE not given an identifier!"
-    in
-    let obj_memloc, popped_stack2 =
-      pop_memloc_or_fail popped_stack "RETRIEVE not given a memloc!"
-    in
+    let member, popped_stack = pop_var_or_fail rest_of_stack "RETRIEVE" in
+    let obj_memloc, popped_stack2 = pop_memloc_or_fail popped_stack "RETRIEVE" in
     let lookup_attribute obj_loc member =
       let obj = retrieve_binding_or_fail prog.heap obj_loc in
       Bindings.get_memloc member obj
@@ -367,20 +347,17 @@ let execute_stmt (prog : program_state) : program_state =
           Command(RETRIEVE);
           Command(WRAP);
           Command(STORE);
-          Inert(Micro_var(x1));
+          Inert(Micro_var(x));
           Command(BIND);
         ]
 
       (* Function call *)
-      | Assign(x, {body = Call(x0, args); _}) ->
+      | Assign(_, {body = Call(x0, args); _}) ->
         let lookups = List.concat @@ List.map
             (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
             (x0::args)
         in
-        lookups @
-        [
-          Command(CALL(List.length args));
-        ]
+        lookups @ [ Command(CALL(List.length args)); ]
 
       (* Goto statement *)
       | Goto (uid) ->

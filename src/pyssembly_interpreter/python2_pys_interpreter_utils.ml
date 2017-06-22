@@ -30,32 +30,36 @@ let literal_to_value (l : literal) (curr_m : memloc): value =
    and construct the method dynamically based on that *)
 let pop_var_or_fail
     (micro: Micro_instruction_stack.t)
-    (failmsg: string)
+    (caller: string)
   : identifier * Micro_instruction_stack.t =
   let inert, popped_stack = Micro_instruction_stack.pop_first_inert micro in
   match inert with
   | Micro_var(v) -> v, popped_stack
-  | _ -> failwith failmsg
+  | Micro_memloc _ -> failwith @@ "Command " ^ caller ^ " expected a variable, but got a memloc!"
+  | Micro_value _ -> failwith @@ "Command " ^ caller ^ " expected a variable, but got a value!"
 ;;
 
 let pop_memloc_or_fail
     (micro: Micro_instruction_stack.t)
-    (failmsg: string)
+    (caller: string)
   : memloc * Micro_instruction_stack.t =
   let inert, popped_stack = Micro_instruction_stack.pop_first_inert micro in
   match inert with
+  | Micro_var _ -> failwith @@ "Command " ^ caller ^ " expected a memloc, but got a variable!"
   | Micro_memloc(m) -> m, popped_stack
-  | _ -> failwith failmsg
+  | Micro_value _ -> failwith @@ "Command " ^ caller ^ " expected a memloc, but got a value!"
+
 ;;
 
 let pop_value_or_fail
     (micro: Micro_instruction_stack.t)
-    (failmsg: string)
+    (caller: string)
   : value * Micro_instruction_stack.t =
   let inert, popped_stack = Micro_instruction_stack.pop_first_inert micro in
   match inert with
   | Micro_value(v) -> v, popped_stack
-  | _ -> failwith failmsg
+  | Micro_var _ -> failwith @@ "Command " ^ caller ^ " expected a value, but got a variable!"
+  | Micro_memloc _ -> failwith @@ "Command " ^ caller ^ " expected a value, but got a memloc!"
 ;;
 
 (* Pop n elements from mstack, all of which must be memlocs. Return a list of
