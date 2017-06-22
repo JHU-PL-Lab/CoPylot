@@ -357,6 +357,31 @@ let execute_stmt (prog : program_state) : program_state =
           Command(ADVANCE);
         ]
 
+      (* Object attribute *)
+      | Assign(x, {body = Attribute(x1, x2); _}) ->
+        [
+          Inert(Micro_var(x1));
+          Command(LOOKUP);
+          Inert(Micro_var(x2));
+          Command(LOOKUP);
+          Command(RETRIEVE);
+          Command(WRAP);
+          Command(STORE);
+          Inert(Micro_var(x1));
+          Command(BIND);
+        ]
+
+      (* Function call *)
+      | Assign(x, {body = Call(x0, args); _}) ->
+        let lookups = List.concat @@ List.map
+            (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
+            (x0::args)
+        in
+        lookups @
+        [
+          Command(CALL(List.length args));
+        ]
+
       (* Goto statement *)
       | Goto (uid) ->
         [
@@ -395,14 +420,17 @@ let execute_stmt (prog : program_state) : program_state =
         ]
 
       (* Raise statement *)
-      | Raise(x) ->
+      | Raise (x) ->
         [
           Inert(Micro_var(x));
           Command(LOOKUP);
           Command(RAISE);
         ]
 
-      | _ -> raise @@ Not_yet_implemented "Execute stmt is incomplete"
+      (* Catch statement *)
+      | Catch _ -> failwith "Encountered catch with no raised value!"
+
+      | Print _ ->  raise @@ Not_yet_implemented "Print statements NYI"
   in
   {prog with micro = Micro_instruction_stack.create new_micro_list}
 ;;

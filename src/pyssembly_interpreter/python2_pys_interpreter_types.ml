@@ -385,13 +385,13 @@ type micro_command =
   | STORE
   | WRAP
   | BIND
-  | ADVANCE
   | LOOKUP
-  | RAISE
-  | POP
-  | PUSH of Body.t
   | LIST of int (* size *)
   | TUPLE of int (* size *)
+  | ADVANCE
+  | POP
+  | PUSH of Body.t
+  | RAISE
   | GOTO of uid
   | GOTOIFNOT of uid
   | CALL of int (* numargs *)
