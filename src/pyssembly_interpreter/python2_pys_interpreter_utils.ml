@@ -58,6 +58,24 @@ let pop_value_or_fail
   | _ -> failwith failmsg
 ;;
 
+(* Pop n elements from mstack, all of which must be memlocs. Return a list of
+   the popped memlocs with the most recently popped ones first, and the mstack
+   with the elements popped off*)
+let rec pop_n_memlocs
+    (n : int)
+    (lst : memloc list)
+    (mstack : Micro_instruction_stack.t)
+  : memloc list * Micro_instruction_stack.t =
+  if n = 0
+  then
+    lst, mstack
+  else
+    let next_memloc, next_mstack =
+      pop_memloc_or_fail mstack "LIST/TUPLE/FUNCTION argument was not a memloc!"
+    in
+    pop_n_memlocs (n-1) (next_memloc::lst) next_mstack
+;;
+
 (* let make_literal_obj (m : memloc) (l : literal) : Bindings.t =
    let module Normalized = Python2_normalized_ast in
    match l with
@@ -95,24 +113,6 @@ let get_active_or_fail (frame : Stack_frame.t) : annotated_stmt =
 let get_parent_or_fail (child : memloc) (parents : Parents.t) : memloc =
   let parent = Parents.get_parent child parents in
   extract_option_or_fail parent "Failed to find parent scope"
-;;
-
-(* Pop n elements from mstack, all of which must be memlocs. Return a list of
-   the popped memlocs with the most recently popped ones first, and the mstack
-   with the elements popped off*)
-let rec pop_n_memlocs
-    (n : int)
-    (lst : memloc list)
-    (mstack : Micro_instruction_stack.t)
-  : memloc list * Micro_instruction_stack.t =
-  if n = 0
-  then
-    lst, mstack
-  else
-    let next_memloc, next_mstack =
-      pop_memloc_or_fail mstack "List argument was not a memloc!"
-    in
-    pop_n_memlocs (n-1) (next_memloc::lst) next_mstack
 ;;
 
 (* let get_obj_value (heap : Heap.t) (m : memloc) (attr : identifier)

@@ -388,11 +388,16 @@ type micro_command =
   | LOOKUP
   | RAISE
   | POP
+  | PUSH of Body.t
   | LIST of int (* size *)
   | TUPLE of int (* size *)
   | GOTO of uid
   | GOTOIFNOT of uid
+  | CALL of int (* numargs *)
+  | RETRIEVE
   | ALLOCNAMEERROR
+  | ALLOCTYPEERROR
+  | ALLOCATTRIBUTEERROR
   (* [@@deriving eq, ord, show] *)
 ;;
 

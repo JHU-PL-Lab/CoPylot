@@ -139,7 +139,17 @@ let execute_micro_command (prog : program_state) : program_state =
      updates eta accordingly. *)
   | POP ->
     let _, stack_body = Program_stack.pop prog.stack in
-    { prog with stack = stack_body }
+    { prog with micro = rest_of_stack; stack = stack_body }
+
+  (* PUSH command: Takes a memloc as an argument. Creates a new stack frame with
+     its body and that memloc, and pushes that frame to the stack. *)
+  | PUSH (body) ->
+    let eta, popped_micro =
+      pop_memloc_or_fail rest_of_stack "PUSH was not given a memloc!"
+    in
+    let new_frame = Stack_frame.create eta body in
+    let new_stack = Program_stack.push prog.stack new_frame in
+    { prog with micro = popped_micro; stack = new_stack }
 
   (* LIST command: expects there to be size memlocs above it in the stack. Creates
      a list value containing those memlocs, with memlocs closer to the LIST command
@@ -185,7 +195,79 @@ let execute_micro_command (prog : program_state) : program_state =
     let new_micro = MIS.insert popped_stack @@ MIS.create new_micro_list in
     { prog with micro = new_micro }
 
+  (* CALL command: Expects to see numargs+1 memory locations before it, where the
+     furthest one points to a function or method value to be called. Issues
+     instructions to push a stack frame corresponding to that function, then
+     binds all the arguments appropriately. *)
+  | CALL numargs ->
+    let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack in
+    let func_loc, popped_micro2 =
+      pop_memloc_or_fail popped_micro "CALL not given a function memloc!"
+    in
+    let value = Heap.get_value func_loc prog.heap in
+    let new_micro =
+      match value with
+      | Function (User_func(eta, args, body)) ->
+        if List.length args <> numargs then
+          MIS.create [ Command(ALLOCTYPEERROR); Command(RAISE); ]
+        else
+          let binds = List.concat @@
+            List.map2 (fun m x ->
+                [ Inert(Micro_memloc(m)); Inert(Micro_var(x)); Command(BIND); ]
+              )
+              arg_locs args
+          in
+          MIS.insert popped_micro2 @@ MIS.create
+            ([ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds)
+
+      | Function (Builtin_func _) ->
+        raise @@ Not_yet_implemented "Builtin function"
+
+      | Method (User_method(self, eta, args, body)) ->
+        if List.length args <> (numargs + 1) then
+          MIS.create [ Command(ALLOCTYPEERROR); Command(RAISE); ]
+        else
+          let binds = List.concat @@
+            List.map2 (fun m x ->
+                [ Inert(Micro_memloc(m)); Inert(Micro_var(x)); Command(BIND); ]
+              )
+              (self::arg_locs) args
+          in
+          MIS.insert popped_micro2 @@ MIS.create
+            ([ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds)
+
+      | Method (Builtin_method _) ->
+        raise @@ Not_yet_implemented "Builtin_method"
+
+      | _ -> failwith "Can only call a function or a method." (*TODO: Raise python error*)
+    in
+    { prog with micro = new_micro; }
+
+  (* RETRIEVE command: Takes a memloc which points to an object, and an
+     identifier. Retrieves the object field corresponding to that identifier. *)
+  | RETRIEVE ->
+    let member, popped_stack =
+      pop_var_or_fail rest_of_stack "RETRIEVE not given an identifier!"
+    in
+    let obj_memloc, popped_stack2 =
+      pop_memloc_or_fail popped_stack "RETRIEVE not given a memloc!"
+    in
+    let lookup_attribute obj_loc member =
+      let obj = retrieve_binding_or_fail prog.heap obj_loc in
+      Bindings.get_memloc member obj
+    in
+    let attr = lookup_attribute obj_memloc member in
+    let new_micro =
+      match attr with
+      | None -> MIS.create [ Command(ALLOCATTRIBUTEERROR); Command (RAISE); ]
+      | Some(m) -> MIS.insert popped_stack2 @@
+        MIS.create [ Inert(Micro_memloc(m)); ]
+    in
+    { prog with micro = new_micro; }
+
   | ALLOCNAMEERROR -> raise @@ Not_yet_implemented "ALLOCNAMEERROR"
+  | ALLOCTYPEERROR -> raise @@ Not_yet_implemented "ALLOCTYPEERROR"
+  | ALLOCATTRIBUTEERROR -> raise @@ Not_yet_implemented "ALLOCATTRIBUTEERROR"
 ;;
 
 let execute_stmt (prog : program_state) : program_state =
