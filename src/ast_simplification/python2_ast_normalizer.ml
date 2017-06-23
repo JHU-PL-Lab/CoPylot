@@ -62,6 +62,9 @@ let normalize_and_call_bool ctx annot normalizer annotator test =
   let test_bool_binding, test_bool_name =
     gen_normalized_assignment ctx annot @@
     annotator @@
+    (* We don't need to get the __call__ method because here we can
+       guarantee that the thing bound in builtin_bool_name is already a
+       function *)
     Normalized.Call(builtin_bool_name, [test_name])
   in
   test_bindings @ builtin_bool_binding @ test_bool_binding,
@@ -270,7 +273,7 @@ and normalize_stmt_full
                 Simplified.Builtin(Builtin_type, annot),
                 [Simplified.Name(exception_name, annot)],
                 annot),
-              [Simplified.Is],
+              [Simplified.Eq], (* TODO: This should be Is, not Eq *)
               [exp],
               annot)
         in
@@ -488,14 +491,15 @@ and normalize_expr_full
           normalize_expr (List.hd comparators) in
         let cmp_func_bindings, cmp_func_result =
           normalize_expr @@
-          Simplified.Attribute(Simplified.Name(left_result,annot),
+          Simplified.Attribute(Simplified.Name(left_result, annot),
                                normalize_cmpop hd,
                                annot)
         in
         let cmp_bindings, cmp_result =
-          gen_normalized_assignment ctx annot @@
-          annotate_expr @@
-          Normalized.Call(cmp_func_result, [right_result])
+          normalize_expr @@
+          Simplified.Call(Simplified.Name(cmp_func_result, annot),
+                          [Simplified.Name(right_result, annot)],
+                          annot)
         in
         let all_bindings = left_bindings @
                            right_bindings @
@@ -522,6 +526,7 @@ and normalize_expr_full
     end
 
   | Simplified.Call (func, args, annot) ->
+    (* TODO: get the __call__  attribute as many times as appropriate first *)
     let func_bindings, func_name = normalize_expr func in
     let arg_bindings, arg_names = normalize_list normalize_expr args in
     let assignment, name = gen_normalized_assignment ctx annot @@
