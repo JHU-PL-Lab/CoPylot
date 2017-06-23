@@ -27,6 +27,8 @@ and 'a expr =
   | Compare of 'a expr (* left *) * cmpop list (* ops *) * 'a expr list (* comparators *) * 'a
   | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a
   | Attribute of 'a expr (* object *) * identifier (* attr *) * 'a
+  | SimpleAttribute of 'a expr (* object *) * identifier (* attr *) * 'a (* Double-dot operator *)
+  | ImmediateAttribute of 'a expr (* object *) * identifier (* attr *) * 'a (* Triple-dot operator *)
   | List of 'a expr list (* elts *)  * 'a
   | Tuple of 'a expr list (* elts *)  * 'a
   | Num of number (* n *) * 'a
@@ -41,7 +43,7 @@ and 'a expr =
 and boolop = And | Or
 [@@deriving eq, ord, show]
 
-and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn
+and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | In | NotIn | Is (* TODO Fully implement Is, IsNot *)
 [@@deriving eq, ord, show]
 
 and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * identifier option (* name *) * 'a stmt list (* body *) * 'a
@@ -67,6 +69,8 @@ let extract_expr_annot = function
   | Compare(_,_,_,a)
   | Call(_,_,a)
   | Attribute(_,_,a)
+  | SimpleAttribute(_,_,a)
+  | ImmediateAttribute(_,_,a)
   | List(_,a)
   | Tuple(_,a)
   | Num (_,a)

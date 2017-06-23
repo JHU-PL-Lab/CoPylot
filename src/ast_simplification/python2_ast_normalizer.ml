@@ -111,11 +111,10 @@ and normalize_stmt_full
     exception_target
     (s : 'a Simplified.stmt)
   : Normalized.annotated_stmt list =
-  let in_loop = begin
-    match loop_start_uid with
-    | None -> false
-    | Some _ -> true
-  end in
+  let normalize_expr =
+    normalize_expr_full ctx loop_start_uid loop_end_uid exception_target
+  in
+  let in_loop = (loop_start_uid <> None) in
   (* We need some additional arguments when we're inside a loop,
      so that Break and Continue know what to do. These are only neded in that
      special case, though, so it's convenient to hide them *)
@@ -129,13 +128,13 @@ and normalize_stmt_full
 
   match s with
   | Simplified.Return (value, _) ->
-    let bindings, result = normalize_expr ctx in_loop exception_target value in
+    let bindings, result = normalize_expr value in
     bindings @
     [annotate_stmt @@ Normalized.Return(result)]
 
 
   | Simplified.Assign (target, value, _) ->
-    let value_bindings, value_result = normalize_expr ctx in_loop exception_target value in
+    let value_bindings, value_result = normalize_expr value in
     let assign = annotate_stmt @@
       Normalized.Assign(
         target,
@@ -145,8 +144,8 @@ and normalize_stmt_full
     value_bindings @ [assign]
 
   | Simplified.Print (dest, values, nl, _) ->
-    let dest_bindings, dest_result = normalize_expr_option ctx in_loop exception_target dest in
-    let value_bindings, value_results = normalize_expr_list ctx in_loop exception_target values in
+    let dest_bindings, dest_result = normalize_expr_option normalize_expr dest in
+    let value_bindings, value_results = normalize_list normalize_expr values in
     let bindings = dest_bindings @ value_bindings in
     let print = annotate_stmt @@
       Normalized.Print(dest_result,
@@ -163,17 +162,18 @@ and normalize_stmt_full
     let annotate_expr e : Normalized.annotated_expr =
       create_annotation_from_stmt ctx exception_target true s e in
 
-    let test_bindings, test_name =
-      normalize_and_call_bool ctx annot
-        (normalize_expr ctx true exception_target)
-        annotate_expr
-        test
-    in
-
     let start_stmt = annotate_stmt @@ Normalized.Pass in
     let start_uid = start_stmt.uid in (* Start label *)
     let end_stmt = annotate_stmt @@ Normalized.Pass in
     let end_uid = end_stmt.uid in (* End label *)
+
+    let test_bindings, test_name =
+      normalize_and_call_bool ctx annot
+        (normalize_expr_full ctx (Some start_uid) (Some end_uid) exception_target)
+        annotate_expr
+        test
+    in
+
     let normalized_body =
       (map_and_concat
          (normalize_stmt_full ctx
@@ -208,7 +208,7 @@ and normalize_stmt_full
   | Simplified.If (test, body, orelse, annot) ->
     let test_bindings, test_name =
       normalize_and_call_bool ctx annot
-        (normalize_expr ctx in_loop exception_target)
+        normalize_expr
         annotate_expr
         test
     in
@@ -236,7 +236,7 @@ and normalize_stmt_full
     [end_label]
 
   | Simplified.Raise (value, _) ->
-    let value_binding, value_result = normalize_expr ctx in_loop exception_target value in
+    let value_binding, value_result = normalize_expr value in
     value_binding @
     [annotate_stmt @@ Normalized.Raise(value_result)]
 
@@ -266,7 +266,7 @@ and normalize_stmt_full
                 Simplified.Builtin(Builtin_type, annot),
                 [Simplified.Name(exception_name, annot)],
                 annot),
-              [Simplified.Eq],
+              [Simplified.Is],
               [exp],
               annot)
         in
@@ -329,19 +329,25 @@ and normalize_stmt_full
         gen_normalized_assignment ctx annot @@
         annotate_expr @@ Normalized.Name(id)
       | _ ->
-        normalize_expr ctx in_loop exception_target e
+        normalize_expr e
     in
     bindings
 
+(* FIXME: Every instance of Normalized.Attribute needs to be replaced *)
 (* Given a simplified expr, returns a list of statements, corresponding to
    the assignments necessary to compute it, and the name of the final
    variable that was bound *)
-and normalize_expr
+and normalize_expr_full
     ctx
-    (in_loop : bool)
+    loop_start_uid
+    loop_end_uid
     exception_target
     (e : 'a Simplified.expr)
   : Normalized.annotated_stmt list * identifier =
+  let normalize_expr =
+    normalize_expr_full ctx loop_start_uid loop_end_uid exception_target
+  in
+  let in_loop = loop_start_uid <> None in
   let annotate_stmt ex : Normalized.annotated_stmt =
     create_annotation_from_expr ctx exception_target in_loop e ex in
   let annotate_expr ex : Normalized.annotated_expr =
@@ -365,10 +371,9 @@ and normalize_expr
     begin
       match operands with
       | [] -> failwith "No arguments to BoolOp"
-      | hd::[] -> normalize_expr ctx in_loop exception_target hd
+      | hd::[] -> normalize_expr hd
       | hd::tl ->
-        let test_bindings, test_result =
-          (normalize_expr ctx in_loop exception_target hd) in
+        let test_bindings, test_result = (normalize_expr hd) in
 
         let if_exp =
           begin
@@ -388,7 +393,7 @@ and normalize_expr
           end
         in
         let bindings, result =
-          normalize_expr ctx in_loop exception_target if_exp
+          normalize_expr if_exp
         in
         test_bindings @ bindings, result
 
@@ -418,18 +423,18 @@ and normalize_expr
     let tmp_name = gen_unique_name annot in
     let test_bindings, test_name =
       normalize_and_call_bool ctx annot
-        (normalize_expr ctx in_loop exception_target)
+        normalize_expr
         annotate_expr
         test
     in
-    let body_bindings, body_result = normalize_expr ctx in_loop exception_target body in
+    let body_bindings, body_result = normalize_expr body in
     let body_bindings_full =
       body_bindings @ [
         annotate_stmt @@
         Normalized.Assign(tmp_name,
                           annotate_expr @@ Normalized.Name(body_result))
       ] in
-    let orelse_bindings, orelse_result = normalize_expr ctx in_loop exception_target orelse in
+    let orelse_bindings, orelse_result = normalize_expr orelse in
     let orelse_bindings_full =
       orelse_bindings @ [
         annotate_stmt @@
@@ -470,13 +475,13 @@ and normalize_expr
        tmp2 = y
        tmp3 = tmp1.__lt__(y)
        if tmp3 then (tmp2 < z < ...) else tmp3*)
-    let left_bindings, left_result = normalize_expr ctx in_loop exception_target left in
+    let left_bindings, left_result = normalize_expr left in
     begin
       match ops with
       | [] -> failwith "No operation given to comparison"
       | hd::tl ->
         let right_bindings, right_result =
-          normalize_expr ctx in_loop exception_target (List.hd comparators) in
+          normalize_expr (List.hd comparators) in
         let cmp_func_bindings, cmp_func_result =
           gen_normalized_assignment ctx annot @@
           annotate_expr @@
@@ -506,14 +511,14 @@ and normalize_expr
                 Simplified.Name(cmp_result, annot),
                 annot)
             in
-            let bindings, result = normalize_expr ctx in_loop exception_target if_exp in
+            let bindings, result = normalize_expr if_exp in
             all_bindings @ bindings, result
         end
     end
 
   | Simplified.Call (func, args, annot) ->
-    let func_bindings, func_name = normalize_expr ctx in_loop exception_target func in
-    let arg_bindings, arg_names = normalize_expr_list ctx in_loop exception_target args in
+    let func_bindings, func_name = normalize_expr func in
+    let arg_bindings, arg_names = normalize_list normalize_expr args in
     let assignment, name = gen_normalized_assignment ctx annot @@
       annotate_expr @@
       Normalized.Call(func_name, arg_names) in
@@ -553,7 +558,78 @@ and normalize_expr
     Normalized.NoneExpr
 
   | Simplified.Attribute (obj, attr, annot) ->
-    let obj_bindings, obj_result = normalize_expr ctx in_loop exception_target obj in
+    (* Attribute lookups follow a rather complicated process. We first look for
+       a __getattribute__ method (new-style classes only), which is called first.
+       If it raises an AttributeError, we call __getattr__ instead.
+       We retrieve __getattribute__ and __getattr__ in a special way, which we
+       represent here using the SimpleAttribute constructor. *)
+    let obj_bindings, obj_result = normalize_expr obj in
+    let obj_name = Simplified.Name(obj_result, annot) in
+    let func_name = gen_unique_name annot in
+    let getattr_try =
+      Simplified.TryExcept(
+        [
+          Simplified.Assign(func_name,
+                            Simplified.SimpleAttribute(obj_name, "__getattr__", annot),
+                            annot);
+        ],
+        [
+          Simplified.ExceptHandler(
+            Some(Simplified.Builtin(Builtin_AttributeError, annot)),
+            None,
+            [ Simplified.Raise(Simplified.Str(StringLiteral("Object has no member " ^ attr), annot), annot) ],
+            annot);
+        ],
+        annot)
+    in
+    let result_name = gen_unique_name annot in
+    let overall_try =
+      Simplified.TryExcept(
+        [
+          Simplified.Assign(result_name,
+                            Simplified.SimpleAttribute(obj_name, attr, annot),
+                            annot);
+        ],
+        [
+          Simplified.ExceptHandler(
+            Some(Simplified.Builtin(Builtin_AttributeError, annot)),
+            None,
+            [
+              getattr_try;
+              Simplified.Assign(result_name,
+                                Simplified.Call(Simplified.Name(func_name, annot),
+                                                [],
+                                                annot),
+                                annot);
+            ],
+            annot);
+        ],
+        annot)
+    in
+    let normalized_try =
+      normalize_stmt_full ctx loop_start_uid loop_end_uid exception_target overall_try
+    in
+    obj_bindings @ normalized_try, result_name
+
+  | Simplified.SimpleAttribute (obj, attr, annot)
+  (* TODO Once classes are implemented, we need to look for the attribute
+     in the instance, then the class and all of its parents. This should look
+     something like
+     tmp = obj
+     while obj != None:
+       try:
+         result = tmp.member # This . is the ImmediateAttribute below
+         break
+       except AttributeError:
+         obj = getparent(obj)
+     if (obj == None):
+       raise AttributeError
+
+     And we then return result. For the moment, we only look at the instance,
+     and so fall through to the next case. *)
+
+  | Simplified.ImmediateAttribute (obj, attr, annot) ->
+    let obj_bindings, obj_result = normalize_expr obj in
     let assignment, result = gen_normalized_assignment ctx annot @@
       annotate_expr @@
       Normalized.Attribute(obj_result, attr)
@@ -564,29 +640,23 @@ and normalize_expr
     ([], id)
 
   | Simplified.List (elts, annot) ->
-    let bindings, results = normalize_expr_list ctx in_loop exception_target elts in
+    let bindings, results = normalize_list normalize_expr elts in
     let assignment, name =
       gen_normalized_assignment ctx annot @@
       annotate_expr @@ Normalized.List(results) in
     bindings @ assignment, name
 
   | Simplified.Tuple (elts, annot) ->
-    let bindings, results = normalize_expr_list ctx in_loop exception_target elts in
+    let bindings, results = normalize_list normalize_expr elts in
     let assignment, name =
       gen_normalized_assignment ctx annot @@
       annotate_expr @@ Normalized.Tuple(results) in
     bindings @ assignment, name
 
-(* Given a list of exprs, returns a list containing all of their
-   bindings and a list containing all of the relevant variable names *)
-and normalize_expr_list ctx in_loop exception_target (lst : 'a Simplified.expr list) =
-  normalize_list (normalize_expr ctx in_loop exception_target) lst
-
-and normalize_expr_option ctx in_loop exception_target
+and normalize_expr_option func
     (o : 'a Simplified.expr option)
   : Normalized.annotated_stmt list * identifier option =
-  let normalized_opt =
-    normalize_option (normalize_expr ctx in_loop exception_target) o in
+  let normalized_opt = normalize_option func o in
   match normalized_opt with
   | None -> [], None
   | Some(bindings, result) -> bindings, Some(result)
@@ -601,3 +671,4 @@ and normalize_cmpop o =
   | Simplified.GtE -> "__ge__"
   | Simplified.In -> "__contains__"
   | Simplified.NotIn -> failwith "the NotIn operator is not supported" (* TODO *)
+  | Simplified.Is -> failwith "the Is operator is not supported" (* TODO *)
