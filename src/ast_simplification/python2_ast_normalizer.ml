@@ -337,7 +337,6 @@ and normalize_stmt_full
     in
     bindings
 
-(* FIXME: Every instance of Normalized.Attribute needs to be replaced *)
 (* Given a simplified expr, returns a list of statements, corresponding to
    the assignments necessary to compute it, and the name of the final
    variable that was bound *)
@@ -480,6 +479,7 @@ and normalize_expr_full
        tmp3 = tmp1.__lt__(y)
        if tmp3 then (tmp2 < z < ...) else tmp3*)
     let left_bindings, left_result = normalize_expr left in
+
     begin
       match ops with
       | [] -> failwith "No operation given to comparison"
@@ -487,9 +487,10 @@ and normalize_expr_full
         let right_bindings, right_result =
           normalize_expr (List.hd comparators) in
         let cmp_func_bindings, cmp_func_result =
-          gen_normalized_assignment ctx annot @@
-          annotate_expr @@
-          Normalized.Attribute(left_result, normalize_cmpop hd)
+          normalize_expr @@
+          Simplified.Attribute(Simplified.Name(left_result,annot),
+                               normalize_cmpop hd,
+                               annot)
         in
         let cmp_bindings, cmp_result =
           gen_normalized_assignment ctx annot @@
@@ -566,14 +567,31 @@ and normalize_expr_full
        a __getattribute__ method (new-style classes only), which is called first.
        If it raises an AttributeError, we call __getattr__ instead.
        We retrieve __getattribute__ and __getattr__ in a special way, which we
-       represent here using the SimpleAttribute constructor. *)
+       represent here using the SimpleAttribute constructor.
+
+       The resulting code for "obj.member" looks something like this:
+       try:
+         tmp1 = obj.__getattribute__
+         result = tmp1("member")
+       except AttributeError as e:
+         try:
+           tmp2 = obj.__getattr__
+         except AttributeError:
+           raise e
+         result = tmp2("member")
+
+       We then return result. The '.' operator here is the SimpleAttribute
+       described below.
+    *)
     let obj_bindings, obj_result = normalize_expr obj in
     let obj_name = Simplified.Name(obj_result, annot) in
-    let func_name = gen_unique_name annot in
+    let getattribute_name = gen_unique_name annot in
+    let getattr_name = gen_unique_name annot in
+    let exn_name = gen_unique_name annot in
     let getattr_try =
       Simplified.TryExcept(
         [
-          Simplified.Assign(func_name,
+          Simplified.Assign(getattr_name,
                             Simplified.SimpleAttribute(obj_name, "__getattr__", annot),
                             annot);
         ],
@@ -581,7 +599,7 @@ and normalize_expr_full
           Simplified.ExceptHandler(
             Some(Simplified.Builtin(Builtin_AttributeError, annot)),
             None,
-            [ Simplified.Raise(Simplified.Str(StringLiteral("Object has no member " ^ attr), annot), annot) ],
+            [ Simplified.Raise(Simplified.Name(exn_name, annot), annot) ],
             annot);
         ],
         annot)
@@ -590,20 +608,29 @@ and normalize_expr_full
     let overall_try =
       Simplified.TryExcept(
         [
-          Simplified.Assign(result_name,
+          (* Simplified.Assign(result_name,
                             Simplified.SimpleAttribute(obj_name, attr, annot),
+                            annot); *)
+          Simplified.Assign(getattribute_name,
+                            Simplified.SimpleAttribute(obj_name, "__getattribute__", annot),
+                            annot);
+          Simplified.Assign(result_name,
+                            Simplified.Call(Simplified.Name(getattribute_name, annot),
+                                            [Simplified.Name(attr, annot);],
+                                            annot),
                             annot);
         ],
         [
           Simplified.ExceptHandler(
             Some(Simplified.Builtin(Builtin_AttributeError, annot)),
-            None,
+            Some(exn_name),
             [
               getattr_try;
               Simplified.Assign(result_name,
-                                Simplified.Call(Simplified.Name(func_name, annot),
-                                                [],
-                                                annot),
+                                Simplified.Call(
+                                  Simplified.Name(getattr_name, annot),
+                                  [],
+                                  annot),
                                 annot);
             ],
             annot);
@@ -637,6 +664,7 @@ and normalize_expr_full
     let assignment, result = gen_normalized_assignment ctx annot @@
       annotate_expr @@
       Normalized.Attribute(obj_result, attr)
+      (* NOTE: This is the only place the Normalized.Attribute constructor should show up. *)
     in
     obj_bindings @ assignment, result
 
