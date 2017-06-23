@@ -3,6 +3,10 @@ module Concrete = Python2_concrete_ast
 module Simplified = Python2_simplified_ast
 exception Invalid_assignment of string
 
+(* FIXME: We need to create a type for builtin methods (in addition to builtin
+   functions such as type, bool, slice) such as __getattr__, and use that
+   instead of just a string whenever we invoke them in this file *)
+
 let name_counter = ref 0;;
 let use_shortened_names = ref false;;
 
