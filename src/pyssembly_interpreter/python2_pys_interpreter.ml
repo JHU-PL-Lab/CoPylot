@@ -368,6 +368,9 @@ let execute_stmt (prog : program_state) : program_state =
         in
         lookups @ [ Command(CALL(List.length args)); ]
 
+      | Assign(_, {body = Binop _; _}) (*(left op right)*) ->
+        raise @@ Not_yet_implemented "Binops NYI"
+
       (* Goto statement *)
       | Goto (uid) ->
         [

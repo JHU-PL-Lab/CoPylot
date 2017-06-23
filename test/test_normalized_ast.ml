@@ -806,13 +806,13 @@ let expected_failures =
 
 let tests =
   "test_normalized_ast">:::
-  literal_tests @
+  (* literal_tests @
   stmt_tests @
   operator_tests @
-  assignment_tests @
+  assignment_tests @ *)
   [
     attribute_test;
-    call_test;
+    (* call_test;
     call_args_test;
     list_test;
     tuple_test;
@@ -826,6 +826,6 @@ let tests =
     while_test;
     break_test;
     continue_test;
-    for_test;
+    for_test; *)
   ] @
   expected_failures

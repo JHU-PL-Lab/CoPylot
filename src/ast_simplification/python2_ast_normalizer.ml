@@ -273,7 +273,7 @@ and normalize_stmt_full
                 Simplified.Builtin(Builtin_type, annot),
                 [Simplified.Name(exception_name, annot)],
                 annot),
-              [Simplified.Eq], (* TODO: This should be Is, not Eq *)
+              [Simplified.Is],
               [exp],
               annot)
         in
@@ -479,33 +479,86 @@ and normalize_expr_full
 
        tmp1 = x
        tmp2 = y
-       tmp3 = tmp1.__lt__(y)
-       if tmp3 then (tmp2 < z < ...) else tmp3*)
-    let left_bindings, left_result = normalize_expr left in
+       tmp3 = tmp1.__lt__
+       tmp4 = tmp3(tmp2)
+       if tmp4 then (tmp2 < z < ...) else tmp4*)
 
+    (* Helper function that takes a variable name, then generates normalized
+       code that inverts it *)
+    let invert id =
+      let inverted_name = gen_unique_name annot in
+      let inverter =
+        normalize_stmt_full ctx loop_start_uid loop_end_uid exception_target @@
+        Simplified.Assign(inverted_name,
+                          Simplified.IfExp(Simplified.Name(id, annot),
+                                           Simplified.Bool(false, annot),
+                                           Simplified.Bool(true, annot),
+                                           annot),
+                          annot)
+      in
+      inverter, inverted_name
+    in
+
+    let left_bindings, left_result = normalize_expr left in
     begin
       match ops with
       | [] -> failwith "No operation given to comparison"
       | hd::tl ->
         let right_bindings, right_result =
           normalize_expr (List.hd comparators) in
-        let cmp_func_bindings, cmp_func_result =
-          normalize_expr @@
-          Simplified.Attribute(Simplified.Name(left_result, annot),
-                               normalize_cmpop hd,
-                               annot)
-        in
         let cmp_bindings, cmp_result =
-          normalize_expr @@
-          Simplified.Call(Simplified.Name(cmp_func_result, annot),
-                          [Simplified.Name(right_result, annot)],
-                          annot)
+          match hd with
+          | Simplified.Is ->
+            gen_normalized_assignment ctx annot @@
+            annotate_expr @@
+            Normalized.Binop(left_result, Normalized.Binop_is, right_result)
+
+          | Simplified.IsNot ->
+            let cmp_bindings, cmp_result =
+              gen_normalized_assignment ctx annot @@
+              annotate_expr @@
+              Normalized.Binop(left_result, Normalized.Binop_is, right_result)
+            in
+            let inv_bindings, inv_result = invert cmp_result in
+            cmp_bindings @ inv_bindings,
+            inv_result
+
+          | Simplified.NotIn ->
+            let cmp_func_bindings, cmp_func_result =
+              normalize_expr @@
+              Simplified.Attribute(Simplified.Name(left_result, annot),
+                                   normalize_cmpop Simplified.In,
+                                   annot)
+            in
+            let cmp_bindings, cmp_result =
+              normalize_expr @@
+              Simplified.Call(Simplified.Name(cmp_func_result, annot),
+                              [Simplified.Name(right_result, annot)],
+                              annot)
+            in
+            let inv_bindings, inv_result = invert cmp_result in
+            cmp_func_bindings @ cmp_bindings @ inv_bindings,
+            inv_result
+
+          | _ ->
+            let cmp_func_bindings, cmp_func_result =
+              normalize_expr @@
+              Simplified.Attribute(Simplified.Name(left_result, annot),
+                                   normalize_cmpop hd,
+                                   annot)
+            in
+            let cmp_bindings, cmp_result =
+              normalize_expr @@
+              Simplified.Call(Simplified.Name(cmp_func_result, annot),
+                              [Simplified.Name(right_result, annot)],
+                              annot)
+            in
+            let all_bindings = cmp_func_bindings @
+                               cmp_bindings
+            in
+            all_bindings, cmp_result
         in
-        let all_bindings = left_bindings @
-                           right_bindings @
-                           cmp_func_bindings @
-                           cmp_bindings
-        in
+        let all_bindings = left_bindings @ right_bindings @ cmp_bindings in
         begin
           match tl with
           | [] -> all_bindings, cmp_result
@@ -621,7 +674,7 @@ and normalize_expr_full
                             annot);
           Simplified.Assign(result_name,
                             Simplified.Call(Simplified.Name(getattribute_name, annot),
-                                            [Simplified.Name(attr, annot);],
+                                            [Simplified.Str(StringLiteral(attr), annot)],
                                             annot),
                             annot);
         ],
@@ -634,7 +687,7 @@ and normalize_expr_full
               Simplified.Assign(result_name,
                                 Simplified.Call(
                                   Simplified.Name(getattr_name, annot),
-                                  [],
+                                  [Simplified.Str(StringLiteral(attr), annot)],
                                   annot),
                                 annot);
             ],
@@ -707,5 +760,4 @@ and normalize_cmpop o =
   | Simplified.Gt -> "__gt__"
   | Simplified.GtE -> "__ge__"
   | Simplified.In -> "__contains__"
-  | Simplified.NotIn -> failwith "the NotIn operator is not supported" (* TODO *)
-  | Simplified.Is -> failwith "the Is operator is not supported" (* TODO *)
+  | _ -> failwith "Tried to normalize an invalid cmpop!"

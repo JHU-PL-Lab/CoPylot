@@ -22,13 +22,14 @@ and stmt =
 [@@deriving eq, ord, show, to_yojson]
 
 and expr =
-    | Call of identifier (* func *) * identifier list (* args *)
+    | Binop of identifier (* left *) * binop (* op *) * identifier (* right *)
+  | Call of identifier (* func *) * identifier list (* args *)
   | Attribute of identifier (* object *) * identifier (* attr *)
   | List of identifier list (* elts *)
   | Tuple of identifier list (* elts *)
   | Literal of literal
   | Name of identifier (* id *)
-  | NoneExpr 
+  | NoneExpr
 [@@deriving eq, ord, show, to_yojson]
 
 and literal =
@@ -50,4 +51,8 @@ and number =
 and str =
     | StringAbstract
   | StringLiteral of string
+[@@deriving eq, ord, show, to_yojson]
+
+and binop =
+    | Binop_is
 [@@deriving eq, ord, show, to_yojson]

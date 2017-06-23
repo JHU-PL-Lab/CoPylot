@@ -133,7 +133,7 @@ Library "pyssembly_interpreter"
 Executable "test"
   Path: test/
   MainIs: test.ml
-  CompiledObject: native
+  CompiledObject: byte
   BuildDepends:
     batteries,
     jhupllib,

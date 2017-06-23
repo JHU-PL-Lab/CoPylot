@@ -39,6 +39,8 @@ and lift_stmt { uid = u; exception_target = ex; multi = m; body = old_body } =
 and lift_expr { uid = u; exception_target = ex; multi = m; body = old_body } =
   let new_body =
     match old_body with
+    | Concrete.Binop (left, op, right) ->
+      Abstract.Binop (left, lift_binop op, right)
     | Concrete.Call (func, args) ->
       Abstract.Call (func, args)
     | Concrete.Attribute (obj, attr) ->
@@ -85,3 +87,7 @@ and lift_number n =
       Abstract.Float(Abstract.Neg)
     else
       Abstract.Float(Abstract.Zero)
+
+and lift_binop b =
+  match b with
+  | Concrete.Binop_is -> Abstract.Binop_is

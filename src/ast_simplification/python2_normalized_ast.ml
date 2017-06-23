@@ -22,7 +22,8 @@ and stmt =
 [@@deriving eq, ord, show, to_yojson]
 
 and expr =
-    | Call of identifier (* func *) * identifier list (* args *)
+    | Binop of identifier (* left *) * binop (* op *) * identifier (* right *)
+  | Call of identifier (* func *) * identifier list (* args *)
   | Attribute of identifier (* object *) * identifier (* attr *)
   | List of identifier list (* elts *)
   | Tuple of identifier list (* elts *)
@@ -37,4 +38,8 @@ and literal =
   | Bool of bool
   | Builtin of builtin
   | FunctionVal of identifier list (* args *) * annotated_stmt list (* body *)
+[@@deriving eq, ord, show, to_yojson]
+
+and binop =
+    | Binop_is
 [@@deriving eq, ord, show, to_yojson]

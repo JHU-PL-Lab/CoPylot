@@ -64,6 +64,11 @@ and pp_stmt indent fmt {uid=uid;exception_target=exc;multi=multi;body} =
 
 and pp_compound_expr indent fmt {uid=_;exception_target=_;multi=_;body} =
   match body with
+  | Binop (left,op,right) ->
+    fprintf fmt "%a %a %a"
+      pp_id left
+      pp_binop op
+      pp_id right
   | Call (func,args) ->
     fprintf fmt "%a(%a)"
       pp_id func
@@ -105,6 +110,9 @@ and pp_sign fmt = function
   | Pos  -> fprintf fmt "+"
   | Neg  -> fprintf fmt "-"
   | Zero -> fprintf fmt "0"
+
+and pp_binop fmt = function
+  | Binop_is -> fprintf fmt "%s" "is"
 
 and pp_builtin fmt = function
   | Builtin_slice -> fprintf fmt "builtin_slice"
