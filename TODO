@@ -1,5 +1,0 @@
-Implement red stuff -- DONE
-Change every time we get an attribute -- DONE
-Note that we need to change implicit function calls -- DONE
-Get Call
-Type checking should use is and not equals -- DONE, kind of (Is isn't actually implemented)

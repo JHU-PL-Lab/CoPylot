@@ -27,18 +27,24 @@ type builtin_exception =
   | Builtin_AttributeError
   | Builtin_NameError
   | Builtin_ValueError
+  | Builtin_TypeError
 [@@deriving eq, ord, show]
 ;;
 
 type builtin_function =
   | Builtin_bool
   | Builtin_slice
-  | Builtin_type
+  | Builtin_type_func
 [@@deriving eq, ord, show]
 ;;
 
 type builtin_method =
   | Builtin_call
+[@@deriving eq, ord, show]
+;;
+
+type builtin_type =
+  | Builtin_method_wrapper_type
 [@@deriving eq, ord, show]
 ;;
 
@@ -277,6 +283,7 @@ type value =
   | ListVal of memloc list
   | TupleVal of memloc list
   | Builtin_exception of builtin_exception
+  | Builtin_type of builtin_type
   | Function of function_val
   | Method of method_val
   | NoneVal

@@ -60,6 +60,7 @@ Library "ast_simplification"
     Python2_rename_ast,
     Python2_simplified_ast,
     Python2_ast_simplifier,
+    Python2_simplified_builtin_defs,
     Python2_normalized_ast,
     Python2_ast_normalizer,
     Python2_abstract_ast,

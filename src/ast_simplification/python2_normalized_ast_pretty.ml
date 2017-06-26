@@ -115,8 +115,10 @@ and pp_builtin fmt = function
   | Builtin_slice -> fprintf fmt "builtin_slice"
   | Builtin_bool  -> fprintf fmt "builtin_bool"
   | Builtin_type  -> fprintf fmt "builtin_type"
+  | Builtin_method_wrapper_type -> fprintf fmt "Builtin_method_wrapper_type"
   | Builtin_AttributeError -> fprintf fmt "builtin_AttributeError"
   | Builtin_ValueError -> fprintf fmt "builtin_ValueError"
+  | Builtin_TypeError -> fprintf fmt "builtin_TypeError"
 
 and pp_functionval indent fmt args body =
   fprintf fmt "def (%a) {\n%a\n}"

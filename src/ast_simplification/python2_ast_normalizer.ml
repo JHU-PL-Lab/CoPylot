@@ -2,6 +2,7 @@ open Python2_ast_types
 module Simplified = Python2_simplified_ast;;
 module Normalized = Python2_normalized_ast;;
 open Uid_generation;;
+open Python2_simplified_builtin_defs;;
 
 (* FIXME: We need to create a type for builtin methods (in addition to builtin
    functions such as type, bool, slice) such as __getattr__, and use that
@@ -109,7 +110,8 @@ let normalize_list normalize_func lst =
 let rec normalize_modl ctx m : Normalized.modl =
   match m with
   | Simplified.Module (body, annot) ->
-    Normalized.Module(map_and_concat (normalize_stmt_full ctx None None None) body, get_next_uid ctx annot)
+    let new_body = (get_call_def gen_unique_name)::body in
+    Normalized.Module(map_and_concat (normalize_stmt_full ctx None None None) new_body, get_next_uid ctx annot)
 
 and normalize_stmt_full
     ctx
@@ -350,6 +352,9 @@ and normalize_expr_full
     exception_target
     (e : 'a Simplified.expr)
   : Normalized.annotated_stmt list * identifier =
+  let normalize_stmt =
+    normalize_stmt_full ctx loop_start_uid loop_end_uid exception_target
+  in
   let normalize_expr =
     normalize_expr_full ctx loop_start_uid loop_end_uid exception_target
   in
@@ -579,13 +584,32 @@ and normalize_expr_full
     end
 
   | Simplified.Call (func, args, annot) ->
-    (* TODO: get the __call__  attribute as many times as appropriate first *)
+    (* In order to call an object, we must first get its __call__ attribute.
+       If this does not exist, we throw a type error. Otherwise, we continue
+       to retrieve the __call__ attribute until we get a method wrapper,
+       which we know how to call. *)
     let func_bindings, func_name = normalize_expr func in
     let arg_bindings, arg_names = normalize_list normalize_expr args in
+    let get_call_bindings, callable_name =
+      match func with
+      | Simplified.Builtin _ -> [], func_name
+      | Simplified.Name ("*get_call", _) -> [], func_name
+      | _ ->
+        let callable_name = gen_unique_name annot in
+        let get_call_call =
+          Simplified.Assign(
+            callable_name,
+            Simplified.Call(Simplified.Name("*get_call", annot),
+                            [Simplified.Name(func_name, annot)],
+                            annot),
+            annot)
+        in
+        normalize_stmt get_call_call, callable_name
+    in
     let assignment, name = gen_normalized_assignment ctx annot @@
       annotate_expr @@
-      Normalized.Call(func_name, arg_names) in
-    let bindings = func_bindings @ arg_bindings @ assignment in
+      Normalized.Call(callable_name, arg_names) in
+    let bindings = func_bindings @ arg_bindings @ get_call_bindings @ assignment in
     bindings, name
 
   | Simplified.Num (n, annot) ->
@@ -695,9 +719,7 @@ and normalize_expr_full
         ],
         annot)
     in
-    let normalized_try =
-      normalize_stmt_full ctx loop_start_uid loop_end_uid exception_target overall_try
-    in
+    let normalized_try = normalize_stmt overall_try in
     obj_bindings @ normalized_try, result_name
 
   | Simplified.SimpleAttribute (obj, attr, annot)

@@ -31,7 +31,9 @@ type builtin =
   | Builtin_bool
   | Builtin_slice
   | Builtin_type
+  | Builtin_method_wrapper_type
   | Builtin_ValueError
   | Builtin_AttributeError
+  | Builtin_TypeError
 [@@deriving eq, ord, show, to_yojson]
 ;;
