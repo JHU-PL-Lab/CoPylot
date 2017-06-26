@@ -124,7 +124,7 @@ and pp_builtin fmt = function
   | Builtin_TypeError -> fprintf fmt "builtin_TypeError"
 
 and pp_functionval indent fmt args body =
-  fprintf fmt "fun(%a) {\n%a\n}"
+  fprintf fmt "def (%a) {\n%a\n}"
     (pp_list pp_id) args
     (pp_lines (pp_stmt (indent ^ "  "))) body
 
