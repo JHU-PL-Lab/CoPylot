@@ -143,7 +143,7 @@ let execute_micro_command (prog : program_state) : program_state =
      a list value containing those memlocs, with memlocs closer to the LIST command
      being further down the list *)
   | LIST (size) ->
-    let elts, popped_micro = pop_n_memlocs size [] rest_of_stack in
+    let elts, popped_micro = pop_n_memlocs size [] rest_of_stack "LIST" in
     let new_micro = MIS.insert popped_micro @@
       MIS.create [ Inert(Micro_value(ListVal(elts))); ]
     in
@@ -151,7 +151,7 @@ let execute_micro_command (prog : program_state) : program_state =
 
   (* TUPLE command: Exactly the same as LIST, but returns a tuple *)
   | TUPLE (size) ->
-    let elts, popped_micro = pop_n_memlocs size [] rest_of_stack in
+    let elts, popped_micro = pop_n_memlocs size [] rest_of_stack "TUPLE" in
     let new_micro = MIS.insert popped_micro @@
       MIS.create [ Inert(Micro_value(TupleVal(elts))); ]
     in
@@ -181,12 +181,34 @@ let execute_micro_command (prog : program_state) : program_state =
     let new_micro = MIS.insert popped_stack @@ MIS.create new_micro_list in
     { prog with micro = new_micro }
 
+  (* CONVERT command: expects to see numargs+1 memory locations before it. If
+     n+1th one points to a function value, we do nothing and replace ourselves
+     with a call command. If points to a method value, we turn it into a
+     function value by adding the self arg to the micro-stack, and then replace
+     ourselves with a call command. *)
+  | CONVERT _ ->
+    (* let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CONVERT" in
+    let func_loc, popped_micro2 = pop_memloc_or_fail popped_micro "CONVERT" in
+    let value = Heap.get_value func_loc prog.heap in
+    let new_micro =
+      match value with
+      | Function _ ->
+        (* We only change the command, so we can re-use the stack that only
+           had that popped *)
+        MIS.insert rest_of_stack @@
+        MIS.create [Command(CALL(numargs))]
+      | Method (arg, func) ->
+        MIS.insert
+      | _ -> failwith "CONVERT not given a function or method!"
+    in *)
+    failwith ""
+
   (* CALL command: Expects to see numargs+1 memory locations before it, where the
      furthest one points to a function or method value to be called. Issues
      instructions to push a stack frame corresponding to that function, then
      binds all the arguments appropriately. *)
   | CALL numargs ->
-    let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack in
+    let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CALL" in
     let func_loc, popped_micro2 = pop_memloc_or_fail popped_micro "CALL" in
     let value = Heap.get_value func_loc prog.heap in
     let new_micro =
@@ -207,23 +229,7 @@ let execute_micro_command (prog : program_state) : program_state =
       | Function (Builtin_func _) ->
         raise @@ Not_yet_implemented "Builtin function"
 
-      | Method (User_method(self, eta, args, body)) ->
-        if List.length args <> (numargs + 1) then
-          MIS.create [ Command(ALLOCTYPEERROR); Command(RAISE); ]
-        else
-          let binds = List.concat @@
-            List.map2 (fun m x ->
-                [ Inert(Micro_memloc(m)); Inert(Micro_var(x)); Command(BIND); ]
-              )
-              (self::arg_locs) args
-          in
-          MIS.insert popped_micro2 @@ MIS.create
-            ([ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds)
-
-      | Method (Builtin_method _) ->
-        raise @@ Not_yet_implemented "Builtin_method"
-
-      | _ -> failwith "Can only call a function or a method." (*TODO: Raise python error*)
+      | _ -> failwith "Can only CALL a function."
     in
     { prog with micro = new_micro; }
 
@@ -232,11 +238,8 @@ let execute_micro_command (prog : program_state) : program_state =
   | RETRIEVE ->
     let member, popped_stack = pop_var_or_fail rest_of_stack "RETRIEVE" in
     let obj_memloc, popped_stack2 = pop_memloc_or_fail popped_stack "RETRIEVE" in
-    let lookup_attribute obj_loc member =
-      let obj = retrieve_binding_or_fail prog.heap obj_loc in
-      Bindings.get_memloc member obj
-    in
-    let attr = lookup_attribute obj_memloc member in
+    let obj = retrieve_binding_or_fail prog.heap obj_memloc in
+    let attr = Bindings.get_memloc member obj in
     let new_micro =
       match attr with
       | None -> MIS.create [ Command(ALLOCATTRIBUTEERROR); Command (RAISE); ]
@@ -357,7 +360,7 @@ let execute_stmt (prog : program_state) : program_state =
             (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
             (x0::args)
         in
-        lookups @ [ Command(CALL(List.length args)); ]
+        lookups @ [ Command(CONVERT(List.length args)); ]
 
       | Assign(_, {body = Binop _; _}) (*(left op right)*) ->
         raise @@ Not_yet_implemented "Binops NYI"
@@ -429,7 +432,6 @@ let rec step_program (prog : program_state) : program_state =
         execute_micro_command prog
     in
     step_program next_prog
-
 ;;
 
 let interpret_program (prog : modl) =

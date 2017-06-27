@@ -35,10 +35,6 @@ type builtin_function =
   | Builtin_bool
   | Builtin_slice
   | Builtin_type_func
-[@@deriving eq, ord, show]
-;;
-
-type builtin_method =
   | Builtin_call
 [@@deriving eq, ord, show]
 ;;
@@ -54,7 +50,6 @@ type memloc =
   | None_memloc
   | Builtin_exn_memloc of builtin_exception
   | Builtin_fun_memloc of builtin_function
-  | Builtin_method_memloc of builtin_method
 [@@deriving eq, ord, show]
 ;;
 
@@ -270,10 +265,6 @@ type function_val =
 [@@deriving eq, ord, show]
 ;;
 
-type method_val =
-  | Builtin_method of memloc (* self *) * builtin_method
-  | User_method of memloc (* self *) * memloc (* Bound scope *) * identifier list (* args *) * Body.t
-
 (* The possible values in the program. Corresponds to "v" in the grammar. *)
 type value =
   | Bindings of Bindings.t
@@ -285,7 +276,7 @@ type value =
   | Builtin_exception of builtin_exception
   | Builtin_type of builtin_type
   | Function of function_val
-  | Method of method_val
+  | Method of memloc * function_val
   | NoneVal
   (* [@@deriving eq, ord, show] *)
 ;;
@@ -364,7 +355,7 @@ type micro_command =
   | GOTO of uid
   | GOTOIFNOT of uid
   | CALL of int (* numargs *)
-  (* | CONVERT of int (* numargs *) *)
+  | CONVERT of int (* numargs *)
   | RETRIEVE
   | ALLOCNAMEERROR
   | ALLOCTYPEERROR
