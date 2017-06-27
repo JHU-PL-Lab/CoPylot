@@ -70,15 +70,16 @@ let rec pop_n_memlocs
     (n : int)
     (lst : memloc list)
     (mstack : Micro_instruction_stack.t)
+    (caller: string)
   : memloc list * Micro_instruction_stack.t =
   if n = 0
   then
     lst, mstack
   else
     let next_memloc, next_mstack =
-      pop_memloc_or_fail mstack "LIST/TUPLE/FUNCTION argument was not a memloc!"
+      pop_memloc_or_fail mstack @@ caller ^ " argument was not a memloc!"
     in
-    pop_n_memlocs (n-1) (next_memloc::lst) next_mstack
+    pop_n_memlocs (n-1) (next_memloc::lst) next_mstack caller
 ;;
 
 (* let make_literal_obj (m : memloc) (l : literal) : Bindings.t =
@@ -120,41 +121,3 @@ let get_parent_or_fail (child : memloc) (heap : Heap.t) : memloc =
   let parent = Bindings.get_memloc "*parent" parent_binding in
   extract_option_or_fail parent "Failed to find parent scope"
 ;;
-
-(* let get_obj_value (heap : Heap.t) (m : memloc) (attr : identifier)
-   : value option =
-   let obj = Heap.get_value m heap in
-   match obj with
-   | Bindings(bindings) ->
-    let value_memloc = Bindings.get_memloc "*value" bindings in
-    begin
-      match value_memloc with
-      | None -> None
-      | Some(memloc) ->
-        let actual_value = Heap.get_value memloc heap in
-        Some(actual_value)
-    end
-   | _ -> failwith "Asked to find *value of non-object"
-   ;; *)
-
-(* Warning: This can loop infinitely if the code does something like
-   x.__call__ = x *)
-(* let rec get_call (heap : Heap.t) (m: memloc) : memloc option =
-   let obj = Heap.get_value m heap in
-   match obj with
-   | Bindings(bindings) ->
-    let value_memloc = Bindings.get_memloc "__call__" bindings in
-    begin
-      match value_memloc with
-      | None -> None (* Not callable *)
-      | Some(memloc) ->
-        let actual_value = Heap.get_value memloc heap in
-        match actual_value with
-        | Bindings(b) -> get_call heap memloc
-        | Function _
-        | Method _ -> Some(memloc)
-        | _ -> None (* Not callable *)
-
-    end
-   | _ -> None (* Not callable *)
-   ;; *)
