@@ -161,6 +161,8 @@ and generalize_cmpop = function
   | Original.LtE -> Concrete.LtE
   | Original.Gt -> Concrete.Gt
   | Original.GtE -> Concrete.GtE
+  | Original.Is -> Concrete.Is
+  | Original.IsNot -> Concrete.IsNot
   | Original.In -> Concrete.In
   | Original.NotIn -> Concrete.NotIn
 

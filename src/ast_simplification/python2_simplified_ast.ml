@@ -42,7 +42,7 @@ and 'a expr =
 and boolop = And | Or
 [@@deriving eq, ord, show]
 
-and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn (* TODO Fully implement Is, IsNot *)
+and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
 [@@deriving eq, ord, show]
 
 and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * identifier option (* name *) * 'a stmt list (* body *) * 'a

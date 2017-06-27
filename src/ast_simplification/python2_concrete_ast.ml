@@ -93,7 +93,7 @@ and operator = Add | Sub | Mult | Div | Mod | Pow
 and unaryop = (*Invert |*) Not | UAdd | USub
 [@@deriving eq, ord, show]
 
-and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE (*| Is | IsNot*) | In | NotIn
+and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
 [@@deriving eq, ord, show]
 
 (* and 'a comprehension = 'a expr (* target *) * 'a expr (* iter *) * 'a expr list (* ifs *) *)

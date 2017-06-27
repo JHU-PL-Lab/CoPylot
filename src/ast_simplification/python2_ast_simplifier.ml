@@ -658,6 +658,8 @@ and simplify_cmpop o =
   | Concrete.LtE -> Simplified.LtE
   | Concrete.Gt -> Simplified.Gt
   | Concrete.GtE -> Simplified.GtE
+  | Concrete.Is -> Simplified.Is
+  | Concrete.IsNot -> Simplified.IsNot
   | Concrete.In -> Simplified.In
   | Concrete.NotIn -> Simplified.NotIn
 

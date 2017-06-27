@@ -78,7 +78,7 @@ keywords, but as names. We are intentionally deviating from this here.*)
 %token <Lexing.position> IF
 /*%token <Lexing.position> IMPORT*/
 %token <Lexing.position> IN
-/*%token <Lexing.position> IS*/
+%token <Lexing.position> IS
 /*%token <Lexing.position> LAMBDA*/
 %token <Lexing.position> NONE
 %token <Lexing.position> NOT
@@ -533,9 +533,8 @@ comp_op:
   | LEQ     { LtE, $1 }
   | GT      { Gt, $1 }
   | GEQ     { GtE, $1 }
-  (*
   | IS      { Is, $1 }
-  | IS NOT  { IsNot, $1 }*)
+  | IS NOT  { IsNot, $1 }
   | IN      { In, $1 }
   | NOT IN  { NotIn, $1 }
 

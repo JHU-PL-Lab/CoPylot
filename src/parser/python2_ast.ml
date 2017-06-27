@@ -95,7 +95,7 @@ and operator = Add | Sub | Mult | Div | Mod | Pow
 and unaryop = (*Invert |*) Not | UAdd | USub
 [@@deriving eq, ord, show]
 
-and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE (*| Is | IsNot*) | In | NotIn
+and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
 [@@deriving eq, ord, show]
 
 (* and 'a comprehension = 'a expr (* target *) * 'a expr (* iter *) * 'a expr list (* ifs *) *)
@@ -220,8 +220,8 @@ and name_of_cmpop = function
   | LtE         -> "LtE"
   | Gt          -> "Gt"
   | GtE         -> "GtE"
-  (* | Is          -> "Is" *)
-  (* | IsNot       -> "IsNot" *)
+  | Is          -> "Is"
+  | IsNot       -> "IsNot"
   | In          -> "In"
   | NotIn       -> "NotIn"
 
@@ -333,8 +333,8 @@ let string_of_cmpop = function
   | LtE   -> "<="
   | Gt    -> ">"
   | GtE   -> ">="
-  (* | Is    -> "is" *)
-  (* | IsNot -> "is not" *)
+  | Is    -> "is"
+  | IsNot -> "is not"
   | In    -> "in"
   | NotIn -> "not in"
 
