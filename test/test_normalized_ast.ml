@@ -54,11 +54,11 @@ and collect_uids_stmt s =
 let get_call_def =
   "@ 137:    :F:  $norm51 = def ($norm0) {" ^
   "\n@   3:   1:T:    pass;" ^
-  "\n@   6:   1:T:    $norm2 = builtin_type;" ^
+  "\n@   6:   1:T:    $norm2 = *type;" ^
   "\n@   8:   1:T:    $norm3 = $norm2($norm0);" ^
-  "\n@  10:   1:T:    $norm4 = Builtin_method_wrapper_type;" ^
+  "\n@  10:   1:T:    $norm4 = *method_wrapper_type;" ^
   "\n@  12:   1:T:    $norm5 = $norm3 is $norm4;" ^
-  "\n@  14:   1:T:    $norm8 = builtin_bool;" ^
+  "\n@  14:   1:T:    $norm8 = *bool;" ^
   "\n@  16:   1:T:    $norm9 = $norm8($norm5);" ^
   "\n@  28:   1:T:    goto 27 if not $norm9;" ^
   "\n@  18:   1:T:    $norm10 = false;" ^
@@ -69,7 +69,7 @@ let get_call_def =
   "\n@  24:   1:T:    $norm7 = $norm11;" ^
   "\n@  25:   1:T:    pass;" ^
   "\n@  30:   1:T:    $norm6 = $norm7;" ^
-  "\n@  32:   1:T:    $norm12 = builtin_bool;" ^
+  "\n@  32:   1:T:    $norm12 = *bool;" ^
   "\n@  34:   1:T:    $norm13 = $norm12($norm6);" ^
   "\n@ 108:   1:T:    goto 4 if not $norm13;" ^
   "\n@  38:  35:T:    $norm19 = $norm0.__getattribute__;" ^
@@ -81,11 +81,11 @@ let get_call_def =
   "\n@  50:  35:T:    $norm17 = $norm23;" ^
   "\n@ 105:   1:T:    goto 36;" ^
   "\n@  35:   1:T:    catch $norm18;" ^
-  "\n@  52:   1:T:    $norm24 = builtin_type;" ^
+  "\n@  52:   1:T:    $norm24 = *type;" ^
   "\n@  54:   1:T:    $norm25 = $norm24($norm18);" ^
-  "\n@  56:   1:T:    $norm26 = builtin_AttributeError;" ^
+  "\n@  56:   1:T:    $norm26 = *AttributeError;" ^
   "\n@  58:   1:T:    $norm27 = $norm25 is $norm26;" ^
-  "\n@  60:   1:T:    $norm28 = builtin_bool;" ^
+  "\n@  60:   1:T:    $norm28 = *bool;" ^
   "\n@  62:   1:T:    $norm29 = $norm28($norm27);" ^
   "\n@ 104:   1:T:    goto 103 if not $norm29;" ^
   "\n@  64:   1:T:    $norm16 = $norm18;" ^
@@ -93,11 +93,11 @@ let get_call_def =
   "\n@  70:  65:T:    $norm15 = $norm31;" ^
   "\n@  89:   1:T:    goto 66;" ^
   "\n@  65:   1:T:    catch $norm30;" ^
-  "\n@  72:   1:T:    $norm32 = builtin_type;" ^
+  "\n@  72:   1:T:    $norm32 = *type;" ^
   "\n@  74:   1:T:    $norm33 = $norm32($norm30);" ^
-  "\n@  76:   1:T:    $norm34 = builtin_AttributeError;" ^
+  "\n@  76:   1:T:    $norm34 = *AttributeError;" ^
   "\n@  78:   1:T:    $norm35 = $norm33 is $norm34;" ^
-  "\n@  80:   1:T:    $norm36 = builtin_bool;" ^
+  "\n@  80:   1:T:    $norm36 = *bool;" ^
   "\n@  82:   1:T:    $norm37 = $norm36($norm35);" ^
   "\n@  88:   1:T:    goto 87 if not $norm37;" ^
   "\n@  83:   1:T:    raise $norm16;" ^
@@ -121,14 +121,14 @@ let get_call_def =
   "\n@   4:   1:T:    pass;" ^
   "\n@ 134:    :F:    goto 2;" ^
   "\n@   1:    :F:    catch $norm1;" ^
-  "\n@ 111:    :F:    $norm42 = builtin_type;" ^
+  "\n@ 111:    :F:    $norm42 = *type;" ^
   "\n@ 113:    :F:    $norm43 = $norm42($norm1);" ^
-  "\n@ 115:    :F:    $norm44 = builtin_AttributeError;" ^
+  "\n@ 115:    :F:    $norm44 = *AttributeError;" ^
   "\n@ 117:    :F:    $norm45 = $norm43 is $norm44;" ^
-  "\n@ 119:    :F:    $norm46 = builtin_bool;" ^
+  "\n@ 119:    :F:    $norm46 = *bool;" ^
   "\n@ 121:    :F:    $norm47 = $norm46($norm45);" ^
   "\n@ 133:    :F:    goto 132 if not $norm47;" ^
-  "\n@ 123:    :F:    $norm48 = builtin_TypeError;" ^
+  "\n@ 123:    :F:    $norm48 = *TypeError;" ^
   "\n@ 125:    :F:    $norm49 = \"Object is not callable\";" ^
   "\n@ 127:    :F:    $norm50 = $norm48($norm49);" ^
   "\n@ 128:    :F:    raise $norm50;" ^
@@ -215,11 +215,11 @@ let attribute_test = gen_module_test "attribute_test"
       "\n@ 155: 140:F:  $norm55 = $norm61;" ^
       "\n@ 210:    :F:  goto 141;" ^
       "\n@ 140:    :F:  catch $norm56;" ^
-      "\n@ 157:    :F:  $norm62 = builtin_type;" ^
+      "\n@ 157:    :F:  $norm62 = *type;" ^
       "\n@ 159:    :F:  $norm63 = $norm62($norm56);" ^
-      "\n@ 161:    :F:  $norm64 = builtin_AttributeError;" ^
+      "\n@ 161:    :F:  $norm64 = *AttributeError;" ^
       "\n@ 163:    :F:  $norm65 = $norm63 is $norm64;" ^
-      "\n@ 165:    :F:  $norm66 = builtin_bool;" ^
+      "\n@ 165:    :F:  $norm66 = *bool;" ^
       "\n@ 167:    :F:  $norm67 = $norm66($norm65);" ^
       "\n@ 209:    :F:  goto 208 if not $norm67;" ^
       "\n@ 169:    :F:  $norm54 = $norm56;" ^
@@ -227,11 +227,11 @@ let attribute_test = gen_module_test "attribute_test"
       "\n@ 175: 170:F:  $norm53 = $norm69;" ^
       "\n@ 194:    :F:  goto 171;" ^
       "\n@ 170:    :F:  catch $norm68;" ^
-      "\n@ 177:    :F:  $norm70 = builtin_type;" ^
+      "\n@ 177:    :F:  $norm70 = *type;" ^
       "\n@ 179:    :F:  $norm71 = $norm70($norm68);" ^
-      "\n@ 181:    :F:  $norm72 = builtin_AttributeError;" ^
+      "\n@ 181:    :F:  $norm72 = *AttributeError;" ^
       "\n@ 183:    :F:  $norm73 = $norm71 is $norm72;" ^
-      "\n@ 185:    :F:  $norm74 = builtin_bool;" ^
+      "\n@ 185:    :F:  $norm74 = *bool;" ^
       "\n@ 187:    :F:  $norm75 = $norm74($norm73);" ^
       "\n@ 193:    :F:  goto 192 if not $norm75;" ^
       "\n@ 188:    :F:  raise $norm54;" ^
@@ -290,12 +290,12 @@ let augassign_test = gen_module_test "augassign_test"
       "\n@   8:   1:F:  $simp1 = $simp4;" ^
       "\n@  34:    :F:  goto 2;" ^
       "\n@   1:    :F:  catch $norm0;" ^
-      "\n@  10:    :F:  $norm2 = builtin_type;" ^
+      "\n@  10:    :F:  $norm2 = *type;" ^
       "\n@  12:    :F:  $norm3 = $norm2($norm0);" ^
-      "\n@  14:    :F:  $norm4 = builtin_AttributeError;" ^
+      "\n@  14:    :F:  $norm4 = *AttributeError;" ^
       "\n@  16:    :F:  $norm5 = $norm3.__eq__;" ^
       "\n@  18:    :F:  $norm6 = $norm5($norm4);" ^
-      "\n@  20:    :F:  $norm7 = builtin_bool;" ^
+      "\n@  20:    :F:  $norm7 = *bool;" ^
       "\n@  22:    :F:  $norm8 = $norm7($norm6);" ^
       "\n@  33:    :F:  goto 32 if not $norm8;" ^
       "\n@  24:    :F:  $norm9 = x.__add__;" ^
@@ -323,12 +323,12 @@ let augassign_to_member_test = gen_module_test "augassign_to_member_test"
       "\n@  12:   3:F:  $simp1 = $simp4;" ^
       "\n@  40:    :F:  goto 4;" ^
       "\n@   3:    :F:  catch $norm0;" ^
-      "\n@  14:    :F:  $norm3 = builtin_type;" ^
+      "\n@  14:    :F:  $norm3 = *type;" ^
       "\n@  16:    :F:  $norm4 = $norm3($norm0);" ^
-      "\n@  18:    :F:  $norm5 = builtin_AttributeError;" ^
+      "\n@  18:    :F:  $norm5 = *AttributeError;" ^
       "\n@  20:    :F:  $norm6 = $norm4.__eq__;" ^
       "\n@  22:    :F:  $norm7 = $norm6($norm5);" ^
-      "\n@  24:    :F:  $norm8 = builtin_bool;" ^
+      "\n@  24:    :F:  $norm8 = *bool;" ^
       "\n@  26:    :F:  $norm9 = $norm8($norm7);" ^
       "\n@  39:    :F:  goto 38 if not $norm9;" ^
       "\n@  28:    :F:  $norm10 = $simp0.mem;" ^
@@ -353,7 +353,7 @@ let augassign_to_list_test = gen_module_test "augassign_to_list_test"
     "lst[1:2] += 5"
     begin
       "@   2:    :F:  $simp0 = lst;" ^
-      "\n@   4:    :F:  $norm0 = builtin_slice;" ^
+      "\n@   4:    :F:  $norm0 = *slice;" ^
       "\n@   6:    :F:  $norm1 = 1;" ^
       "\n@   8:    :F:  $norm2 = 2;" ^
       "\n@  10:    :F:  $norm3 = None;" ^
@@ -366,12 +366,12 @@ let augassign_to_list_test = gen_module_test "augassign_to_list_test"
       "\n@  26:  15:F:  $simp1 = $simp5;" ^
       "\n@  56:    :F:  goto 16;" ^
       "\n@  15:    :F:  catch $norm5;" ^
-      "\n@  28:    :F:  $norm9 = builtin_type;" ^
+      "\n@  28:    :F:  $norm9 = *type;" ^
       "\n@  30:    :F:  $norm10 = $norm9($norm5);" ^
-      "\n@  32:    :F:  $norm11 = builtin_AttributeError;" ^
+      "\n@  32:    :F:  $norm11 = *AttributeError;" ^
       "\n@  34:    :F:  $norm12 = $norm10.__eq__;" ^
       "\n@  36:    :F:  $norm13 = $norm12($norm11);" ^
-      "\n@  38:    :F:  $norm14 = builtin_bool;" ^
+      "\n@  38:    :F:  $norm14 = *bool;" ^
       "\n@  40:    :F:  $norm15 = $norm14($norm13);" ^
       "\n@  55:    :F:  goto 54 if not $norm15;" ^
       "\n@  42:    :F:  $norm16 = $simp0.__getitem__;" ^
@@ -423,7 +423,7 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
     ("@   2:    :F:  $norm0 = 5;" ^
      "\n@   4:    :F:  $simp0 = $norm0;" ^
      "\n@   6:    :F:  $norm1 = list.__setitem__;" ^
-     "\n@   8:    :F:  $norm2 = builtin_slice;" ^
+     "\n@   8:    :F:  $norm2 = *slice;" ^
      "\n@  10:    :F:  $norm3 = 1;" ^
      "\n@  12:    :F:  $norm4 = 2;" ^
      "\n@  14:    :F:  $norm5 = None;" ^
@@ -447,17 +447,17 @@ let assign_from_tuple_test = gen_module_test "assign_from_tuple_test"
       "\n@  24:  17:F:  $norm8 = $simp1();" ^
       "\n@  26:  17:F:  $simp3 = $norm8;" ^
       "\n@  30:  27:F:  $norm10 = $simp1();" ^
-      "\n@  32:  27:F:  $norm11 = builtin_ValueError;" ^
+      "\n@  32:  27:F:  $norm11 = *ValueError;" ^
       "\n@  34:  27:F:  $norm12 = \"too many values to unpack\";" ^
       "\n@  36:  27:F:  $norm13 = $norm11($norm12);" ^
       "\n@  37:  27:F:  raise $norm13;" ^
       "\n@  56:  17:F:  goto 28;" ^
       "\n@  27:  17:F:  catch $norm9;" ^
-      "\n@  39:  17:F:  $norm14 = builtin_type;" ^
+      "\n@  39:  17:F:  $norm14 = *type;" ^
       "\n@  41:  17:F:  $norm15 = $norm14($norm9);" ^
       "\n@  43:  17:F:  $norm16 = $norm15.__eq__;" ^
       "\n@  45:  17:F:  $norm17 = $norm16(StopIteration);" ^
-      "\n@  47:  17:F:  $norm18 = builtin_bool;" ^
+      "\n@  47:  17:F:  $norm18 = *bool;" ^
       "\n@  49:  17:F:  $norm19 = $norm18($norm17);" ^
       "\n@  55:  17:F:  goto 54 if not $norm19;" ^
       "\n@  50:  17:F:  pass;" ^
@@ -468,14 +468,14 @@ let assign_from_tuple_test = gen_module_test "assign_from_tuple_test"
       "\n@  28:  17:F:  pass;" ^
       "\n@  81:    :F:  goto 18;" ^
       "\n@  17:    :F:  catch $norm6;" ^
-      "\n@  58:    :F:  $norm20 = builtin_type;" ^
+      "\n@  58:    :F:  $norm20 = *type;" ^
       "\n@  60:    :F:  $norm21 = $norm20($norm6);" ^
       "\n@  62:    :F:  $norm22 = $norm21.__eq__;" ^
       "\n@  64:    :F:  $norm23 = $norm22(StopIteration);" ^
-      "\n@  66:    :F:  $norm24 = builtin_bool;" ^
+      "\n@  66:    :F:  $norm24 = *bool;" ^
       "\n@  68:    :F:  $norm25 = $norm24($norm23);" ^
       "\n@  80:    :F:  goto 79 if not $norm25;" ^
-      "\n@  70:    :F:  $norm26 = builtin_ValueError;" ^
+      "\n@  70:    :F:  $norm26 = *ValueError;" ^
       "\n@  72:    :F:  $norm27 = \"too few values to unpack\";" ^
       "\n@  74:    :F:  $norm28 = $norm26($norm27);" ^
       "\n@  75:    :F:  raise $norm28;" ^
@@ -519,7 +519,7 @@ let assignment_tests =
 
    let unop_not_test = gen_module_test "unop_not_test"
     "not x"
-    ("@   2:    :F:  $norm1 = builtin_bool;" ^
+    ("@   2:    :F:  $norm1 = *bool;" ^
      "\n@   4:    :F:  $norm2 = $norm1(x);" ^
      "\n@  16:    :F:  goto 15 if not $norm2;" ^
      "\n@   6:    :F:  $norm3 = false;" ^
@@ -543,11 +543,11 @@ let gen_binop_test (name : string) (opstring : string) (opfunc : string ) =
       "\n@ 155: 140:F:  $norm55 = $norm61;" ^
       "\n@ 210:    :F:  goto 141;" ^
       "\n@ 140:    :F:  catch $norm56;" ^
-      "\n@ 157:    :F:  $norm62 = builtin_type;" ^
+      "\n@ 157:    :F:  $norm62 = *type;" ^
       "\n@ 159:    :F:  $norm63 = $norm62($norm56);" ^
-      "\n@ 161:    :F:  $norm64 = builtin_AttributeError;" ^
+      "\n@ 161:    :F:  $norm64 = *AttributeError;" ^
       "\n@ 163:    :F:  $norm65 = $norm63 is $norm64;" ^
-      "\n@ 165:    :F:  $norm66 = builtin_bool;" ^
+      "\n@ 165:    :F:  $norm66 = *bool;" ^
       "\n@ 167:    :F:  $norm67 = $norm66($norm65);" ^
       "\n@ 209:    :F:  goto 208 if not $norm67;" ^
       "\n@ 169:    :F:  $norm54 = $norm56;" ^
@@ -555,11 +555,11 @@ let gen_binop_test (name : string) (opstring : string) (opfunc : string ) =
       "\n@ 175: 170:F:  $norm53 = $norm69;" ^
       "\n@ 194:    :F:  goto 171;" ^
       "\n@ 170:    :F:  catch $norm68;" ^
-      "\n@ 177:    :F:  $norm70 = builtin_type;" ^
+      "\n@ 177:    :F:  $norm70 = *type;" ^
       "\n@ 179:    :F:  $norm71 = $norm70($norm68);" ^
-      "\n@ 181:    :F:  $norm72 = builtin_AttributeError;" ^
+      "\n@ 181:    :F:  $norm72 = *AttributeError;" ^
       "\n@ 183:    :F:  $norm73 = $norm71 is $norm72;" ^
-      "\n@ 185:    :F:  $norm74 = builtin_bool;" ^
+      "\n@ 185:    :F:  $norm74 = *bool;" ^
       "\n@ 187:    :F:  $norm75 = $norm74($norm73);" ^
       "\n@ 193:    :F:  goto 192 if not $norm75;" ^
       "\n@ 188:    :F:  raise $norm54;" ^
@@ -587,11 +587,11 @@ let gen_binop_test (name : string) (opstring : string) (opfunc : string ) =
 let boolop_and_test = gen_module_test "boolop_and_test"
     "x and 5 and True"
     begin
-      "@ 141:    :F:  $norm53 = builtin_bool;" ^
+      "@ 141:    :F:  $norm53 = *bool;" ^
       "\n@ 143:    :F:  $norm54 = $norm53(x);" ^
       "\n@ 167:    :F:  goto 166 if not $norm54;" ^
       "\n@ 145:    :F:  $norm55 = 5;" ^
-      "\n@ 147:    :F:  $norm57 = builtin_bool;" ^
+      "\n@ 147:    :F:  $norm57 = *bool;" ^
       "\n@ 149:    :F:  $norm58 = $norm57($norm55);" ^
       "\n@ 159:    :F:  goto 158 if not $norm58;" ^
       "\n@ 151:    :F:  $norm59 = true;" ^
@@ -611,14 +611,14 @@ let boolop_and_test = gen_module_test "boolop_and_test"
 let boolop_or_test = gen_module_test "boolop_or_test"
     "x or 5 or True"
     begin
-      "@ 141:    :F:  $norm53 = builtin_bool;" ^
+      "@ 141:    :F:  $norm53 = *bool;" ^
       "\n@ 143:    :F:  $norm54 = $norm53(x);" ^
       "\n@ 167:    :F:  goto 166 if not $norm54;" ^
       "\n@ 145:    :F:  $norm52 = x;" ^
       "\n@ 165:    :F:  goto 164;" ^
       "\n@ 166:    :F:  pass;" ^
       "\n@ 147:    :F:  $norm55 = 5;" ^
-      "\n@ 149:    :F:  $norm57 = builtin_bool;" ^
+      "\n@ 149:    :F:  $norm57 = *bool;" ^
       "\n@ 151:    :F:  $norm58 = $norm57($norm55);" ^
       "\n@ 161:    :F:  goto 160 if not $norm58;" ^
       "\n@ 153:    :F:  $norm56 = $norm55;" ^
@@ -653,11 +653,11 @@ let multi_compare_test = gen_module_test "multi_compare_test"
       "\n@ 155: 140:F:  $norm55 = $norm61;" ^
       "\n@ 210:    :F:  goto 141;" ^
       "\n@ 140:    :F:  catch $norm56;" ^
-      "\n@ 157:    :F:  $norm62 = builtin_type;" ^
+      "\n@ 157:    :F:  $norm62 = *type;" ^
       "\n@ 159:    :F:  $norm63 = $norm62($norm56);" ^
-      "\n@ 161:    :F:  $norm64 = builtin_AttributeError;" ^
+      "\n@ 161:    :F:  $norm64 = *AttributeError;" ^
       "\n@ 163:    :F:  $norm65 = $norm63 is $norm64;" ^
-      "\n@ 165:    :F:  $norm66 = builtin_bool;" ^
+      "\n@ 165:    :F:  $norm66 = *bool;" ^
       "\n@ 167:    :F:  $norm67 = $norm66($norm65);" ^
       "\n@ 209:    :F:  goto 208 if not $norm67;" ^
       "\n@ 169:    :F:  $norm54 = $norm56;" ^
@@ -665,11 +665,11 @@ let multi_compare_test = gen_module_test "multi_compare_test"
       "\n@ 175: 170:F:  $norm53 = $norm69;" ^
       "\n@ 194:    :F:  goto 171;" ^
       "\n@ 170:    :F:  catch $norm68;" ^
-      "\n@ 177:    :F:  $norm70 = builtin_type;" ^
+      "\n@ 177:    :F:  $norm70 = *type;" ^
       "\n@ 179:    :F:  $norm71 = $norm70($norm68);" ^
-      "\n@ 181:    :F:  $norm72 = builtin_AttributeError;" ^
+      "\n@ 181:    :F:  $norm72 = *AttributeError;" ^
       "\n@ 183:    :F:  $norm73 = $norm71 is $norm72;" ^
-      "\n@ 185:    :F:  $norm74 = builtin_bool;" ^
+      "\n@ 185:    :F:  $norm74 = *bool;" ^
       "\n@ 187:    :F:  $norm75 = $norm74($norm73);" ^
       "\n@ 193:    :F:  goto 192 if not $norm75;" ^
       "\n@ 188:    :F:  raise $norm54;" ^
@@ -691,7 +691,7 @@ let multi_compare_test = gen_module_test "multi_compare_test"
       "\n@ 212:    :F:  $norm81 = *get_call($norm55);" ^
       "\n@ 214:    :F:  $norm80 = $norm81;" ^
       "\n@ 216:    :F:  $norm82 = $norm80(y);" ^
-      "\n@ 218:    :F:  $norm84 = builtin_bool;" ^
+      "\n@ 218:    :F:  $norm84 = *bool;" ^
       "\n@ 220:    :F:  $norm85 = $norm84($norm82);" ^
       "\n@ 305:    :F:  goto 304 if not $norm85;" ^
       "\n@ 224: 221:F:  $norm91 = y.__getattribute__;" ^
@@ -703,11 +703,11 @@ let multi_compare_test = gen_module_test "multi_compare_test"
       "\n@ 236: 221:F:  $norm89 = $norm95;" ^
       "\n@ 291:    :F:  goto 222;" ^
       "\n@ 221:    :F:  catch $norm90;" ^
-      "\n@ 238:    :F:  $norm96 = builtin_type;" ^
+      "\n@ 238:    :F:  $norm96 = *type;" ^
       "\n@ 240:    :F:  $norm97 = $norm96($norm90);" ^
-      "\n@ 242:    :F:  $norm98 = builtin_AttributeError;" ^
+      "\n@ 242:    :F:  $norm98 = *AttributeError;" ^
       "\n@ 244:    :F:  $norm99 = $norm97 is $norm98;" ^
-      "\n@ 246:    :F:  $norm100 = builtin_bool;" ^
+      "\n@ 246:    :F:  $norm100 = *bool;" ^
       "\n@ 248:    :F:  $norm101 = $norm100($norm99);" ^
       "\n@ 290:    :F:  goto 289 if not $norm101;" ^
       "\n@ 250:    :F:  $norm88 = $norm90;" ^
@@ -715,11 +715,11 @@ let multi_compare_test = gen_module_test "multi_compare_test"
       "\n@ 256: 251:F:  $norm87 = $norm103;" ^
       "\n@ 275:    :F:  goto 252;" ^
       "\n@ 251:    :F:  catch $norm102;" ^
-      "\n@ 258:    :F:  $norm104 = builtin_type;" ^
+      "\n@ 258:    :F:  $norm104 = *type;" ^
       "\n@ 260:    :F:  $norm105 = $norm104($norm102);" ^
-      "\n@ 262:    :F:  $norm106 = builtin_AttributeError;" ^
+      "\n@ 262:    :F:  $norm106 = *AttributeError;" ^
       "\n@ 264:    :F:  $norm107 = $norm105 is $norm106;" ^
-      "\n@ 266:    :F:  $norm108 = builtin_bool;" ^
+      "\n@ 266:    :F:  $norm108 = *bool;" ^
       "\n@ 268:    :F:  $norm109 = $norm108($norm107);" ^
       "\n@ 274:    :F:  goto 273 if not $norm109;" ^
       "\n@ 269:    :F:  raise $norm88;" ^
@@ -797,7 +797,7 @@ let tuple_test = gen_module_test "tuple_test"
 let if_test = gen_module_test "if_test"
     "if x: z = 1\nelif y: z = -1\nelse: 0"
     begin
-      "@ 141:    :F:  $norm52 = builtin_bool;" ^
+      "@ 141:    :F:  $norm52 = *bool;" ^
       "\n@ 143:    :F:  $norm53 = $norm52(x);" ^
       "\n@ 169:    :F:  goto 168 if not $norm53;" ^
       "\n@ 145:    :F:  $norm54 = 1;" ^
@@ -805,7 +805,7 @@ let if_test = gen_module_test "if_test"
       "\n@ 149:    :F:  z = $simp1;" ^
       "\n@ 167:    :F:  goto 166;" ^
       "\n@ 168:    :F:  pass;" ^
-      "\n@ 151:    :F:  $norm55 = builtin_bool;" ^
+      "\n@ 151:    :F:  $norm55 = *bool;" ^
       "\n@ 153:    :F:  $norm56 = $norm55(y);" ^
       "\n@ 165:    :F:  goto 164 if not $norm56;" ^
       "\n@ 155:    :F:  $norm57 = -1;" ^
@@ -822,14 +822,14 @@ let if_test = gen_module_test "if_test"
 let ifexp_test = gen_module_test "ifexp_test"
     "z = 1 if x else -1 if y else 0"
     begin
-      "@ 141:    :F:  $norm53 = builtin_bool;" ^
+      "@ 141:    :F:  $norm53 = *bool;" ^
       "\n@ 143:    :F:  $norm54 = $norm53(x);" ^
       "\n@ 169:    :F:  goto 168 if not $norm54;" ^
       "\n@ 145:    :F:  $norm55 = 1;" ^
       "\n@ 147:    :F:  $norm52 = $norm55;" ^
       "\n@ 167:    :F:  goto 166;" ^
       "\n@ 168:    :F:  pass;" ^
-      "\n@ 149:    :F:  $norm57 = builtin_bool;" ^
+      "\n@ 149:    :F:  $norm57 = *bool;" ^
       "\n@ 151:    :F:  $norm58 = $norm57(y);" ^
       "\n@ 163:    :F:  goto 162 if not $norm58;" ^
       "\n@ 153:    :F:  $norm59 = -1;" ^
@@ -865,20 +865,20 @@ let tryexcept_test = gen_module_test "tryexcept_test"
       "\n@ 153: 140:F:  $norm56 = $norm54();" ^
       "\n@ 189:    :F:  goto 141;" ^
       "\n@ 140:    :F:  catch $norm52;" ^
-      "\n@ 155:    :F:  $norm57 = builtin_type;" ^
+      "\n@ 155:    :F:  $norm57 = *type;" ^
       "\n@ 157:    :F:  $norm58 = $norm57($norm52);" ^
       "\n@ 159:    :F:  $norm59 = $norm58 is ValueError;" ^
-      "\n@ 161:    :F:  $norm60 = builtin_bool;" ^
+      "\n@ 161:    :F:  $norm60 = *bool;" ^
       "\n@ 163:    :F:  $norm61 = $norm60($norm59);" ^
       "\n@ 188:    :F:  goto 187 if not $norm61;" ^
       "\n@ 165:    :F:  e = $norm52;" ^
       "\n@ 166:    :F:  pass;" ^
       "\n@ 186:    :F:  goto 185;" ^
       "\n@ 187:    :F:  pass;" ^
-      "\n@ 168:    :F:  $norm62 = builtin_type;" ^
+      "\n@ 168:    :F:  $norm62 = *type;" ^
       "\n@ 170:    :F:  $norm63 = $norm62($norm52);" ^
       "\n@ 172:    :F:  $norm64 = $norm63 is Int;" ^
-      "\n@ 174:    :F:  $norm65 = builtin_bool;" ^
+      "\n@ 174:    :F:  $norm65 = *bool;" ^
       "\n@ 176:    :F:  $norm66 = $norm65($norm64);" ^
       "\n@ 184:    :F:  goto 183 if not $norm66;" ^
       "\n@ 178:    :F:  $norm67 = \"got an int\";" ^
@@ -941,7 +941,7 @@ let while_test = gen_module_test "while_test"
     begin
       "@ 140:    :T:  pass;" ^
       "\n@ 143:    :T:  $norm52 = true;" ^
-      "\n@ 145:    :T:  $norm53 = builtin_bool;" ^
+      "\n@ 145:    :T:  $norm53 = *bool;" ^
       "\n@ 147:    :T:  $norm54 = $norm53($norm52);" ^
       "\n@ 231:    :T:  goto 141 if not $norm54;" ^
       "\n@ 151: 148:T:  $norm60 = x.__getattribute__;" ^
@@ -953,11 +953,11 @@ let while_test = gen_module_test "while_test"
       "\n@ 163: 148:T:  $norm58 = $norm64;" ^
       "\n@ 218:    :T:  goto 149;" ^
       "\n@ 148:    :T:  catch $norm59;" ^
-      "\n@ 165:    :T:  $norm65 = builtin_type;" ^
+      "\n@ 165:    :T:  $norm65 = *type;" ^
       "\n@ 167:    :T:  $norm66 = $norm65($norm59);" ^
-      "\n@ 169:    :T:  $norm67 = builtin_AttributeError;" ^
+      "\n@ 169:    :T:  $norm67 = *AttributeError;" ^
       "\n@ 171:    :T:  $norm68 = $norm66 is $norm67;" ^
-      "\n@ 173:    :T:  $norm69 = builtin_bool;" ^
+      "\n@ 173:    :T:  $norm69 = *bool;" ^
       "\n@ 175:    :T:  $norm70 = $norm69($norm68);" ^
       "\n@ 217:    :T:  goto 216 if not $norm70;" ^
       "\n@ 177:    :T:  $norm57 = $norm59;" ^
@@ -965,11 +965,11 @@ let while_test = gen_module_test "while_test"
       "\n@ 183: 178:T:  $norm56 = $norm72;" ^
       "\n@ 202:    :T:  goto 179;" ^
       "\n@ 178:    :T:  catch $norm71;" ^
-      "\n@ 185:    :T:  $norm73 = builtin_type;" ^
+      "\n@ 185:    :T:  $norm73 = *type;" ^
       "\n@ 187:    :T:  $norm74 = $norm73($norm71);" ^
-      "\n@ 189:    :T:  $norm75 = builtin_AttributeError;" ^
+      "\n@ 189:    :T:  $norm75 = *AttributeError;" ^
       "\n@ 191:    :T:  $norm76 = $norm74 is $norm75;" ^
-      "\n@ 193:    :T:  $norm77 = builtin_bool;" ^
+      "\n@ 193:    :T:  $norm77 = *bool;" ^
       "\n@ 195:    :T:  $norm78 = $norm77($norm76);" ^
       "\n@ 201:    :T:  goto 200 if not $norm78;" ^
       "\n@ 196:    :T:  raise $norm57;" ^
@@ -1004,7 +1004,7 @@ let break_test = gen_module_test "break_test"
     begin
       "@ 140:    :T:  pass;" ^
       "\n@ 143:    :T:  $norm52 = true;" ^
-      "\n@ 145:    :T:  $norm53 = builtin_bool;" ^
+      "\n@ 145:    :T:  $norm53 = *bool;" ^
       "\n@ 147:    :T:  $norm54 = $norm53($norm52);" ^
       "\n@ 149:    :T:  goto 141 if not $norm54;" ^
       "\n@ 148:    :T:  goto 141;" ^
@@ -1018,7 +1018,7 @@ let continue_test = gen_module_test "continue_test"
     begin
       "@ 140:    :T:  pass;" ^
       "\n@ 143:    :T:  $norm52 = true;" ^
-      "\n@ 145:    :T:  $norm53 = builtin_bool;" ^
+      "\n@ 145:    :T:  $norm53 = *bool;" ^
       "\n@ 147:    :T:  $norm54 = $norm53($norm52);" ^
       "\n@ 149:    :T:  goto 141 if not $norm54;" ^
       "\n@ 148:    :T:  goto 140;" ^
