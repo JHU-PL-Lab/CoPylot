@@ -44,7 +44,8 @@ let execute_micro_command (prog : program_state) : program_state =
     let m, popped_stack2 = pop_memloc_or_fail popped_stack1 "BIND"in
     let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
     let bindings =
-      retrieve_binding_or_fail prog.heap curr_eta in
+      retrieve_binding_or_fail prog.heap curr_eta
+    in
     let new_bindings = Bindings.update_binding x m bindings in
     let new_heap =
       Heap.update_binding curr_eta (Bindings(new_bindings)) prog.heap
@@ -64,6 +65,25 @@ let execute_micro_command (prog : program_state) : program_state =
     let next_frame = Stack_frame.advance curr_frame next_label in
     let new_stack = Program_stack.push stack_body next_frame in
     { prog with micro = rest_of_stack; stack = new_stack }
+
+  (* POP command: Takes no arguments. Removes the current stack frame, and
+     updates eta accordingly. *)
+  | POP ->
+    let _, stack_body = Program_stack.pop prog.stack in
+    { prog with micro = rest_of_stack; stack = stack_body }
+
+  (* PUSH command: Takes a memloc as an argument. Creates a new stack frame with
+     its body and that memloc, and pushes that frame to the stack. *)
+  | PUSH (body) ->
+    let eta, popped_micro = pop_memloc_or_fail rest_of_stack "PUSH" in
+
+    let new_eta = Heap.get_new_memloc prog.heap in
+    let new_scope = Bindings.singleton "*parent" eta in
+    let new_heap = Heap.update_binding new_eta (Bindings(new_scope)) prog.heap in
+
+    let new_frame = Stack_frame.create new_eta body in
+    let new_stack = Program_stack.push prog.stack new_frame in
+    { micro = popped_micro; stack = new_stack; heap = new_heap }
 
   (* LOOKUP command: takes an identifier, and returns the memory address bound to
      that variable in the closest scope in which it is bound. Raises a NameError
@@ -94,50 +114,7 @@ let execute_micro_command (prog : program_state) : program_state =
       | Some(m) ->
         MIS.insert popped_stack @@ MIS.create [ Inert(Micro_memloc(m)); ]
     in
-    {prog with micro = new_micro}
-
-  (* RAISE command: takes no arguments (though there should be a memloc
-     immediately before it for future instructions to use). It examines the
-     currently active statement. If it has no exception label, we pop a stack
-     frame. Otherwise, if the exception statement points to a catch statement,
-     we move to that catch and execute it. *)
-  | RAISE ->
-    let stack_top, stack_body = Program_stack.pop prog.stack in
-    let active = get_active_or_fail stack_top in
-    begin
-      match active.exception_target with
-      | None -> (* No exception target, pop a stack frame *)
-        let new_micro = MIS.insert rest_of_stack @@
-          MIS.create [ Command(POP); Command(RAISE); ]
-        in
-        { prog with micro = new_micro }
-      | Some(uid) ->
-        let catch_stmt = Stack_frame.get_stmt stack_top uid in
-        match catch_stmt with
-        | Some({body = Catch (x);_}) ->
-          let new_micro = MIS.insert rest_of_stack @@
-            MIS.create [ Inert(Micro_var(x)); Command(BIND); Command(ADVANCE); ]
-          in
-          let catch_frame = Stack_frame.advance stack_top @@ Uid(uid) in
-          let new_stack = Program_stack.push stack_body catch_frame in
-          { prog with micro = new_micro; stack = new_stack; }
-
-        | _ -> failwith "Exception label did not point to a catch in the same scope!"
-    end
-
-  (* POP command: Takes no arguments. Removes the current stack frame, and
-     updates eta accordingly. *)
-  | POP ->
-    let _, stack_body = Program_stack.pop prog.stack in
-    { prog with micro = rest_of_stack; stack = stack_body }
-
-  (* PUSH command: Takes a memloc as an argument. Creates a new stack frame with
-     its body and that memloc, and pushes that frame to the stack. *)
-  | PUSH (body) ->
-    let eta, popped_micro = pop_memloc_or_fail rest_of_stack "PUSH" in
-    let new_frame = Stack_frame.create eta body in
-    let new_stack = Program_stack.push prog.stack new_frame in
-    { prog with micro = popped_micro; stack = new_stack }
+    { prog with micro = new_micro }
 
   (* LIST command: expects there to be size memlocs above it in the stack. Creates
      a list value containing those memlocs, with memlocs closer to the LIST command
@@ -157,11 +134,41 @@ let execute_micro_command (prog : program_state) : program_state =
     in
     { prog with micro = new_micro }
 
+  (* RAISE command: takes no arguments (though there should be a memloc
+     immediately before it for future instructions to use). It examines the
+     currently active statement. If it has no exception label, we pop a stack
+     frame. Otherwise, if the exception statement points to a catch statement,
+     we move to that catch and execute it. *)
+  | RAISE ->
+    let stack_top, stack_body = Program_stack.pop prog.stack in
+    let active = get_active_or_fail stack_top in
+    begin
+      match active.exception_target with
+      | None -> (* No exception target, pop a stack frame *)
+        let new_micro = MIS.insert rest_of_stack @@
+          MIS.create [ Command(POP); Command(RAISE); ]
+        in
+        { prog with micro = new_micro }
+
+      | Some(uid) ->
+        let catch_stmt = Stack_frame.get_stmt stack_top uid in
+        match catch_stmt with
+        | Some({body = Catch (x);_}) ->
+          let new_micro = MIS.insert rest_of_stack @@
+            MIS.create [ Inert(Micro_var(x)); Command(BIND); Command(ADVANCE); ]
+          in
+          let catch_frame = Stack_frame.advance stack_top @@ Uid(uid) in
+          let new_stack = Program_stack.push stack_body catch_frame in
+          { prog with micro = new_micro; stack = new_stack; }
+
+        | _ -> failwith "Exception label did not point to a catch in the same scope!"
+    end
+
   (* GOTO command: Takes no arguments, and moves the instruction pointer on the
      current stack frame to the specified label. *)
   | GOTO uid ->
     let curr_frame, stack_body = Program_stack.pop prog.stack in
-    let next_frame = Stack_frame.advance curr_frame (Uid(uid)) in
+    let next_frame = Stack_frame.advance curr_frame @@ Uid(uid) in
     let new_stack = Program_stack.push stack_body next_frame in
     { prog with micro = rest_of_stack; stack = new_stack }
 
@@ -188,19 +195,19 @@ let execute_micro_command (prog : program_state) : program_state =
      ourselves with a call command. *)
   | CONVERT _ ->
     (* let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CONVERT" in
-    let func_loc, popped_micro2 = pop_memloc_or_fail popped_micro "CONVERT" in
-    let value = Heap.get_value func_loc prog.heap in
-    let new_micro =
-      match value with
-      | Function _ ->
+       let func_loc, popped_micro2 = pop_memloc_or_fail popped_micro "CONVERT" in
+       let value = Heap.get_value func_loc prog.heap in
+       let new_micro =
+       match value with
+       | Function _ ->
         (* We only change the command, so we can re-use the stack that only
            had that popped *)
         MIS.insert rest_of_stack @@
         MIS.create [Command(CALL(numargs))]
-      | Method (arg, func) ->
+       | Method (arg, func) ->
         MIS.insert
-      | _ -> failwith "CONVERT not given a function or method!"
-    in *)
+       | _ -> failwith "CONVERT not given a function or method!"
+       in *)
     failwith ""
 
   (* CALL command: Expects to see numargs+1 memory locations before it, where the
@@ -209,6 +216,8 @@ let execute_micro_command (prog : program_state) : program_state =
      binds all the arguments appropriately. *)
   | CALL numargs ->
     let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CALL" in
+    (* TODO: Current spec says this should be a value, not a memloc. May or may
+       not get changed; fix when we've decided *)
     let func_loc, popped_micro2 = pop_memloc_or_fail popped_micro "CALL" in
     let value = Heap.get_value func_loc prog.heap in
     let new_micro =
@@ -223,8 +232,8 @@ let execute_micro_command (prog : program_state) : program_state =
               )
               arg_locs args
           in
-          MIS.insert popped_micro2 @@ MIS.create
-            ([ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds)
+          MIS.insert popped_micro2 @@ MIS.create @@
+            [ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds
 
       | Function (Builtin_func _) ->
         raise @@ Not_yet_implemented "Builtin function"
@@ -242,8 +251,10 @@ let execute_micro_command (prog : program_state) : program_state =
     let attr = Bindings.get_memloc member obj in
     let new_micro =
       match attr with
-      | None -> MIS.create [ Command(ALLOCATTRIBUTEERROR); Command (RAISE); ]
-      | Some(m) -> MIS.insert popped_stack2 @@
+      | None ->
+        MIS.create [ Command(ALLOCATTRIBUTEERROR); Command (RAISE); ]
+      | Some(m) ->
+        MIS.insert popped_stack2 @@
         MIS.create [ Inert(Micro_memloc(m)); ]
     in
     { prog with micro = new_micro; }
@@ -346,12 +357,10 @@ let execute_stmt (prog : program_state) : program_state =
           Inert(Micro_var(x1));
           Command(LOOKUP);
           Inert(Micro_var(x2));
-          Command(LOOKUP);
           Command(RETRIEVE);
-          Command(WRAP);
-          Command(STORE);
           Inert(Micro_var(x));
           Command(BIND);
+          Command(ADVANCE);
         ]
 
       (* Function call *)
@@ -365,18 +374,18 @@ let execute_stmt (prog : program_state) : program_state =
       | Assign(_, {body = Binop _; _}) (*(left op right)*) ->
         raise @@ Not_yet_implemented "Binops NYI"
 
-      (* Goto statement *)
-      | Goto (uid) ->
-        [
-          Command(GOTO(uid));
-        ]
-
-      (* Goto statement *)
-      | GotoIfNot (x, uid) ->
+      (* Raise statement *)
+      | Raise (x) ->
         [
           Inert(Micro_var(x));
           Command(LOOKUP);
-          Command(GOTOIFNOT(uid));
+          Command(RAISE);
+        ]
+
+      (* Pass statement *)
+      | Pass ->
+        [
+          Command(ADVANCE);
         ]
 
       (* Return statement *)
@@ -396,18 +405,18 @@ let execute_stmt (prog : program_state) : program_state =
           Command(ADVANCE);
         ]
 
-      (* Pass statement *)
-      | Pass ->
+      (* Goto statement *)
+      | Goto (uid) ->
         [
-          Command(ADVANCE);
+          Command(GOTO(uid));
         ]
 
-      (* Raise statement *)
-      | Raise (x) ->
+      (* Goto statement *)
+      | GotoIfNot (x, uid) ->
         [
           Inert(Micro_var(x));
           Command(LOOKUP);
-          Command(RAISE);
+          Command(GOTOIFNOT(uid));
         ]
 
       (* Catch statement *)
@@ -419,8 +428,6 @@ let execute_stmt (prog : program_state) : program_state =
 ;;
 
 let rec step_program (prog : program_state) : program_state =
-  (* TODO: Replace with actual termination condition if we make it something
-     different *)
   if Program_stack.is_empty prog.stack then
     prog
   else
@@ -435,11 +442,11 @@ let rec step_program (prog : program_state) : program_state =
 ;;
 
 let interpret_program (prog : modl) =
+  (* TODO: Actual initialization *)
   let Module(stmts, _) = prog in
   let global_memloc = Memloc(0) in
   let starting_frame = Stack_frame.create global_memloc (Body.create stmts) in
   let starting_stack = Program_stack.singleton starting_frame in
-  (* TODO: Probably add default bindings for the builtins *)
   let starting_bindings = Bindings.empty in
   let starting_heap =
     Heap.singleton global_memloc @@ Bindings(starting_bindings) in
