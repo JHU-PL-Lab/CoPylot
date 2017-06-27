@@ -343,44 +343,6 @@ struct
 end
 ;;
 
-(* The parents map holds the relationship between memlocs; children search their
-   parent's corresponding binding if they encounter an unbound variable. *)
-module Parents : sig
-  type t
-
-  (* Register the first input memloc as a child of the second *)
-  val add_parent: memloc -> memloc -> t -> t
-
-  (* Retrieve the parent of the input memloc, if any *)
-  val get_parent: memloc -> t -> memloc option
-
-  val empty: t
-  val singleton: memloc -> memloc -> t
-end =
-struct
-  module Memloc_ord =
-  struct
-    type t = memloc
-    let compare = compare_memloc
-  end
-  module Memloc_map = Map.Make(Memloc_ord);;
-
-  type t = memloc Memloc_map.t;;
-
-  let add_parent child parent prev = Memloc_map.add child parent prev;;
-
-  let get_parent child map =
-    try
-      let parent = Memloc_map.find child map in
-      Some(parent)
-    with
-    | Not_found -> None;;
-
-  let empty = Memloc_map.empty;;
-
-  let singleton child parent = Memloc_map.singleton child parent;;
-end;;
-
 type micro_inert =
   | Micro_var of identifier
   | Micro_memloc of memloc
@@ -402,6 +364,7 @@ type micro_command =
   | GOTO of uid
   | GOTOIFNOT of uid
   | CALL of int (* numargs *)
+  (* | CONVERT of int (* numargs *) *)
   | RETRIEVE
   | ALLOCNAMEERROR
   | ALLOCTYPEERROR
@@ -507,7 +470,6 @@ end
 
 type program_state =
   {
-    parents: Parents.t;
     micro: Micro_instruction_stack.t;
     stack: Program_stack.t;
     heap: Heap.t;

@@ -28,8 +28,7 @@ let literal_to_value (l : literal) (curr_m : memloc): value =
   | Normalized.FunctionVal (args, body)
     -> Function (User_func(curr_m, args, Body.create body))
 ;;
-(* TODO: Change to take in the name of the command rather than a failuremsg,
-   and construct the method dynamically based on that *)
+
 let pop_var_or_fail
     (micro: Micro_instruction_stack.t)
     (caller: string)
@@ -116,8 +115,9 @@ let get_active_or_fail (frame : Stack_frame.t) : annotated_stmt =
   extract_option_or_fail active "Failed to find active statement"
 ;;
 
-let get_parent_or_fail (child : memloc) (parents : Parents.t) : memloc =
-  let parent = Parents.get_parent child parents in
+let get_parent_or_fail (child : memloc) (heap : Heap.t) : memloc =
+  let parent_binding = retrieve_binding_or_fail heap child in
+  let parent = Bindings.get_memloc "*parent" parent_binding in
   extract_option_or_fail parent "Failed to find parent scope"
 ;;
 

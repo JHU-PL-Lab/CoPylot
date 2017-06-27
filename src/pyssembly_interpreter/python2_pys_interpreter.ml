@@ -79,7 +79,7 @@ let execute_micro_command (prog : program_state) : program_state =
       match m with
       | Some _ -> m
       | None ->
-        let parent = Parents.get_parent eta prog.parents in
+        let parent = Bindings.get_memloc "*parent" bindings in
         match parent with
         | None -> None
         | Some(p) -> lookup p id
@@ -441,11 +441,9 @@ let interpret_program (prog : modl) =
   let starting_bindings = Bindings.empty in
   let starting_heap =
     Heap.singleton global_memloc @@ Bindings(starting_bindings) in
-  let starting_parents = Parents.empty in
   let starting_micro = Micro_instruction_stack.create [] in
   let starting_program =
     {
-      parents = starting_parents;
       micro = starting_micro;
       stack = starting_stack;
       heap = starting_heap;
