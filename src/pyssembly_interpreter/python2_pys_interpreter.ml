@@ -116,6 +116,16 @@ let execute_micro_command (prog : program_state) : program_state =
     in
     { prog with micro = new_micro }
 
+  (* GETVALUE command: takes a memory location, and returns the value at that
+     address *)
+  | GET ->
+    let m, popped_stack = pop_memloc_or_fail rest_of_stack "GETVALUE" in
+    let v = Heap.get_value m prog.heap in
+    let new_micro = MIS.insert popped_stack @@
+      MIS.create [Inert(Micro_value(v))]
+    in
+    { prog with micro = new_micro; }
+
   (* LIST command: expects there to be size memlocs above it in the stack. Creates
      a list value containing those memlocs, with memlocs closer to the LIST command
      being further down the list *)
@@ -193,22 +203,31 @@ let execute_micro_command (prog : program_state) : program_state =
      with a call command. If points to a method value, we turn it into a
      function value by adding the self arg to the micro-stack, and then replace
      ourselves with a call command. *)
-  | CONVERT _ ->
-    (* let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CONVERT" in
-       let func_loc, popped_micro2 = pop_memloc_or_fail popped_micro "CONVERT" in
-       let value = Heap.get_value func_loc prog.heap in
-       let new_micro =
-       match value with
-       | Function _ ->
+  | CONVERT numargs ->
+    let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CONVERT" in
+    let func_val, popped_micro2 = pop_value_or_fail popped_micro "CONVERT" in
+    let new_micro =
+      match func_val with
+      | Function _ ->
         (* We only change the command, so we can re-use the stack that only
            had that popped *)
         MIS.insert rest_of_stack @@
         MIS.create [Command(CALL(numargs))]
-       | Method (arg, func) ->
-        MIS.insert
-       | _ -> failwith "CONVERT not given a function or method!"
-       in *)
-    failwith ""
+
+      | Method (arg, func) ->
+        let arglist = List.map (fun m -> Inert(Micro_memloc(m))) arg_locs in
+        MIS.insert popped_micro2 @@
+        MIS.create @@
+        [
+          Inert(Micro_value(Function(func)));
+          Inert(Micro_memloc(arg));
+        ] @
+        arglist @
+        [Command(CALL(numargs+1))]
+
+      | _ -> failwith "CONVERT not given a function or method!"
+    in
+    { prog with micro = new_micro }
 
   (* CALL command: Expects to see numargs+1 memory locations before it, where the
      furthest one points to a function or method value to be called. Issues
@@ -233,7 +252,7 @@ let execute_micro_command (prog : program_state) : program_state =
               arg_locs args
           in
           MIS.insert popped_micro2 @@ MIS.create @@
-            [ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds
+          [ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds
 
       | Function (Builtin_func _) ->
         raise @@ Not_yet_implemented "Builtin function"
@@ -365,11 +384,18 @@ let execute_stmt (prog : program_state) : program_state =
 
       (* Function call *)
       | Assign(_, {body = Call(x0, args); _}) ->
-        let lookups = List.concat @@ List.map
+        let arg_lookups = List.concat @@ List.map
             (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
-            (x0::args)
+            args
         in
-        lookups @ [ Command(CONVERT(List.length args)); ]
+        [
+          Inert(Micro_var(x0));
+          Command(LOOKUP);
+          Inert(Micro_var("*value"));
+          Command(RETRIEVE);
+          Command(GET);
+        ] @
+        arg_lookups @ [ Command(CONVERT(List.length args)); ]
 
       | Assign(_, {body = Binop _; _}) (*(left op right)*) ->
         raise @@ Not_yet_implemented "Binops NYI"
