@@ -179,7 +179,7 @@ let literal_tests =
     gen_literal_test "bool_true_test" "True" "true";
     gen_literal_test "bool_false_test" "False" "false";
 
-    gen_literal_test "none_test" "None" "None";
+    gen_literal_test "none_test" "None" "*None";
   ]
 ;;
 
@@ -191,7 +191,7 @@ let stmt_tests =
       "@ 141:    :F:  $norm52 = 5;\n@ 142:    :F:  return $norm52;";
 
     gen_module_test "return_none_test" "return"
-      "@ 141:    :F:  $norm52 = None;\n@ 142:    :F:  return $norm52;";
+      "@ 140:    :F:  return *None;";
 
 
     gen_module_test "print_test1" "print x" "@ 140:    :F:  print x;";

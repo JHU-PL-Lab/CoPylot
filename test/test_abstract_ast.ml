@@ -178,7 +178,7 @@ let literal_tests =
     gen_literal_test "bool_true_test" "True" "true";
     gen_literal_test "bool_false_test" "False" "false";
 
-    gen_literal_test "none_test" "None" "None";
+    gen_literal_test "none_test" "None" "*None";
   ]
 ;;
 

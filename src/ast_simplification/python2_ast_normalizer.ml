@@ -639,11 +639,6 @@ and normalize_expr_full
     annotate_expr @@
     Normalized.Literal(Normalized.FunctionVal(args, normalized_body))
 
-  | Simplified.NoneExpr (annot) ->
-    gen_normalized_assignment ctx annot @@
-    annotate_expr @@
-    Normalized.NoneExpr
-
   | Simplified.Attribute (obj, attr, annot) ->
     (* Attribute lookups follow a rather complicated process. We first look for
        a __getattribute__ method (new-style classes only), which is called first.

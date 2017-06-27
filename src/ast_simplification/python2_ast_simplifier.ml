@@ -56,7 +56,7 @@ and simplify_stmt
   | Concrete.Return (value, annot) ->
     begin
       match simplify_expr_option value with
-      | None -> [Simplified.Return(Simplified.NoneExpr(annot), annot)]
+      | None -> [Simplified.Return(Simplified.Name("*None", annot), annot)]
       | Some(v) -> [Simplified.Return(v, annot)]
     end
 
@@ -581,7 +581,7 @@ and simplify_expr
     Simplified.Tuple (List.map simplify_expr elts, annot)
 
   | Concrete.NoneExpr (annot) ->
-    Simplified.NoneExpr (annot)
+    Simplified.Name("*None", annot);
 
   | Concrete.Builtin (b, annot) ->
     Simplified.Builtin (b, annot)
@@ -606,7 +606,7 @@ and simplify_slice
   let exp_opt_to_slice_arg e =
     match e with
     | None ->
-      Simplified.NoneExpr(annot)
+      Simplified.Name("*None", annot)
     | Some(x) ->
       simplify_expr x
   in

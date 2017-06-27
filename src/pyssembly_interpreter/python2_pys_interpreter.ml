@@ -293,15 +293,6 @@ let execute_stmt (prog : program_state) : program_state =
           Command(ADVANCE);
         ]
 
-      (* Assignment from None *)
-      | Assign(x, {body = NoneExpr; _}) ->
-        [
-          Inert(Micro_memloc(None_memloc));
-          Inert(Micro_var(x));
-          Command(BIND);
-          Command(ADVANCE);
-        ]
-
       (* Variable Aliasing *)
       | Assign(x1, {body = Name(x2); _}) ->
         [

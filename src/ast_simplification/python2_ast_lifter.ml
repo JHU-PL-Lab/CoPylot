@@ -53,8 +53,6 @@ and lift_expr { uid = u; exception_target = ex; multi = m; body = old_body } =
       Abstract.Tuple (elts)
     | Concrete.Literal (l) ->
       Abstract.Literal(lift_literal l)
-    | Concrete.NoneExpr ->
-      Abstract.NoneExpr
   in
   { uid = u; exception_target = ex; multi = m; body = new_body }
 

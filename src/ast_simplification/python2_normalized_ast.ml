@@ -29,7 +29,6 @@ and expr =
   | Tuple of identifier list (* elts *)
   | Literal of literal
   | Name of identifier (* id *)
-  | NoneExpr
 [@@deriving eq, ord, show, to_yojson]
 
 and literal =

@@ -51,7 +51,7 @@ let int_test = gen_stmt_test "int_test"
 
 let none_test = gen_stmt_test "none_test"
     "None"
-    (NoneExpr(annot))
+    (Name("*None", annot))
 ;;
 
 let float_test = gen_stmt_test "float_test"
@@ -338,7 +338,7 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
               [
                 Num(Int(1), annot);
                 Num(Int(2), annot);
-                NoneExpr(annot);
+                Name("*None", annot);
               ],
               annot
             );
@@ -1001,23 +1001,23 @@ let list_tests =
        (Call(Builtin(Builtin_slice, annot),
              [
                Num(Int(2), annot);
-               NoneExpr(annot);
-               NoneExpr(annot);
+               Name("*None", annot);
+               Name("*None", annot);
              ],
              annot)));
     (gen_slice_test "slice_test4" "[:4]"
        (Call(Builtin(Builtin_slice, annot),
              [
-               NoneExpr(annot);
+               Name("*None", annot);
                Num(Int(4), annot);
-               NoneExpr(annot);
+               Name("*None", annot);
              ],
              annot)));
     (gen_slice_test "slice_test5" "[::3]"
        (Call(Builtin(Builtin_slice, annot),
              [
-               NoneExpr(annot);
-               NoneExpr(annot);
+               Name("*None", annot);
+               Name("*None", annot);
                Num(Int(3), annot);
              ],
              annot)));
@@ -1026,7 +1026,7 @@ let list_tests =
              [
                Num(Int(2), annot);
                Num(Int(4), annot);
-               NoneExpr(annot);
+               Name("*None", annot);
              ],
              annot)));
     (gen_slice_test "slice_test7" "[2:4:-1]"

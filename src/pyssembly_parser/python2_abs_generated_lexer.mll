@@ -65,6 +65,5 @@ rule token = parse
       | "Float+" -> NUM (Float(Pos))
       | "Float-" -> NUM (Float(Neg))
       | "Float0" -> NUM (Float(Zero))
-      | "None" -> NONE
       | _ -> NAME (id)
     }

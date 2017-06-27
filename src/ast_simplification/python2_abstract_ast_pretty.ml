@@ -85,8 +85,6 @@ and pp_compound_expr indent fmt {uid=_;exception_target=_;multi=_;body} =
       (pp_list pp_id) lst
   | Literal (l) -> (pp_literal indent) fmt l
   | Name (id)   -> pp_id fmt id
-  | NoneExpr    -> fprintf fmt "None"
-
 
 and pp_id fmt id =
   fprintf fmt "%s" id

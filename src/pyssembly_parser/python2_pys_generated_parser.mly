@@ -9,7 +9,6 @@
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
-%token NONE
 /*%token <string> STR*/
 
 /* keywords */
@@ -130,7 +129,6 @@ expr:
   | LPAREN lst RPAREN { Tuple($2) }
   | literal { Literal($1) }
   | NAME { Name($1) }
-  | NONE { NoneExpr }
 
 literal:
   | INT { Num(Int($1)) }
