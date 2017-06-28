@@ -1,1 +1,5 @@
 Create the global *get_attribute
+Update interpreter:
+  Change how wrap/GetObj works
+  Remove S from program stacks and functions
+  Change ADVANCE to pop directly 

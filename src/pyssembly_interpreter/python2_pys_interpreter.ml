@@ -33,8 +33,9 @@ let execute_micro_command (prog : program_state) : program_state =
      If the memloc points to an already-existing object, it simply returns that
      object. *)
   | WRAP ->
-    let m, popped_stack = pop_memloc_or_fail rest_of_stack "WRAP" in
-    ignore m; ignore popped_stack;
+    let v, popped_stack = pop_value_or_fail rest_of_stack "WRAP" in
+    let m, popped_stack2 = pop_memloc_or_fail popped_stack "WRAP" in
+    ignore m; ignore popped_stack2; ignore v;
     raise @@ Not_yet_implemented "GetObj (in WRAP command)"
 
   (* BIND command: takes an identifier and a memloc. Binds the memloc to the id,
@@ -124,7 +125,27 @@ let execute_micro_command (prog : program_state) : program_state =
     let new_micro = MIS.insert popped_stack @@
       MIS.create [Inert(Micro_value(v))]
     in
-    { prog with micro = new_micro; }
+    { prog with micro = new_micro }
+
+  (* ASSIGN command: Takes a raw value and an identifier, and generates the
+     necessary commands to store that value in memory and bind it to the
+     identifier. *)
+  | ASSIGN ->
+    let x, popped_stack = pop_var_or_fail rest_of_stack "ASSIGN" in
+    let v, popped_stack2 = pop_value_or_fail popped_stack "ASSIGN" in
+    let new_micro = MIS.insert popped_stack2 @@
+      MIS.create
+        [
+          Inert(Micro_value(v));
+          Command(STORE);
+          Inert(Micro_value(v));
+          Command(WRAP);
+          Command(STORE);
+          Inert(Micro_var(x));
+          Command(BIND);
+        ]
+    in
+    { prog with micro = new_micro }
 
   (* LIST command: expects there to be size memlocs above it in the stack. Creates
      a list value containing those memlocs, with memlocs closer to the LIST command
@@ -318,11 +339,8 @@ let execute_stmt (prog : program_state) : program_state =
         let lval = literal_to_value l curr_eta in
         [
           Inert(Micro_value(lval));
-          Command(STORE);
-          Command(WRAP);
-          Command(STORE);
           Inert(Micro_var(x));
-          Command(BIND);
+          Command(ASSIGN);
           Command(ADVANCE);
         ]
 
@@ -345,11 +363,8 @@ let execute_stmt (prog : program_state) : program_state =
         lookups @
         [
           Command(LIST(List.length elts));
-          Command(STORE);
-          Command(WRAP);
-          Command(STORE);
           Inert(Micro_var(x));
-          Command(BIND);
+          Command(ASSIGN);
           Command(ADVANCE);
         ]
 
@@ -362,11 +377,8 @@ let execute_stmt (prog : program_state) : program_state =
         lookups @
         [
           Command(TUPLE(List.length elts));
-          Command(STORE);
-          Command(WRAP);
-          Command(STORE);
           Inert(Micro_var(x));
-          Command(BIND);
+          Command(ASSIGN);
           Command(ADVANCE);
         ]
 
@@ -395,7 +407,8 @@ let execute_stmt (prog : program_state) : program_state =
           Command(RETRIEVE);
           Command(GET);
         ] @
-        arg_lookups @ [ Command(CONVERT(List.length args)); ]
+        arg_lookups @
+        [ Command(CONVERT(List.length args)); ]
 
       | Assign(_, {body = Binop _; _}) (*(left op right)*) ->
         raise @@ Not_yet_implemented "Binops NYI"

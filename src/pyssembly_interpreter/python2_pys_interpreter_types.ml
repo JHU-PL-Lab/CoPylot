@@ -347,6 +347,7 @@ type micro_command =
   | BIND
   | LOOKUP
   | GET
+  | ASSIGN
   | LIST of int (* size *)
   | TUPLE of int (* size *)
   | ADVANCE
