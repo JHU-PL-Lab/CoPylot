@@ -2,7 +2,7 @@ open OUnit2;;
 open Batteries;;
 open Jhupllib;;
 
-(* open Python2_ast_types;; *)
+open Python2_ast_types;;
 open Python2_ast_pipeline;;
 
 open Python2_pys_interpreter_types;;
@@ -24,7 +24,7 @@ let gen_module_test (name : string) (prog : string)
     (expected : program_state ) =
   name>::
   ( fun _ ->
-      let actual = parse_to_normalized_safe prog true in
+      let actual = parse_to_normalized_safe prog true false in
       Python2_ast_simplifier.reset_unique_name ();
       Python2_ast_normalizer.reset_unique_name ();
 
@@ -33,8 +33,58 @@ let gen_module_test (name : string) (prog : string)
   )
 ;;
 
+let starting_bindings = Bindings.empty;;
+let empty_state =
+  {
+    micro = Micro_instruction_stack.empty;
+    stack = Program_stack.empty;
+    heap = Heap.singleton (Memloc(0)) (Bindings(starting_bindings))
+  }
+;;
+
+let pass_test = gen_module_test "pass_test"
+    "pass"
+    empty_state
+;;
+
+let int_test = gen_module_test "int_test"
+    "4"
+    { empty_state with heap =
+                         Heap.empty
+                         |> Heap.update_binding (Memloc(0))
+                           begin
+                             Bindings(
+                               starting_bindings
+                               |> Bindings.update_binding "$norm0" (Memloc(2))
+                             )
+                           end
+                         |> Heap.update_binding (Memloc(1)) (Num(Int(4)))
+                         |> Heap.update_binding (Memloc(2)) (Bindings(Bindings.empty))
+    }
+;;
+
+let int_assign_test = gen_module_test "int_assign_test"
+    "x = 4"
+    { empty_state with heap =
+                         Heap.empty
+                         |> Heap.update_binding (Memloc(0))
+                           begin
+                             Bindings(
+                               starting_bindings
+                               |> Bindings.update_binding "$norm0" (Memloc(2))
+                               |> Bindings.update_binding "x" (Memloc(2))
+                               |> Bindings.update_binding "$simp0" (Memloc(2))
+                             )
+                           end
+                         |> Heap.update_binding (Memloc(1)) (Num(Int(4)))
+                         |> Heap.update_binding (Memloc(2)) (Bindings(Bindings.empty))
+    }
+;;
+
 let tests =
   "test_pys_interpreter">:::
   [
-
+    pass_test;
+    int_test;
+    int_assign_test;
   ]

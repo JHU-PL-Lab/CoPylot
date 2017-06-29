@@ -146,7 +146,7 @@ let gen_module_test (name : string) (prog : string)
     (expected : string) =
   name>::
   ( fun _ ->
-      let actual = parse_to_normalized_safe prog true in
+      let actual = parse_to_normalized_safe prog true true in
       Python2_ast_simplifier.reset_unique_name ();
       Python2_ast_normalizer.reset_unique_name ();
 
@@ -1036,7 +1036,7 @@ let expect_error_test
      assert_raises
        expected
        (fun _ ->
-          parse_to_normalized prog true);
+          parse_to_normalized prog true true);
      Python2_ast_simplifier.reset_unique_name ();
      Python2_ast_normalizer.reset_unique_name ()
   )

@@ -421,12 +421,19 @@ struct
   ;;
   ignore @@ show;; (* This suppresses warnings that are definitely buggy *)
 
-  (* We maintain the invariant that we are always pointing to the first
-     non-inert micro_instruction in the stack; that is, that the first element
-     of the micro_instruction list is not inert *)
+  let rec gather_inerts inerts lst =
+    match lst with
+    | [] -> inerts, lst
+    | hd::rest ->
+      match hd with
+      | Inert i -> gather_inerts (i::inerts) rest
+      | _ -> inerts, lst
+  ;;
 
   let get_first_command (stack : t) : micro_command =
-    match snd stack with
+    (* Walk forward until we see the next command *)
+    let new_stack = gather_inerts (fst stack) (snd stack) in
+    match snd new_stack with
     | [] -> failwith "No commands in MI stack"
     | hd::_ ->
       match hd with
@@ -435,23 +442,24 @@ struct
   ;;
 
   let pop_first_command (stack : t) : micro_command * t =
-    match snd stack with
+    let new_stack = gather_inerts (fst stack) (snd stack) in
+    match snd new_stack with
     | [] -> failwith "No commands in MI stack"
     | hd::rest ->
       match hd with
       | Inert _ -> failwith "Inert was at the head of our MI stack!"
-      | Command c -> c, (fst stack, rest)
+      | Command c -> c, (fst new_stack, rest)
   ;;
 
   let get_first_inert (stack : t) : micro_inert =
     match fst stack with
-    | [] -> failwith "No inerts at beginning of MI stack"
+    | [] -> failwith "Can't get from empty Micro instruction stack"
     | hd::_ -> hd
   ;;
 
   let pop_first_inert (stack : t) : micro_inert * t =
     match fst stack with
-    | [] -> failwith "Can't get from empty Micro instruction stack"
+    | [] -> failwith "Can't pop from empty Micro instruction stack"
     | hd::rest ->
       hd, (rest, snd stack)
   ;;
@@ -460,22 +468,12 @@ struct
     List.is_empty (fst stack) && List.is_empty (snd stack)
   ;;
 
-  let create lst =
-    let rec gather_inerts inerts lst =
-      match lst with
-      | [] -> [], []
-      | hd::rest ->
-        match hd with
-        | Inert i -> gather_inerts (i::inerts) rest
-        | _ -> inerts, rest
-    in
-    gather_inerts [] lst
-  ;;
+  let create lst = [], lst ;;
 
   let empty = create [];;
 
   let insert (stack: t) (inserted: t) =
-    fst stack @ fst inserted, snd stack @ snd inserted
+    fst inserted @ fst stack, snd inserted @ snd stack
   ;;
 
 end

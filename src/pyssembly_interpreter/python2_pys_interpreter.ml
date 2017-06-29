@@ -10,9 +10,8 @@ open Python2_pys_interpreter_utils;;
 let execute_micro_command (prog : program_state) (ctx : program_context)
   : program_state =
   let module MIS = Micro_instruction_stack in
-  let command, rest_of_stack =
-    MIS.pop_first_command prog.micro
-  in
+
+  let command, rest_of_stack = MIS.pop_first_command prog.micro in
   match command with
   (* STORE command; takes a value and binds it to a fresh memory location on
      the heap. Returns the fresh memory location. *)
@@ -36,11 +35,14 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
   | WRAP ->
     let v, popped_stack = pop_value_or_fail rest_of_stack "WRAP" in
     let m, popped_stack2 = pop_memloc_or_fail popped_stack "WRAP" in
-    ignore m; ignore popped_stack2; ignore v;
-    raise @@ Not_yet_implemented "GetObj (in WRAP command)"
-
-  (* BIND command: takes an identifier and a memloc. Binds the memloc to the id,
-     and returns nothing *)
+    ignore m; ignore v;
+    let obj_val = Bindings(Bindings.empty) in (* TODO: Call GetObj *)
+    let new_micro = MIS.insert popped_stack2 @@
+      MIS.create [Inert(Micro_value(obj_val));]
+    in
+    { prog with micro = new_micro; }
+    (* BIND command: takes an identifier and a memloc. Binds the memloc to the id,
+       and returns nothing *)
   | BIND ->
     let x, popped_stack1 = pop_var_or_fail rest_of_stack "BIND" in
     let m, popped_stack2 = pop_memloc_or_fail popped_stack1 "BIND"in
@@ -479,7 +481,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
 
     | Print _ ->  raise @@ Not_yet_implemented "Print statements NYI"
   in
-  {prog with micro = Micro_instruction_stack.create new_micro_list}
+  { prog with micro = Micro_instruction_stack.create new_micro_list }
 ;;
 
 let rec step_program (prog : program_state) (ctx : program_context)
@@ -488,7 +490,7 @@ let rec step_program (prog : program_state) (ctx : program_context)
     prog
   else
     let next_prog =
-      if (Micro_instruction_stack.is_empty prog.micro)
+      if Micro_instruction_stack.is_empty prog.micro
       then
         execute_stmt prog ctx
       else
