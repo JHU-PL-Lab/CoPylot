@@ -51,116 +51,24 @@ and collect_uids_stmt s =
   s.uid::rest
 ;;
 
-let get_call_def =
-  "@ 137:    :F:  $norm51 = def ($norm0) {" ^
-  "\n@   3:   1:T:    pass;" ^
-  "\n@   6:   1:T:    $norm2 = *type;" ^
-  "\n@   8:   1:T:    $norm3 = $norm2($norm0);" ^
-  "\n@  10:   1:T:    $norm4 = *method_wrapper_type;" ^
-  "\n@  12:   1:T:    $norm5 = $norm3 is $norm4;" ^
-  "\n@  14:   1:T:    $norm8 = *bool;" ^
-  "\n@  16:   1:T:    $norm9 = $norm8($norm5);" ^
-  "\n@  28:   1:T:    goto 27 if not $norm9;" ^
-  "\n@  18:   1:T:    $norm10 = false;" ^
-  "\n@  20:   1:T:    $norm7 = $norm10;" ^
-  "\n@  26:   1:T:    goto 25;" ^
-  "\n@  27:   1:T:    pass;" ^
-  "\n@  22:   1:T:    $norm11 = true;" ^
-  "\n@  24:   1:T:    $norm7 = $norm11;" ^
-  "\n@  25:   1:T:    pass;" ^
-  "\n@  30:   1:T:    $norm6 = $norm7;" ^
-  "\n@  32:   1:T:    $norm12 = *bool;" ^
-  "\n@  34:   1:T:    $norm13 = $norm12($norm6);" ^
-  "\n@ 108:   1:T:    goto 4 if not $norm13;" ^
-  "\n@  38:  35:T:    $norm19 = $norm0.__getattribute__;" ^
-  "\n@  40:  35:T:    $norm14 = $norm19;" ^
-  "\n@  42:  35:T:    $norm20 = \"__call__\";" ^
-  "\n@  44:  35:T:    $norm22 = *get_call($norm14);" ^
-  "\n@  46:  35:T:    $norm21 = $norm22;" ^
-  "\n@  48:  35:T:    $norm23 = $norm21($norm20);" ^
-  "\n@  50:  35:T:    $norm17 = $norm23;" ^
-  "\n@ 105:   1:T:    goto 36;" ^
-  "\n@  35:   1:T:    catch $norm18;" ^
-  "\n@  52:   1:T:    $norm24 = *type;" ^
-  "\n@  54:   1:T:    $norm25 = $norm24($norm18);" ^
-  "\n@  56:   1:T:    $norm26 = *AttributeError;" ^
-  "\n@  58:   1:T:    $norm27 = $norm25 is $norm26;" ^
-  "\n@  60:   1:T:    $norm28 = *bool;" ^
-  "\n@  62:   1:T:    $norm29 = $norm28($norm27);" ^
-  "\n@ 104:   1:T:    goto 103 if not $norm29;" ^
-  "\n@  64:   1:T:    $norm16 = $norm18;" ^
-  "\n@  68:  65:T:    $norm31 = $norm0.__getattr__;" ^
-  "\n@  70:  65:T:    $norm15 = $norm31;" ^
-  "\n@  89:   1:T:    goto 66;" ^
-  "\n@  65:   1:T:    catch $norm30;" ^
-  "\n@  72:   1:T:    $norm32 = *type;" ^
-  "\n@  74:   1:T:    $norm33 = $norm32($norm30);" ^
-  "\n@  76:   1:T:    $norm34 = *AttributeError;" ^
-  "\n@  78:   1:T:    $norm35 = $norm33 is $norm34;" ^
-  "\n@  80:   1:T:    $norm36 = *bool;" ^
-  "\n@  82:   1:T:    $norm37 = $norm36($norm35);" ^
-  "\n@  88:   1:T:    goto 87 if not $norm37;" ^
-  "\n@  83:   1:T:    raise $norm16;" ^
-  "\n@  86:   1:T:    goto 85;" ^
-  "\n@  87:   1:T:    pass;" ^
-  "\n@  84:   1:T:    raise $norm30;" ^
-  "\n@  85:   1:T:    pass;" ^
-  "\n@  66:   1:T:    pass;" ^
-  "\n@  91:   1:T:    $norm38 = \"__call__\";" ^
-  "\n@  93:   1:T:    $norm40 = *get_call($norm15);" ^
-  "\n@  95:   1:T:    $norm39 = $norm40;" ^
-  "\n@  97:   1:T:    $norm41 = $norm39($norm38);" ^
-  "\n@  99:   1:T:    $norm17 = $norm41;" ^
-  "\n@ 102:   1:T:    goto 101;" ^
-  "\n@ 103:   1:T:    pass;" ^
-  "\n@ 100:   1:T:    raise $norm18;" ^
-  "\n@ 101:   1:T:    pass;" ^
-  "\n@  36:   1:T:    pass;" ^
-  "\n@ 107:   1:T:    $norm0 = $norm17;" ^
-  "\n@ 109:   1:T:    goto 3;" ^
-  "\n@   4:   1:T:    pass;" ^
-  "\n@ 134:    :F:    goto 2;" ^
-  "\n@   1:    :F:    catch $norm1;" ^
-  "\n@ 111:    :F:    $norm42 = *type;" ^
-  "\n@ 113:    :F:    $norm43 = $norm42($norm1);" ^
-  "\n@ 115:    :F:    $norm44 = *AttributeError;" ^
-  "\n@ 117:    :F:    $norm45 = $norm43 is $norm44;" ^
-  "\n@ 119:    :F:    $norm46 = *bool;" ^
-  "\n@ 121:    :F:    $norm47 = $norm46($norm45);" ^
-  "\n@ 133:    :F:    goto 132 if not $norm47;" ^
-  "\n@ 123:    :F:    $norm48 = *TypeError;" ^
-  "\n@ 125:    :F:    $norm49 = \"Object is not callable\";" ^
-  "\n@ 127:    :F:    $norm50 = $norm48($norm49);" ^
-  "\n@ 128:    :F:    raise $norm50;" ^
-  "\n@ 131:    :F:    goto 130;" ^
-  "\n@ 132:    :F:    pass;" ^
-  "\n@ 129:    :F:    raise $norm1;" ^
-  "\n@ 130:    :F:    pass;" ^
-  "\n@   2:    :F:    pass;" ^
-  "\n@ 135:    :F:    return $norm0;" ^
-  "\n};" ^
-  "\n@ 139:    :F:  *get_call = $norm51;\n"
-;;
-
 let gen_module_test (name : string) (prog : string)
     (expected : string)=
   name>::
   ( fun _ ->
-      let actual = parse_to_abstract_safe prog true true in
+      let actual = parse_to_abstract_safe prog true false in
       Python2_ast_simplifier.reset_unique_name ();
       Python2_ast_normalizer.reset_unique_name ();
       let distinct_uids = verify_unique_uids actual in
       assert_bool ("Repeated UIDs:\n" ^ string_of_modl actual)
         distinct_uids;
       let pyssembly = pp_to_string pp_modl actual in
-      let full_expected = get_call_def ^ expected in
-      assert_equal ~printer:(fun x -> x) ~cmp:String.equal full_expected pyssembly
+      assert_equal ~printer:(fun x -> x) ~cmp:String.equal expected pyssembly
   )
 ;;
 
 let gen_literal_test name prog exp =
   gen_module_test name prog
-    ("@ 141:    :F:  $norm52 = " ^ exp ^ ";")
+    ("@   2:    :F:  $norm0 = " ^ exp ^ ";")
 ;;
 
 let literal_tests =
