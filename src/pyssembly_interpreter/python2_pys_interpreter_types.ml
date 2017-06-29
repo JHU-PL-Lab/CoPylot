@@ -124,8 +124,12 @@ struct
   end
   module Uid_map = Map.Make(Uid_ord);;
   type lexical_map = uid Uid_map.t;;
+  open Uid_generation;;
 
-  type t = { stmts: annotated_stmt list; order: lexical_map};;
+  type t = { stmts: annotated_stmt list;
+             order: lexical_map;
+             stmt_map: annotated_stmt Uid_hashtbl.t
+           };;
 
   let compare t1 t2 = List.compare compare_annotated_stmt t1.stmts t2.stmts;;
   let equal t1 t2 = List.eq equal_annotated_stmt t1.stmts t2.stmts;;
@@ -138,7 +142,7 @@ struct
 
   let get_stmt (b : t) (u : uid) =
     try
-      Some(List.find (fun s -> (s.uid = u)) b.stmts)
+      Some(Uid_hashtbl.find b.stmt_map u)
     with
     | Not_found -> None
 
@@ -166,8 +170,9 @@ struct
         add_to_map next_map rst
     in
     let lexical_map = add_to_map Uid_map.empty stmts in
+    let stmt_map = Python2_uid_stmt_map.norm_get_uid_hashtbl @@ Module(stmts, 0) in
 
-    { stmts = stmts; order = lexical_map }
+    { stmts = stmts; order = lexical_map; stmt_map = stmt_map; }
   ;;
 
   let get_next_uid (b : t) (u : uid) =
