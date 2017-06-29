@@ -1,5 +1,5 @@
 (* open Batteries;; *)
-(* open Python2_ast_types;; *)
+open Python2_ast_types;;
 open Python2_normalized_ast;;
 open Python2_pys_interpreter_types;;
 (* open Python2_pys_interpreter_builtin_objects;; *)
@@ -26,7 +26,7 @@ let literal_to_value (l : literal) (curr_m : memloc): value =
   | Normalized.Bool (b)    -> Bool(b)
   | Normalized.Builtin (b) -> convert_builtin b
   | Normalized.FunctionVal (args, body)
-    -> Function (User_func(curr_m, args, Body.create body))
+    -> Function (User_func(curr_m, args, (List.hd body).uid))
 ;;
 
 let pop_var_or_fail
@@ -111,9 +111,12 @@ let retrieve_binding_or_fail (heap : Heap.t) (m : memloc) : Bindings.t =
   bindings
 ;;
 
-let get_active_or_fail (frame : Stack_frame.t) : annotated_stmt =
-  let active = Stack_frame.active_stmt frame in
-  extract_option_or_fail active "Failed to find active statement"
+let get_active_or_fail (frame : Stack_frame.t) (ctx : program_context)
+  : annotated_stmt =
+  let active_uid = Stack_frame.get_active_uid frame in
+  let active_stmt = Body.get_stmt ctx.program active_uid in
+  extract_option_or_fail active_stmt "Failed to find active statement"
+
 ;;
 
 let get_parent_or_fail (child : memloc) (heap : Heap.t) : memloc =

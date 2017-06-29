@@ -17,12 +17,6 @@ type str = Python2_ast_types.str
 [@@deriving eq, ord, show]
 ;;
 
-type label =
-  | Uid of uid
-  | End
-[@@deriving eq, ord, show]
-;;
-
 type builtin_exception =
   | Builtin_AttributeError
   | Builtin_NameError
@@ -117,21 +111,21 @@ module Body : sig
   (* Retrieve the statement with the given uid *)
   val get_stmt: t -> uid -> annotated_stmt option
 
-  (* Return the uid of the next statement in the list, or End if none.
+  (* Return the uid of the next statement in the list, or None if none.
      WARNING: this is not necessarily the next statement to be executed if
      the first statement is a Goto or GotoIfNot statement.*)
-  val get_next_label: t -> label -> label option
+  val get_next_uid: t -> uid -> uid option
 end =
 struct
-  module Label_ord =
+  module Uid_ord =
   struct
-    type t = label
-    let compare = compare_label
+    type t = uid
+    let compare = compare_uid
   end
-  module Label_map = Map.Make(Label_ord);;
-  type order_map = label Label_map.t;;
+  module Uid_map = Map.Make(Uid_ord);;
+  type lexical_map = uid Uid_map.t;;
 
-  type t = { stmts: annotated_stmt list; order: order_map};;
+  type t = { stmts: annotated_stmt list; order: lexical_map};;
 
   let compare t1 t2 = List.compare compare_annotated_stmt t1.stmts t2.stmts;;
   let equal t1 t2 = List.eq equal_annotated_stmt t1.stmts t2.stmts;;
@@ -149,21 +143,36 @@ struct
     | Not_found -> None
 
   let create (stmts : annotated_stmt list) =
-    let labels = List.map (fun s -> Uid(s.uid)) stmts in
-    let lexical_map =
-      List.fold_left2
-        (fun (map : order_map) l1 l2 : order_map ->
-           Label_map.add l1 l2 map)
-        Label_map.empty
-        labels
-        ((List.tl labels) @ [End])
+    let rec add_to_map (map : lexical_map) (stmts : annotated_stmt list) : lexical_map =
+      match stmts with
+      | [] -> map
+
+      | {uid = u1; body = b; _}::rst ->
+        let deep_map =
+          match b with
+          | Assign(_, {body = Literal(FunctionVal(_, body)); _}) ->
+            (* Recurse if necessary *)
+            add_to_map map body
+          | _ ->
+            map
+        in
+        let next_map =
+          match rst with
+          | [] -> deep_map
+
+          | {uid = u2; _}::_ ->
+            Uid_map.add u1 u2 deep_map
+        in
+        add_to_map next_map rst
     in
-    {stmts = stmts; order = lexical_map}
+    let lexical_map = add_to_map Uid_map.empty stmts in
+
+    { stmts = stmts; order = lexical_map }
   ;;
 
-  let get_next_label (b : t) (l : label) =
+  let get_next_uid (b : t) (u : uid) =
     try
-      let next = Label_map.find l b.order in
+      let next = Uid_map.find u b.order in
       Some(next)
     with
     | Not_found -> None;;
@@ -180,62 +189,34 @@ module Stack_frame : sig
 
   (* Get the statement pointed to by the current uid, which should be the
      next statement we execute *)
-  val active_stmt: t -> annotated_stmt option
-  val get_next_label: t -> label
+  val get_active_uid: t -> uid
   val get_eta: t -> memloc
 
   (* Advance the frame to the specified label *)
-  val advance: t -> label -> t
+  val update_active_uid: t -> uid -> t
 
-  (* Create a new stack frame from a statement body *)
-  val create: memloc -> Body.t -> t
+  (* Create a new stack frame from a memloc and start uid body *)
+  val create: memloc -> uid -> t
 
-  (* Retrieve the method with the specified uid, if one exists *)
-  val get_stmt: t -> uid -> annotated_stmt option
 end =
 struct
-  type t = { eta: memloc; curr_label: label; body: Body.t }
+  type t = { eta: memloc; curr_uid: uid }
   [@@deriving eq, ord, show]
   ;;
   ignore @@ show;; (* The fact that we need this is definitely a bug *)
 
-  let active_stmt (frame : t) =
-    match frame.curr_label with
-    | End -> None
-    | Uid u ->
-      let active = Body.get_stmt frame.body u in
-      match active with
-      | None -> failwith "Stack frame uid not contained in body"
-      | Some _ -> active
-  ;;
-
-  let get_next_label (frame : t) =
-    let next = Body.get_next_label frame.body frame.curr_label in
-    match next with
-    | None -> failwith "Can't move past end of stack frame"
-    | Some(l) -> l
-  ;;
+  let get_active_uid (frame : t) = frame.curr_uid;;
 
   let get_eta (frame : t) = frame.eta;;
 
-  let advance (frame : t) (new_label : label) : t =
-    match new_label with
-    | End -> { frame with curr_label = End }
-    | Uid(uid) ->
-      match Body.get_stmt frame.body uid with
-      | None -> failwith "Tried to goto a uid not in the same stack frame"
-      | Some _ ->
-        { frame with curr_label = new_label }
+  let update_active_uid (frame : t) (new_uid : uid) : t =
+    { frame with curr_uid = new_uid }
   ;;
 
-  let create (eta: memloc) (body : Body.t) : t =
-    let start_uid = Body.get_first_uid body in
-    { eta = eta; curr_label = Uid(start_uid); body = body }
+  let create (eta: memloc) (start : uid) : t =
+    { eta = eta; curr_uid = start }
   ;;
 
-  let get_stmt (frame: t) (uid: uid) : annotated_stmt option =
-    Body.get_stmt frame.body uid
-  ;;
 end
 ;;
 
@@ -261,7 +242,7 @@ end
 
 type function_val =
   | Builtin_func of builtin_function
-  | User_func of memloc (* Bound scope *) * identifier list (* arglist *) * Body.t
+  | User_func of memloc (* Bound scope *) * identifier list (* arglist *) * uid
 [@@deriving eq, ord, show]
 ;;
 
@@ -352,7 +333,7 @@ type micro_command =
   | TUPLE of int (* size *)
   | ADVANCE
   | POP
-  | PUSH of Body.t
+  | PUSH of uid
   | RAISE
   | GOTO of uid
   | GOTOIFNOT of uid
@@ -466,4 +447,9 @@ type program_state =
     micro: Micro_instruction_stack.t;
     stack: Program_stack.t;
     heap: Heap.t;
+  }
+
+type program_context =
+  {
+    program: Body.t
   }

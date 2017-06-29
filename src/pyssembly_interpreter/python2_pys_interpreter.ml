@@ -7,7 +7,8 @@ open Python2_pys_interpreter_types;;
 (* open Python2_pys_interpreter_builtin_objects;; *)
 open Python2_pys_interpreter_utils;;
 
-let execute_micro_command (prog : program_state) : program_state =
+let execute_micro_command (prog : program_state) (ctx : program_context)
+  : program_state =
   let module MIS = Micro_instruction_stack in
   let command, rest_of_stack =
     MIS.pop_first_command prog.micro
@@ -62,10 +63,15 @@ let execute_micro_command (prog : program_state) : program_state =
      statement lexically, and hence should not be used with GOTOs *)
   | ADVANCE ->
     let curr_frame, stack_body = Program_stack.pop prog.stack in
-    let next_label = Stack_frame.get_next_label curr_frame in
-    let next_frame = Stack_frame.advance curr_frame next_label in
-    let new_stack = Program_stack.push stack_body next_frame in
-    { prog with micro = rest_of_stack; stack = new_stack }
+    let next_uid = Body.get_next_uid ctx.program @@ Stack_frame.get_active_uid curr_frame in
+    begin
+      match next_uid with
+      | None -> raise @@ Not_yet_implemented "Advance to end"
+      | Some(u) ->
+        let next_frame = Stack_frame.update_active_uid curr_frame u in
+        let new_stack = Program_stack.push stack_body next_frame in
+        { prog with micro = rest_of_stack; stack = new_stack }
+    end
 
   (* POP command: Takes no arguments. Removes the current stack frame, and
      updates eta accordingly. *)
@@ -75,14 +81,14 @@ let execute_micro_command (prog : program_state) : program_state =
 
   (* PUSH command: Takes a memloc as an argument. Creates a new stack frame with
      its body and that memloc, and pushes that frame to the stack. *)
-  | PUSH (body) ->
+  | PUSH (uid) ->
     let eta, popped_micro = pop_memloc_or_fail rest_of_stack "PUSH" in
 
     let new_eta = Heap.get_new_memloc prog.heap in
     let new_scope = Bindings.singleton "*parent" eta in
     let new_heap = Heap.update_binding new_eta (Bindings(new_scope)) prog.heap in
 
-    let new_frame = Stack_frame.create new_eta body in
+    let new_frame = Stack_frame.create new_eta uid in
     let new_stack = Program_stack.push prog.stack new_frame in
     { micro = popped_micro; stack = new_stack; heap = new_heap }
 
@@ -172,7 +178,7 @@ let execute_micro_command (prog : program_state) : program_state =
      we move to that catch and execute it. *)
   | RAISE ->
     let stack_top, stack_body = Program_stack.pop prog.stack in
-    let active = get_active_or_fail stack_top in
+    let active = get_active_or_fail stack_top ctx in
     begin
       match active.exception_target with
       | None -> (* No exception target, pop a stack frame *)
@@ -182,13 +188,13 @@ let execute_micro_command (prog : program_state) : program_state =
         { prog with micro = new_micro }
 
       | Some(uid) ->
-        let catch_stmt = Stack_frame.get_stmt stack_top uid in
+        let catch_stmt = Body.get_stmt ctx.program uid in
         match catch_stmt with
         | Some({body = Catch (x);_}) ->
           let new_micro = MIS.insert rest_of_stack @@
             MIS.create [ Inert(Micro_var(x)); Command(BIND); Command(ADVANCE); ]
           in
-          let catch_frame = Stack_frame.advance stack_top @@ Uid(uid) in
+          let catch_frame = Stack_frame.update_active_uid stack_top uid in
           let new_stack = Program_stack.push stack_body catch_frame in
           { prog with micro = new_micro; stack = new_stack; }
 
@@ -199,7 +205,7 @@ let execute_micro_command (prog : program_state) : program_state =
      current stack frame to the specified label. *)
   | GOTO uid ->
     let curr_frame, stack_body = Program_stack.pop prog.stack in
-    let next_frame = Stack_frame.advance curr_frame @@ Uid(uid) in
+    let next_frame = Stack_frame.update_active_uid curr_frame @@ uid in
     let new_stack = Program_stack.push stack_body next_frame in
     { prog with micro = rest_of_stack; stack = new_stack }
 
@@ -304,13 +310,16 @@ let execute_micro_command (prog : program_state) : program_state =
   | ALLOCATTRIBUTEERROR -> raise @@ Not_yet_implemented "ALLOCATTRIBUTEERROR"
 ;;
 
-let execute_stmt (prog : program_state) : program_state =
+let execute_stmt (prog : program_state) (ctx: program_context): program_state =
   (* Each statement generates a list of micro-instructions, which are then
      executed. This should not be called if the current micro-instruction list
      is nonempty! *)
   let new_micro_list =
     let curr_frame, stack_body = Program_stack.pop prog.stack in
-    match Stack_frame.active_stmt curr_frame with
+    let active_stmt =
+      Body.get_stmt ctx.program @@ Stack_frame.get_active_uid curr_frame
+    in
+    match active_stmt with
     | None ->
       if Program_stack.is_empty stack_body then
         (* End of program *)
@@ -318,8 +327,11 @@ let execute_stmt (prog : program_state) : program_state =
       else
         (* End of function: treat the same as "return None" *)
         let caller = Program_stack.top stack_body in
+        let caller_active =
+          Body.get_stmt ctx.program @@ Stack_frame.get_active_uid caller
+        in
         let x =
-          match Stack_frame.active_stmt caller with
+          match caller_active with
           | Some({body = Assign(id, _); _}) -> id
           | _ -> failwith "Did not see assign on return from call!"
         in
@@ -430,8 +442,11 @@ let execute_stmt (prog : program_state) : program_state =
       (* Return statement *)
       | Return (x) ->
         let caller = Program_stack.top stack_body in
+        let active_stmt =
+          Body.get_stmt ctx.program @@ Stack_frame.get_active_uid caller
+        in
         let x2 =
-          match Stack_frame.active_stmt caller with
+          match active_stmt with
           | Some({body = Assign(id, _); _}) -> id
           | _ -> failwith "Did not see assign on return from call!"
         in
@@ -466,25 +481,29 @@ let execute_stmt (prog : program_state) : program_state =
   {prog with micro = Micro_instruction_stack.create new_micro_list}
 ;;
 
-let rec step_program (prog : program_state) : program_state =
+let rec step_program (prog : program_state) (ctx : program_context)
+  : program_state =
   if Program_stack.is_empty prog.stack then
     prog
   else
     let next_prog =
       if (Micro_instruction_stack.is_empty prog.micro)
       then
-        execute_stmt prog
+        execute_stmt prog ctx
       else
-        execute_micro_command prog
+        execute_micro_command prog ctx
     in
-    step_program next_prog
+    step_program next_prog ctx
 ;;
 
 let interpret_program (prog : modl) =
   (* TODO: Actual initialization *)
   let Module(stmts, _) = prog in
+  let starting_ctx = { program = Body.create stmts; } in
   let global_memloc = Memloc(0) in
-  let starting_frame = Stack_frame.create global_memloc (Body.create stmts) in
+  let starting_frame =
+    Stack_frame.create global_memloc @@ Body.get_first_uid starting_ctx.program
+  in
   let starting_stack = Program_stack.singleton starting_frame in
   let starting_bindings = Bindings.empty in
   let starting_heap =
@@ -497,5 +516,5 @@ let interpret_program (prog : modl) =
       heap = starting_heap;
     }
   in
-  step_program starting_program
+  step_program starting_program starting_ctx
 ;;
