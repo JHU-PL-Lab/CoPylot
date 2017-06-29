@@ -66,11 +66,39 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     let next_uid = Body.get_next_uid ctx.program @@ Stack_frame.get_active_uid curr_frame in
     begin
       match next_uid with
-      | None -> raise @@ Not_yet_implemented "Advance to end"
       | Some(u) ->
         let next_frame = Stack_frame.update_active_uid curr_frame u in
         let new_stack = Program_stack.push stack_body next_frame in
         { prog with micro = rest_of_stack; stack = new_stack }
+
+      | None ->
+        let new_micro_list =
+          if Program_stack.is_empty stack_body then
+            (* End of program *)
+            [ Command(POP) ]
+          else
+            (* End of function: treat the same as "return None" *)
+            let caller = Program_stack.top stack_body in
+            let caller_active =
+              Body.get_stmt ctx.program @@ Stack_frame.get_active_uid caller
+            in
+            let x =
+              match caller_active with
+              | Some({body = Assign(id, _); _}) -> id
+              | _ -> failwith "Did not see assign on return from call!"
+            in
+            [
+              Command(POP);
+              Inert(Micro_memloc(None_memloc));
+              Inert(Micro_var(x));
+              Command(BIND);
+              Command(ADVANCE);
+            ]
+        in
+        let new_micro =
+          MIS.insert rest_of_stack @@ MIS.create new_micro_list
+        in
+        { prog with micro = new_micro }
     end
 
   (* POP command: Takes no arguments. Removes the current stack frame, and
@@ -316,167 +344,140 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
      is nonempty! *)
   let new_micro_list =
     let curr_frame, stack_body = Program_stack.pop prog.stack in
-    let active_stmt =
-      Body.get_stmt ctx.program @@ Stack_frame.get_active_uid curr_frame
-    in
-    match active_stmt with
-    | None ->
-      if Program_stack.is_empty stack_body then
-        (* End of program *)
-        [ Command(POP) ]
-      else
-        (* End of function: treat the same as "return None" *)
-        let caller = Program_stack.top stack_body in
-        let caller_active =
-          Body.get_stmt ctx.program @@ Stack_frame.get_active_uid caller
-        in
-        let x =
-          match caller_active with
-          | Some({body = Assign(id, _); _}) -> id
-          | _ -> failwith "Did not see assign on return from call!"
-        in
-        [
-          Command(POP);
-          Inert(Micro_memloc(None_memloc));
-          Inert(Micro_var(x));
-          Command(BIND);
-          Command(ADVANCE);
-        ]
+    let stmt = get_active_or_fail curr_frame ctx in
+    match stmt.body with
+    (* Assignment from literal (also includes function values) *)
+    | Assign(x, {body = Literal(l); _}) ->
+      let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
+      let lval = literal_to_value l curr_eta in
+      [
+        Inert(Micro_value(lval));
+        Inert(Micro_var(x));
+        Command(ASSIGN);
+        Command(ADVANCE);
+      ]
 
-    | Some(stmt) ->
-      match stmt.body with
-      (* Assignment from literal (also includes function values) *)
-      | Assign(x, {body = Literal(l); _}) ->
-        let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
-        let lval = literal_to_value l curr_eta in
-        [
-          Inert(Micro_value(lval));
-          Inert(Micro_var(x));
-          Command(ASSIGN);
-          Command(ADVANCE);
-        ]
+    (* Variable Aliasing *)
+    | Assign(x1, {body = Name(x2); _}) ->
+      [
+        Inert(Micro_var(x2));
+        Command(LOOKUP);
+        Inert(Micro_var(x1));
+        Command(BIND);
+        Command(ADVANCE);
+      ]
 
-      (* Variable Aliasing *)
-      | Assign(x1, {body = Name(x2); _}) ->
-        [
-          Inert(Micro_var(x2));
-          Command(LOOKUP);
-          Inert(Micro_var(x1));
-          Command(BIND);
-          Command(ADVANCE);
-        ]
+    (* Assign from list *)
+    | Assign(x, {body = List(elts); _}) ->
+      let lookups = List.concat @@ List.map
+          (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
+          elts
+      in
+      lookups @
+      [
+        Command(LIST(List.length elts));
+        Inert(Micro_var(x));
+        Command(ASSIGN);
+        Command(ADVANCE);
+      ]
 
-      (* Assign from list *)
-      | Assign(x, {body = List(elts); _}) ->
-        let lookups = List.concat @@ List.map
-            (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
-            elts
-        in
-        lookups @
-        [
-          Command(LIST(List.length elts));
-          Inert(Micro_var(x));
-          Command(ASSIGN);
-          Command(ADVANCE);
-        ]
+    (* Assign from tuple *)
+    | Assign(x, {body = Tuple(elts); _}) ->
+      let lookups = List.concat @@ List.map
+          (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
+          elts
+      in
+      lookups @
+      [
+        Command(TUPLE(List.length elts));
+        Inert(Micro_var(x));
+        Command(ASSIGN);
+        Command(ADVANCE);
+      ]
 
-      (* Assign from tuple *)
-      | Assign(x, {body = Tuple(elts); _}) ->
-        let lookups = List.concat @@ List.map
-            (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
-            elts
-        in
-        lookups @
-        [
-          Command(TUPLE(List.length elts));
-          Inert(Micro_var(x));
-          Command(ASSIGN);
-          Command(ADVANCE);
-        ]
+    (* Object attribute *)
+    | Assign(x, {body = Attribute(x1, x2); _}) ->
+      [
+        Inert(Micro_var(x1));
+        Command(LOOKUP);
+        Inert(Micro_var(x2));
+        Command(RETRIEVE);
+        Inert(Micro_var(x));
+        Command(BIND);
+        Command(ADVANCE);
+      ]
 
-      (* Object attribute *)
-      | Assign(x, {body = Attribute(x1, x2); _}) ->
-        [
-          Inert(Micro_var(x1));
-          Command(LOOKUP);
-          Inert(Micro_var(x2));
-          Command(RETRIEVE);
-          Inert(Micro_var(x));
-          Command(BIND);
-          Command(ADVANCE);
-        ]
+    (* Function call *)
+    | Assign(_, {body = Call(x0, args); _}) ->
+      let arg_lookups = List.concat @@ List.map
+          (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
+          args
+      in
+      [
+        Inert(Micro_var(x0));
+        Command(LOOKUP);
+        Inert(Micro_var("*value"));
+        Command(RETRIEVE);
+        Command(GET);
+      ] @
+      arg_lookups @
+      [ Command(CONVERT(List.length args)); ]
 
-      (* Function call *)
-      | Assign(_, {body = Call(x0, args); _}) ->
-        let arg_lookups = List.concat @@ List.map
-            (fun id -> [ Inert(Micro_var(id)); Command(LOOKUP); ])
-            args
-        in
-        [
-          Inert(Micro_var(x0));
-          Command(LOOKUP);
-          Inert(Micro_var("*value"));
-          Command(RETRIEVE);
-          Command(GET);
-        ] @
-        arg_lookups @
-        [ Command(CONVERT(List.length args)); ]
+    | Assign(_, {body = Binop _; _}) (*(left op right)*) ->
+      raise @@ Not_yet_implemented "Binops NYI"
 
-      | Assign(_, {body = Binop _; _}) (*(left op right)*) ->
-        raise @@ Not_yet_implemented "Binops NYI"
+    (* Raise statement *)
+    | Raise (x) ->
+      [
+        Inert(Micro_var(x));
+        Command(LOOKUP);
+        Command(RAISE);
+      ]
 
-      (* Raise statement *)
-      | Raise (x) ->
-        [
-          Inert(Micro_var(x));
-          Command(LOOKUP);
-          Command(RAISE);
-        ]
+    (* Pass statement *)
+    | Pass ->
+      [
+        Command(ADVANCE);
+      ]
 
-      (* Pass statement *)
-      | Pass ->
-        [
-          Command(ADVANCE);
-        ]
+    (* Return statement *)
+    | Return (x) ->
+      let caller = Program_stack.top stack_body in
+      let active_stmt =
+        Body.get_stmt ctx.program @@ Stack_frame.get_active_uid caller
+      in
+      let x2 =
+        match active_stmt with
+        | Some({body = Assign(id, _); _}) -> id
+        | _ -> failwith "Did not see assign on return from call!"
+      in
+      [
+        Inert(Micro_var(x));
+        Command(LOOKUP);
+        Command(POP);
+        Inert(Micro_var(x2));
+        Command(BIND);
+        Command(ADVANCE);
+      ]
 
-      (* Return statement *)
-      | Return (x) ->
-        let caller = Program_stack.top stack_body in
-        let active_stmt =
-          Body.get_stmt ctx.program @@ Stack_frame.get_active_uid caller
-        in
-        let x2 =
-          match active_stmt with
-          | Some({body = Assign(id, _); _}) -> id
-          | _ -> failwith "Did not see assign on return from call!"
-        in
-        [
-          Inert(Micro_var(x));
-          Command(LOOKUP);
-          Command(POP);
-          Inert(Micro_var(x2));
-          Command(BIND);
-          Command(ADVANCE);
-        ]
+    (* Goto statement *)
+    | Goto (uid) ->
+      [
+        Command(GOTO(uid));
+      ]
 
-      (* Goto statement *)
-      | Goto (uid) ->
-        [
-          Command(GOTO(uid));
-        ]
+    (* Goto statement *)
+    | GotoIfNot (x, uid) ->
+      [
+        Inert(Micro_var(x));
+        Command(LOOKUP);
+        Command(GOTOIFNOT(uid));
+      ]
 
-      (* Goto statement *)
-      | GotoIfNot (x, uid) ->
-        [
-          Inert(Micro_var(x));
-          Command(LOOKUP);
-          Command(GOTOIFNOT(uid));
-        ]
+    (* Catch statement *)
+    | Catch _ -> failwith "Encountered catch with no raised value!"
 
-      (* Catch statement *)
-      | Catch _ -> failwith "Encountered catch with no raised value!"
-
-      | Print _ ->  raise @@ Not_yet_implemented "Print statements NYI"
+    | Print _ ->  raise @@ Not_yet_implemented "Print statements NYI"
   in
   {prog with micro = Micro_instruction_stack.create new_micro_list}
 ;;

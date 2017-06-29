@@ -133,7 +133,7 @@ struct
 
   let compare t1 t2 = List.compare compare_annotated_stmt t1.stmts t2.stmts;;
   let equal t1 t2 = List.eq equal_annotated_stmt t1.stmts t2.stmts;;
-  let pp fmt t1 = List.iter (pp_annotated_stmt fmt) t1.stmts;; (* TODO: Not sure this works *)
+  let pp fmt t1 = List.iter (pp_annotated_stmt fmt) t1.stmts;;
 
   open Python2_ast_types;;
 
