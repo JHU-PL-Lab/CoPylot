@@ -145,7 +145,8 @@ Executable "test"
     CoPylot.parser,
     CoPylot.ast_simplification,
     CoPylot.analysis,
-    CoPylot.pyssembly_parser
+    CoPylot.pyssembly_parser,
+    CoPylot.pyssembly_interpreter
 
 Test test
   Command: $test

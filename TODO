@@ -1,4 +1,5 @@
 Create the global *get_attribute
+Change dunder names to be a special type of identifier
+Set up objects and stuff at init time
 Update interpreter:
   Change how wrap/GetObj works
-  Change ADVANCE to pop directly 

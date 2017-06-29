@@ -1,4 +1,5 @@
 open Batteries;;
+open Jhupllib;;
 open Python2_normalized_ast;;
 
 type uid = Python2_ast_types.uid
@@ -57,6 +58,9 @@ let memloc_to_int = function
    memory location m. These correspond to "B" in the grammar *)
 module Bindings : sig
   type t
+  val compare: t -> t -> int
+  val equal: t -> t -> bool
+  val pp: Format.formatter -> t -> unit
 
   (* Add a binding of the input memloc to the given value, overwriting
      the previous entry if one exists *)
@@ -73,10 +77,19 @@ struct
   struct
     type t = identifier
     let compare = compare_identifier
+    let pp = pp_identifier
   end
-  module Var_map = Map.Make(Var_ord);;
+  module Var_map = struct
+    module Impl = Map.Make(Var_ord);;
+    include Impl;;
+    include Pp_utils.Map_pp(Impl)(Var_ord);;
+  end
+  ;;
 
-  type t = memloc Var_map.t;;
+  type t = memloc Var_map.t
+  [@@deriving eq, ord, show]
+  ;;
+  ignore @@ show;; (* This suppresses warnings that are definitely buggy *)
 
   let update_binding id mem prev = Var_map.add id mem prev;;
 
@@ -264,13 +277,16 @@ type value =
   | Function of function_val
   | Method of memloc * function_val
   | NoneVal
-  (* [@@deriving eq, ord, show] *)
+[@@deriving eq, ord, show]
 ;;
 
 (* A heap binding (m,v) indicates that the memory location m contains the
    value v. These correspond to "H" in the grammar *)
 module Heap: sig
   type t
+  val compare: t -> t -> int
+  val equal: t -> t -> bool
+  val pp: Format.formatter -> t -> unit
 
   (* Return a memloc which does not yet appear in the heap *)
   val get_new_memloc: t -> memloc
@@ -290,12 +306,21 @@ struct
   struct
     type t = memloc
     let compare = compare_memloc
+    let pp = pp_memloc
   end
-  module Memloc_map = Map.Make(Memloc_ord);;
+  module Memloc_map = struct
+    module Impl = Map.Make(Memloc_ord);;
+    include Impl;;
+    include Pp_utils.Map_pp(Impl)(Memloc_ord);;
+  end
+  ;;
 
   (* The maxval entry tracks the maximum value of the keys in the map, so we
      can generate new ones easily *)
-  type t = { map: value Memloc_map.t; maxval: int } ;;
+  type t = { map: value Memloc_map.t; maxval: int }
+  [@@deriving eq, ord, show]
+  ;;
+  ignore @@ show;; (* This suppresses warnings that are definitely buggy *)
 
   let get_new_memloc heap = Memloc(heap.maxval + 1);;
 
@@ -324,7 +349,7 @@ type micro_inert =
   | Micro_var of identifier
   | Micro_memloc of memloc
   | Micro_value of value
-  (* [@@deriving eq, ord, show] *)
+[@@deriving eq, ord, show]
 ;;
 
 type micro_command =
@@ -348,18 +373,21 @@ type micro_command =
   | ALLOCNAMEERROR
   | ALLOCTYPEERROR
   | ALLOCATTRIBUTEERROR
-  (* [@@deriving eq, ord, show] *)
+[@@deriving eq, ord, show]
 ;;
 
 type micro_instruction =
   | Inert of micro_inert
   | Command of micro_command
-  (* [@@deriving eq, ord, show] *)
+[@@deriving eq, ord, show]
 ;;
 
 module Micro_instruction_stack :
 sig
   type t
+  val compare: t -> t -> int
+  val equal: t -> t -> bool
+  val pp: Format.formatter -> t -> unit
 
   val create: micro_instruction list -> t
 
@@ -375,6 +403,7 @@ sig
   val get_first_inert: t -> micro_inert
   val pop_first_inert: t -> micro_inert * t
 
+  val empty: t
   val is_empty: t -> bool
 
   (* Insert the contents of the second stack immediately before the first
@@ -388,6 +417,9 @@ end =
 struct
   (* TODO: replace these lists with an actual stack data type? *)
   type t = micro_inert list * micro_instruction list
+  [@@deriving eq, ord, show]
+  ;;
+  ignore @@ show;; (* This suppresses warnings that are definitely buggy *)
 
   (* We maintain the invariant that we are always pointing to the first
      non-inert micro_instruction in the stack; that is, that the first element
@@ -440,6 +472,8 @@ struct
     gather_inerts [] lst
   ;;
 
+  let empty = create [];;
+
   let insert (stack: t) (inserted: t) =
     fst stack @ fst inserted, snd stack @ snd inserted
   ;;
@@ -453,8 +487,12 @@ type program_state =
     stack: Program_stack.t;
     heap: Heap.t;
   }
+[@@deriving eq, ord, show]
+;;
 
 type program_context =
   {
     program: Body.t
   }
+[@@deriving eq, ord, show]
+;;

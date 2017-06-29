@@ -509,7 +509,7 @@ let interpret_program (prog : modl) =
   let starting_bindings = Bindings.empty in
   let starting_heap =
     Heap.singleton global_memloc @@ Bindings(starting_bindings) in
-  let starting_micro = Micro_instruction_stack.create [] in
+  let starting_micro = Micro_instruction_stack.empty in
   let starting_program =
     {
       micro = starting_micro;
