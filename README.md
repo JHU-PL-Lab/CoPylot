@@ -85,7 +85,12 @@ Authors
 - Tianlu Chen <tchen2@swarthmore.edu>
 - Devon Loehr <dloehr1@swarthmore.edu>
 
+## Components
+
+* Our Python 2 parser is based on [ocaml-pythonlib][ocaml-pythonlib].
+
 [ocaml]: https://ocaml.org/
 [opam]: https://opam.ocaml.org/
 [docker]: https://www.docker.com/
 [docker-compose]: https://docs.docker.com/compose/
+[ocaml-pythonlib]: https://github.com/m2ym/ocaml-pythonlib
