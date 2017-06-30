@@ -1,9 +1,9 @@
 open Python2_ast_types;;
-module Simplified = Python2_simplified_ast;;
+open Python2_simplified_ast;;
 
 let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
 
-(* This is the Simplified Pyssembly version of the *get_call function, which
+(* This is the Pyssembly version of the *get_call function, which
    automatically performs lookups of func.__call__ until it finds something that
    is actally callable. The algorithm looks something like this:
 
@@ -19,50 +19,67 @@ let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
 let get_call_def name_generator =
   let func_name = name_generator annot in
   let type_test =
-    Simplified.Compare(
-      Simplified.Call(Simplified.Builtin(Builtin_type, annot),
-                      [Simplified.Name(func_name, annot)],
+    Compare(
+      Call(Builtin(Builtin_type, annot),
+                      [Name(func_name, annot)],
                       annot),
-      [Simplified.IsNot],
-      [Simplified.Builtin(Builtin_method_wrapper_type, annot)],
+      [IsNot],
+      [Builtin(Builtin_method_wrapper_type, annot)],
       annot)
   in
   (* This might be an infinite loop if the user is doing shenanigans *)
-  let getcall_loop = Simplified.While(
+  let getcall_loop = While(
       type_test,
       [
-        Simplified.Assign(func_name,
-                          Simplified.Attribute(
-                            Simplified.Name(func_name, annot),
+        Assign(func_name,
+                          Attribute(
+                            Name(func_name, annot),
                             "__call__",
                             annot),
                           annot);
       ],
       annot)
   in
-  let overall_try = Simplified.TryExcept(
+  let overall_try = TryExcept(
       [getcall_loop],
-      [Simplified.ExceptHandler(
-          Some(Simplified.Builtin(Builtin_AttributeError, annot)),
+      [ExceptHandler(
+          Some(Builtin(Builtin_AttributeError, annot)),
           None,
           [
-            Simplified.Raise(
-              Simplified.Call(
-                Simplified.Builtin(Builtin_TypeError, annot),
-                [Simplified.Str(StringLiteral("Object is not callable"), annot)],
+            Raise(
+              Call(
+                Builtin(Builtin_TypeError, annot),
+                [Str(StringLiteral("Object is not callable"), annot)],
                 annot),
               annot);
           ],
           annot)],
       annot)
   in
-  Simplified.Assign("*get_call",
-                    Simplified.FunctionVal(
+  Assign("*get_call",
+                    FunctionVal(
                       [func_name],
                       [
                         overall_try;
-                        Simplified.Return(Simplified.Name(func_name, annot),
+                        Return(Name(func_name, annot),
                                           annot);
                       ], annot),
                     annot)
+;;
+
+let get_all_builtin_defs name_generator =
+  let stmts =
+    [
+      get_call_def name_generator;
+    ]
+  in
+  Module(stmts, annot)
+;;
+
+let parse_all_builtin_defs name_generator starting_uid =
+  let defs = get_all_builtin_defs name_generator in
+  let module Normalize = Python2_ast_normalizer in
+  let ctx = Uid_generation.create_new_uid_context starting_uid in
+  Normalize.toggle_short_names true;
+  Normalize.normalize_modl ctx defs;
 ;;

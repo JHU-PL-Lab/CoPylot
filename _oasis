@@ -60,7 +60,6 @@ Library "ast_simplification"
     Python2_rename_ast,
     Python2_simplified_ast,
     Python2_ast_simplifier,
-    Python2_simplified_builtin_defs,
     Python2_normalized_ast,
     Python2_ast_normalizer,
     Python2_abstract_ast,
@@ -121,6 +120,7 @@ Library "pyssembly_interpreter"
   Modules:
     Python2_pys_interpreter_types,
     Python2_pys_interpreter_builtin_objects,
+    Python2_pys_interpreter_builtin_defs,
     Python2_pys_interpreter_init,
     Python2_pys_interpreter_utils,
     Python2_pys_interpreter
