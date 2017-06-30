@@ -424,7 +424,8 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
       arg_lookups @
       [ Command(CONVERT(List.length args)); ]
 
-    | Assign(_, {body = Binop _; _}) (*(left op right)*) ->
+    (*(left op right)*)
+    | Assign(_, {body = Binop _; _}) ->
       raise @@ Not_yet_implemented "Binops NYI"
 
     (* Raise statement *)
@@ -499,7 +500,6 @@ let rec step_program (prog : program_state) (ctx : program_context)
 ;;
 
 let interpret_program (prog : modl) =
-  (* TODO: Actual initialization *)
   let Module(stmts, _) = prog in
   let starting_ctx = { program = Body.create stmts; } in
   let global_memloc = Python2_pys_interpreter_init.global_memloc in

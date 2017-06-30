@@ -2,6 +2,5 @@ Create the global *get_attribute definition
 Set interpreter to automatically prepend *get_attribute and *call
 Change dunder names to be a special type of identifier
 Update interpreter testing
-Set up objects and stuff at init time
 Update interpreter:
   Change how wrap/GetObj works

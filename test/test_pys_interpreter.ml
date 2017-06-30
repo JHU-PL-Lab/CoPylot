@@ -9,6 +9,7 @@ open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter;;
 
 let string_of_program_state s = Pp_utils.pp_to_string pp_program_state s;;
+let string_of_value v = Pp_utils.pp_to_string pp_value v;;
 
 let parse_to_normalized_safe prog short_names =
   try
@@ -33,6 +34,36 @@ let gen_module_test (name : string) (prog : string)
   )
 ;;
 
+let gen_variable_test (name : string) (prog : string)
+    (target: string) (expected : value) =
+  name>::
+  ( fun _ ->
+      let normalized = parse_to_normalized_safe prog true false in
+      Python2_ast_simplifier.reset_unique_name ();
+      Python2_ast_normalizer.reset_unique_name ();
+
+      let result_state = interpret_program normalized in
+      let open Python2_pys_interpreter_utils in
+      let var_memloc =
+        retrieve_binding_or_fail result_state.heap Python2_pys_interpreter_init.global_memloc
+        |> Bindings.get_memloc target
+      in
+      let var_memloc =
+        extract_option_or_fail var_memloc @@
+        "Requested variable" ^ target ^ "not bound"
+      in
+      let value_memloc =
+        retrieve_binding_or_fail result_state.heap var_memloc
+        |> Bindings.get_memloc "*value"
+      in
+      let value_memloc = extract_option_or_fail value_memloc @@
+        "Requested variable" ^ target ^ "not bound"
+      in
+      let actual = Heap.get_value value_memloc result_state.heap in
+      assert_equal ~printer:string_of_value ~cmp:equal_value expected actual
+  )
+;;
+
 let starting_bindings = Bindings.empty;;
 let empty_state =
   {
@@ -42,67 +73,30 @@ let empty_state =
   }
 ;;
 
-let pass_test = gen_module_test "pass_test"
-    "pass"
-    empty_state
-;;
+let literal_tests = [
+  gen_variable_test "int_test_pos" "x = 4" "x" @@ Num(Int(4));
+  gen_variable_test "int_test_neg" "x = -4" "x" @@ Num(Int(-4));
+  gen_variable_test "int_test_zero" "x = 0" "x" @@ Num(Int(0));
 
-let int_test = gen_module_test "int_test"
-    "4"
-    { empty_state with heap =
-                         Heap.empty
-                         |> Heap.update_binding (Memloc(0))
-                           begin
-                             Bindings(
-                               starting_bindings
-                               |> Bindings.update_binding "$norm0" (Memloc(2))
-                             )
-                           end
-                         |> Heap.update_binding (Memloc(1)) (Num(Int(4)))
-                         |> Heap.update_binding (Memloc(2))
-                           begin
-                             Bindings(
-                               starting_bindings
-                               |> Bindings.update_binding "*value" (Memloc(1))
-                               |> Bindings.update_binding "__class__" (Builtin_type_memloc(Int_type))
-                               |> Bindings.update_binding "__add__" (Builtin_fun_memloc(Builtin_int_add))
-                               |> Bindings.update_binding "__neg__" (Builtin_fun_memloc(Builtin_int_neg))
-                             )
-                           end
-    }
-;;
+  gen_variable_test "float_test_pos" "x = 4.0" "x" @@ Num(Float(4.0));
+  gen_variable_test "float_test_neg" "x = -4.0" "x" @@ Num(Float(-4.0));
+  gen_variable_test "float_test_zero" "x = 0.0" "x" @@ Num(Float(0.0));
 
-let int_assign_test = gen_module_test "int_assign_test"
-    "x = 4"
-    { empty_state with heap =
-                         Heap.empty
-                         |> Heap.update_binding (Memloc(0))
-                           begin
-                             Bindings(
-                               starting_bindings
-                               |> Bindings.update_binding "$norm0" (Memloc(2))
-                               |> Bindings.update_binding "x" (Memloc(2))
-                               |> Bindings.update_binding "$simp0" (Memloc(2))
-                             )
-                           end
-                         |> Heap.update_binding (Memloc(1)) (Num(Int(4)))
-                         |> Heap.update_binding (Memloc(2))
-                           begin
-                             Bindings(
-                               starting_bindings
-                               |> Bindings.update_binding "*value" (Memloc(1))
-                               |> Bindings.update_binding "__class__" (Builtin_type_memloc(Int_type))
-                               |> Bindings.update_binding "__add__" (Builtin_fun_memloc(Builtin_int_add))
-                               |> Bindings.update_binding "__neg__" (Builtin_fun_memloc(Builtin_int_neg))
-                             )
-                           end
-    }
+  gen_variable_test "string_test" "x = \"foo\"" "x" @@ Str(StringLiteral("foo"));
+
+  gen_variable_test "list_test" "x = []" "x" @@ ListVal([]);
+  gen_variable_test "tuple_test" "x = (None,)" "x" @@ TupleVal([None_memloc]);
+]
+
+let alias_test_light = gen_variable_test "alias_test_light"
+    "x = 4; y = x; z = y; y = 5;"
+    "z"
+  @@ Num(Int(4))
 ;;
 
 let tests =
   "test_pys_interpreter">:::
+  literal_tests @
   [
-    pass_test;
-    int_test;
-    int_assign_test;
+    alias_test_light;
   ]

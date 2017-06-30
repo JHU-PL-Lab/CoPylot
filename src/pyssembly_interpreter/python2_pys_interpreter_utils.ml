@@ -103,7 +103,6 @@ let wrap_value (m : memloc) (v : value) : value =
 
 ;;
 
-
 let extract_option_or_fail (opt: 'a option) (failmsg: string) : 'a =
   match opt with
   | None -> failwith failmsg
