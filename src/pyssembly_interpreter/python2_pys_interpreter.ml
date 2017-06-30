@@ -35,8 +35,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
   | WRAP ->
     let v, popped_stack = pop_value_or_fail rest_of_stack "WRAP" in
     let m, popped_stack2 = pop_memloc_or_fail popped_stack "WRAP" in
-    ignore m; ignore v;
-    let obj_val = Bindings(Bindings.empty) in (* TODO: Call GetObj *)
+    let obj_val = wrap_value m v in
     let new_micro = MIS.insert popped_stack2 @@
       MIS.create [Inert(Micro_value(obj_val));]
     in

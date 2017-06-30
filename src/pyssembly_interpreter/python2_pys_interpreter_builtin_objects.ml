@@ -37,12 +37,13 @@ let make_bool_obj (m : memloc) : Bindings.t =
   obj
 ;;
 
-let make_none_obj (m : memloc) : Bindings.t =
-  let obj = Bindings.empty
+let make_none_obj (_ : memloc) : Bindings.t =
+  failwith "Doesn't actually make sense to make a None object, since there can only be one"
+  (* let obj = Bindings.empty
             |> Bindings.update_binding "*value" m
             |> Bindings.update_binding "__class__" @@ Builtin_type_memloc(None_type)
   in
-  obj
+  obj *)
 ;;
 
 let make_function_obj (m : memloc) : Bindings.t =

@@ -2,8 +2,8 @@
 open Python2_ast_types;;
 open Python2_normalized_ast;;
 open Python2_pys_interpreter_types;;
-(* open Python2_pys_interpreter_builtin_objects;; *)
-(* open Jhupllib_utils;; *)
+open Python2_pys_interpreter_builtin_objects;;
+open Jhupllib_utils;;
 
 let convert_builtin b =
   let module Ast = Python2_ast_types in
@@ -82,18 +82,27 @@ let rec pop_n_memlocs
     pop_n_memlocs (n-1) (next_memloc::lst) next_mstack caller
 ;;
 
-(* let make_literal_obj (m : memloc) (l : literal) : Bindings.t =
-   let module Normalized = Python2_normalized_ast in
-   match l with
-   | Normalized.Num (Int _)   ->   make_int_obj m
-   | Normalized.Num (Float _) ->   make_float_obj m
-   | Normalized.Str _         ->   make_string_obj m
-   | Normalized.Bool _        ->   make_bool_obj m
-   | Normalized.FunctionVal _ ->   make_function_obj m
-   | Normalized.NoneVal       ->   make_none_obj m
-   | Normalized.Builtin _     ->   failwith "NYI: Builtin object"
+(* This is the implementation of GetObj in the spec *)
+let wrap_value (m : memloc) (v : value) : value =
+  let bindings =
+    match v with
+    | Num(Int _) -> make_int_obj m
+    | Num(Float _) -> make_float_obj m
+    | Str _ -> make_string_obj m
+    | ListVal _ -> make_list_obj m
+    | TupleVal _ -> make_tuple_obj m
+    | Function _ -> make_function_obj m
+    | Method _ -> make_method_obj m
+    | Bindings b -> b
+    | Builtin_exception _
+    | Builtin_type _
+    | Bool _
+    | NoneVal -> raise @@ Not_yet_implemented "Wrapping value"
+  in
+  Bindings(bindings)
 
-   ;; *)
+;;
+
 
 let extract_option_or_fail (opt: 'a option) (failmsg: string) : 'a =
   match opt with
