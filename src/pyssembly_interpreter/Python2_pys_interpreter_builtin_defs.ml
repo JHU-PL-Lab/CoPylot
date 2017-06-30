@@ -8,22 +8,20 @@ let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
    automatically performs lookups of func.__call__ until it finds something that
    is actally callable. The algorithm looks something like this:
 
-   def *get_call(func_name):
+   def *get_call(target):
      try:
-       while *type(func_name) is not *method_wrapper_type:
-         func_name = func_name.__call__
+       while *type(target) is not *method_wrapper_type:
+         target = target.__call__
      except AttributeError:
        raise TypeError("Object is not callable")
 *)
-(* FIXME: The TypeError string should be dynamically constructed to say what the
-   original object type was *)
 let get_call_def ctx =
-  let func_name = gen_unique_name ctx annot in
+  let target = gen_unique_name ctx annot in
   let type_test =
     Compare(
       Call(Builtin(Builtin_type, annot),
-                      [Name(func_name, annot)],
-                      annot),
+           [Name(target, annot)],
+           annot),
       [IsNot],
       [Builtin(Builtin_method_wrapper_type, annot)],
       annot)
@@ -32,12 +30,12 @@ let get_call_def ctx =
   let getcall_loop = While(
       type_test,
       [
-        Assign(func_name,
-                          Attribute(
-                            Name(func_name, annot),
-                            "__call__",
-                            annot),
-                          annot);
+        Assign(target,
+               Attribute(
+                 Name(target, annot),
+                 "__call__",
+                 annot),
+               annot);
       ],
       annot)
   in
@@ -50,6 +48,8 @@ let get_call_def ctx =
             Raise(
               Call(
                 Builtin(Builtin_TypeError, annot),
+                (* FIXME: This string should be dynamically constructed to
+                   say what the original object type was *)
                 [Str(StringLiteral("Object is not callable"), annot)],
                 annot),
               annot);
@@ -58,20 +58,42 @@ let get_call_def ctx =
       annot)
   in
   Assign("*get_call",
-                    FunctionVal(
-                      [func_name],
-                      [
-                        overall_try;
-                        Return(Name(func_name, annot),
-                                          annot);
-                      ], annot),
-                    annot)
+         FunctionVal(
+           [target],
+           [
+             overall_try;
+             Return(Name(target, annot),
+                    annot);
+           ],
+           annot),
+         annot)
+;;
+
+(* Looks up the inheritance chain of obj in the appropriate order, and returns
+   the value of the attribute "mem" for the first one that it sees. If it
+   never sees one, it raises an AttributeError *)
+(* TODO: When we implement classes we actually need to get the mro and walk up
+   it. For the moment we don't have inheritance, so this is just a simple
+   dictionary lookup. *)
+let get_attribute_def ctx =
+  let obj = gen_unique_name ctx annot in
+  let mem = gen_unique_name ctx annot in
+  Assign("*get_attribute",
+         FunctionVal(
+           [obj; mem],
+           [
+             Return(ImmediateAttribute(Name(obj, annot), mem, annot),
+                    annot);
+           ],
+           annot),
+         annot)
 ;;
 
 let get_all_builtin_defs ctx =
   let stmts =
     [
       get_call_def ctx;
+      get_attribute_def ctx;
     ]
   in
   Module(stmts, annot)
