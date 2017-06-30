@@ -22,6 +22,15 @@ let starting_bindings =
 let starting_heap =
   Heap.empty
   |> Heap.update_binding global_memloc @@ Bindings(starting_bindings)
+  (* Types *)
+  |> Heap.update_binding (Builtin_type_memloc(Int_type)) (Builtin_type(Int_type))
+  |> Heap.update_binding (Builtin_type_memloc(Float_type)) (Builtin_type(Float_type))
+  |> Heap.update_binding (Builtin_type_memloc(String_type)) (Builtin_type(String_type))
+  |> Heap.update_binding (Builtin_type_memloc(None_type)) (Builtin_type(None_type))
+  |> Heap.update_binding (Builtin_type_memloc(List_type)) (Builtin_type(List_type))
+  |> Heap.update_binding (Builtin_type_memloc(Tuple_type)) (Builtin_type(Tuple_type))
+  |> Heap.update_binding (Builtin_type_memloc(Function_type)) (Builtin_type(Function_type))
+  |> Heap.update_binding (Builtin_type_memloc(Method_wrapper_type)) (Builtin_type(Method_wrapper_type))
   (* Globals *)
   |> Heap.update_binding (Builtin_fun_memloc(Builtin_bool)) (Function(Builtin_func(Builtin_bool)))
   |> Heap.update_binding (Builtin_fun_memloc(Builtin_slice)) (Function(Builtin_func(Builtin_slice)))
