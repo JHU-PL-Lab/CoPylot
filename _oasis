@@ -121,6 +121,7 @@ Library "pyssembly_interpreter"
   Modules:
     Python2_pys_interpreter_types,
     Python2_pys_interpreter_builtin_objects,
+    Python2_pys_interpreter_init,
     Python2_pys_interpreter_utils,
     Python2_pys_interpreter
   BuildDepends:

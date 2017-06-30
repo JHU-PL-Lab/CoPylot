@@ -502,14 +502,13 @@ let interpret_program (prog : modl) =
   (* TODO: Actual initialization *)
   let Module(stmts, _) = prog in
   let starting_ctx = { program = Body.create stmts; } in
-  let global_memloc = Memloc(0) in
+  let global_memloc = Python2_pys_interpreter_init.global_memloc in
   let starting_frame =
     Stack_frame.create global_memloc @@ Body.get_first_uid starting_ctx.program
   in
   let starting_stack = Program_stack.singleton starting_frame in
-  let starting_bindings = Bindings.empty in
   let starting_heap =
-    Heap.singleton global_memloc @@ Bindings(starting_bindings) in
+    Python2_pys_interpreter_init.starting_heap in
   let starting_micro = Micro_instruction_stack.empty in
   let starting_program =
     {
