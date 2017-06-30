@@ -441,8 +441,16 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
       [ Command(CONVERT(List.length args)); ]
 
     (*(left op right)*)
-    | Assign(_, {body = Binop _; _}) ->
-      raise @@ Not_yet_implemented "Binops NYI"
+    | Assign(x, {body = Binop(x1, Binop_is, x2); _}) ->
+      [
+        Inert(Micro_var(x1));
+        Command(LOOKUP);
+        Inert(Micro_var(x2));
+        Command(EQ);
+        Inert(Micro_var(x));
+        Command(ASSIGN);
+        Command(ADVANCE);
+      ]
 
     (* Raise statement *)
     | Raise (x) ->
