@@ -25,25 +25,20 @@ let parse_to_simplified (prog: string) (short_names: bool)
 let parse_to_normalized
     (prog: string)
     (short_names: bool)
-    (include_builtin_defs : bool)
     (starting_uid: int)
   : Python2_normalized_ast.modl =
   let module Normalize = Python2_ast_normalizer in
   let simplified = parse_to_simplified prog short_names in
   let ctx = Uid_generation.create_new_uid_context starting_uid in
   Normalize.toggle_short_names short_names;
-  if include_builtin_defs then
-    Normalize.normalize_modl ctx simplified
-  else
-    Normalize.normalize_modl_simple ctx simplified
+  Normalize.normalize_modl ctx simplified
 ;;
 
 let parse_to_abstract
     (prog: string)
     (short_names: bool)
-    (include_builtin_defs : bool)
     (starting_uid: int)
   :  Python2_abstract_ast.modl =
-  let normalized = parse_to_normalized prog short_names include_builtin_defs starting_uid in
+  let normalized = parse_to_normalized prog short_names starting_uid in
   Python2_ast_lifter.lift_modl normalized
 ;;

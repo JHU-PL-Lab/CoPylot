@@ -501,6 +501,9 @@ let rec step_program (prog : program_state) (ctx : program_context)
 
 let interpret_program (prog : modl) =
   let Module(stmts, _) = prog in
+  (* Assume that the uid of the Module is the maximum uid that appears in the
+     program. This is valid if we generated it through normalization from
+     Python. *)
   let starting_ctx = { program = Body.create stmts; } in
   let global_memloc = Python2_pys_interpreter_init.global_memloc in
   let starting_frame =

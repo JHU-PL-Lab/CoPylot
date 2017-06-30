@@ -107,17 +107,7 @@ let normalize_list normalize_func lst =
   bindings, results
 ;;
 
-(* Normalize a module, prepending builtin functions like *get_call *)
 let rec normalize_modl ctx m : Normalized.modl =
-  match m with
-  | Simplified.Module (body, annot) ->
-    let new_body = (get_call_def gen_unique_name)::body in
-    let normalized_prog = map_and_concat (normalize_stmt_full ctx None None None) new_body in
-    let next_uid = get_next_uid ctx annot in
-    Normalized.Module(normalized_prog, next_uid)
-
-(* Normalize a module without prepending builtin functions like *get_call *)
-and normalize_modl_simple ctx m : Normalized.modl =
   match m with
   | Simplified.Module (body, annot) ->
     let normalized_prog = map_and_concat (normalize_stmt_full ctx None None None) body in
