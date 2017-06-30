@@ -667,9 +667,6 @@ and normalize_expr_full
     let overall_try =
       Simplified.TryExcept(
         [
-          (* Simplified.Assign(result_name,
-                            Simplified.SimpleAttribute(obj_name, attr, annot),
-                            annot); *)
           Simplified.Assign(getattribute_name,
                             Simplified.SimpleAttribute(obj_name, "__getattribute__", annot),
                             annot);
@@ -699,29 +696,20 @@ and normalize_expr_full
     let normalized_try = normalize_stmt overall_try in
     obj_bindings @ normalized_try, result_name
 
-  | Simplified.SimpleAttribute (obj, attr, annot)
-  (* TODO Once classes are implemented, we need to look for the attribute
-     in the instance, then the class and all of its parents. This should look
-     something like
-     tmp = obj
-     while obj != None:
-       try:
-         result = tmp.member # This . is the ImmediateAttribute below
-         break
-       except AttributeError:
-         obj = getparent(obj)
-     if (obj == None):
-       raise AttributeError
-
-     And we then return result. For the moment, we only look at the instance,
-     and so fall through to the next case. *)
+  | Simplified.SimpleAttribute (obj, attr, annot) ->
+    let obj_bindings, obj_result = normalize_expr obj in
+    let assignment, result = gen_normalized_assignment ctx annot @@
+      annotate_expr @@
+      Normalized.Call("*get_attribute", [obj_result; attr])
+    in
+    obj_bindings @ assignment, result
 
   | Simplified.ImmediateAttribute (obj, attr, annot) ->
     let obj_bindings, obj_result = normalize_expr obj in
     let assignment, result = gen_normalized_assignment ctx annot @@
       annotate_expr @@
-      Normalized.Attribute(obj_result, attr)
       (* NOTE: This is the only place the Normalized.Attribute constructor should show up. *)
+      Normalized.Attribute(obj_result, attr)
     in
     obj_bindings @ assignment, result
 

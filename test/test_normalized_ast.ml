@@ -115,7 +115,7 @@ let stmt_tests =
 let attribute_test = gen_module_test "attribute_test"
     "x.mem"
     begin
-      "@   4:   1:F:  $norm5 = x.__getattribute__;" ^
+      "@   4:   1:F:  $norm5 = *get_attribute(x, __getattribute__);" ^
       "\n@   6:   1:F:  $norm0 = $norm5;" ^
       "\n@   8:   1:F:  $norm6 = \"mem\";" ^
       "\n@  10:   1:F:  $norm8 = *get_call($norm0);" ^
@@ -132,7 +132,7 @@ let attribute_test = gen_module_test "attribute_test"
       "\n@  28:    :F:  $norm15 = $norm14($norm13);" ^
       "\n@  70:    :F:  goto 69 if not $norm15;" ^
       "\n@  30:    :F:  $norm2 = $norm4;" ^
-      "\n@  34:  31:F:  $norm17 = x.__getattr__;" ^
+      "\n@  34:  31:F:  $norm17 = *get_attribute(x, __getattr__);" ^
       "\n@  36:  31:F:  $norm1 = $norm17;" ^
       "\n@  55:    :F:  goto 32;" ^
       "\n@  31:    :F:  catch $norm16;" ^
@@ -194,7 +194,7 @@ let assign_test = gen_module_test "assign_test"
 let augassign_test = gen_module_test "augassign_test"
     "x += 5"
     begin
-      "@   6:   3:F:  $norm6 = x.__getattribute__;" ^
+      "@   6:   3:F:  $norm6 = *get_attribute(x, __getattribute__);" ^
       "\n@   8:   3:F:  $norm1 = $norm6;" ^
       "\n@  10:   3:F:  $norm7 = \"__iadd__\";" ^
       "\n@  12:   3:F:  $norm9 = *get_call($norm1);" ^
@@ -211,7 +211,7 @@ let augassign_test = gen_module_test "augassign_test"
       "\n@  30:   1:F:  $norm16 = $norm15($norm14);" ^
       "\n@  72:   1:F:  goto 71 if not $norm16;" ^
       "\n@  32:   1:F:  $norm3 = $norm5;" ^
-      "\n@  36:  33:F:  $norm18 = x.__getattr__;" ^
+      "\n@  36:  33:F:  $norm18 = *get_attribute(x, __getattr__);" ^
       "\n@  38:  33:F:  $norm2 = $norm18;" ^
       "\n@  57:   1:F:  goto 34;" ^
       "\n@  33:   1:F:  catch $norm17;" ^
@@ -249,7 +249,7 @@ let augassign_test = gen_module_test "augassign_test"
       "\n@  87:    :F:  $norm33 = *bool;" ^
       "\n@  89:    :F:  $norm34 = $norm33($norm32);" ^
       "\n@ 169:    :F:  goto 168 if not $norm34;" ^
-      "\n@  93:  90:F:  $norm40 = x.__getattribute__;" ^
+      "\n@  93:  90:F:  $norm40 = *get_attribute(x, __getattribute__);" ^
       "\n@  95:  90:F:  $norm35 = $norm40;" ^
       "\n@  97:  90:F:  $norm41 = \"__add__\";" ^
       "\n@  99:  90:F:  $norm43 = *get_call($norm35);" ^
@@ -266,7 +266,7 @@ let augassign_test = gen_module_test "augassign_test"
       "\n@ 117:    :F:  $norm50 = $norm49($norm48);" ^
       "\n@ 159:    :F:  goto 158 if not $norm50;" ^
       "\n@ 119:    :F:  $norm37 = $norm39;" ^
-      "\n@ 123: 120:F:  $norm52 = x.__getattr__;" ^
+      "\n@ 123: 120:F:  $norm52 = *get_attribute(x, __getattr__);" ^
       "\n@ 125: 120:F:  $norm36 = $norm52;" ^
       "\n@ 144:    :F:  goto 121;" ^
       "\n@ 120:    :F:  catch $norm51;" ^
@@ -401,7 +401,7 @@ let assign_to_member_test = gen_module_test "assign_to_member_test"
     begin
       "@   2:    :F:  $norm0 = 5;" ^
       "\n@   4:    :F:  $simp0 = $norm0;" ^
-      "\n@   8:   5:F:  $norm6 = x.__getattribute__;" ^
+      "\n@   8:   5:F:  $norm6 = *get_attribute(x, __getattribute__);" ^
       "\n@  10:   5:F:  $norm1 = $norm6;" ^
       "\n@  12:   5:F:  $norm7 = \"__setattr__\";" ^
       "\n@  14:   5:F:  $norm9 = *get_call($norm1);" ^
@@ -418,7 +418,7 @@ let assign_to_member_test = gen_module_test "assign_to_member_test"
       "\n@  32:    :F:  $norm16 = $norm15($norm14);" ^
       "\n@  74:    :F:  goto 73 if not $norm16;" ^
       "\n@  34:    :F:  $norm3 = $norm5;" ^
-      "\n@  38:  35:F:  $norm18 = x.__getattr__;" ^
+      "\n@  38:  35:F:  $norm18 = *get_attribute(x, __getattr__);" ^
       "\n@  40:  35:F:  $norm2 = $norm18;" ^
       "\n@  59:    :F:  goto 36;" ^
       "\n@  35:    :F:  catch $norm17;" ^
@@ -456,7 +456,7 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
     "list[5] = 5"
     ("@   2:    :F:  $norm0 = 5;" ^
      "\n@   4:    :F:  $simp0 = $norm0;" ^
-     "\n@   6:    :F:  $norm1 = list.__setitem__;" ^
+     "\n@   6:    :F:  $norm1 = *get_attribute(list, __setitem__);" ^
      "\n@   8:    :F:  $norm2 = 5;" ^
      "\n@  10:    :F:  $norm3 = $norm1($norm2, $simp0);")
 ;;
@@ -465,7 +465,7 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
     "list[1:2] = 5"
     ("@   2:    :F:  $norm0 = 5;" ^
      "\n@   4:    :F:  $simp0 = $norm0;" ^
-     "\n@   6:    :F:  $norm1 = list.__setitem__;" ^
+     "\n@   6:    :F:  $norm1 = *get_attribute(list, __setitem__);" ^
      "\n@   8:    :F:  $norm2 = *slice;" ^
      "\n@  10:    :F:  $norm3 = 1;" ^
      "\n@  12:    :F:  $norm4 = 2;" ^
@@ -551,7 +551,7 @@ let assignment_tests =
 let unop_plus_test = gen_module_test "unop_plus_test"
     "+x"
     begin
-      "@   4:   1:F:  $norm5 = x.__getattribute__;" ^
+      "@   4:   1:F:  $norm5 = *get_attribute(x, __getattribute__);" ^
       "\n@   6:   1:F:  $norm0 = $norm5;" ^
       "\n@   8:   1:F:  $norm6 = \"__pos__\";" ^
       "\n@  10:   1:F:  $norm8 = *get_call($norm0);" ^
@@ -568,7 +568,7 @@ let unop_plus_test = gen_module_test "unop_plus_test"
       "\n@  28:    :F:  $norm15 = $norm14($norm13);" ^
       "\n@  70:    :F:  goto 69 if not $norm15;" ^
       "\n@  30:    :F:  $norm2 = $norm4;" ^
-      "\n@  34:  31:F:  $norm17 = x.__getattr__;" ^
+      "\n@  34:  31:F:  $norm17 = *get_attribute(x, __getattr__);" ^
       "\n@  36:  31:F:  $norm1 = $norm17;" ^
       "\n@  55:    :F:  goto 32;" ^
       "\n@  31:    :F:  catch $norm16;" ^
@@ -604,7 +604,7 @@ let unop_plus_test = gen_module_test "unop_plus_test"
 let unop_minus_test = gen_module_test "unop_minus_test"
     "-x"
     begin
-      "@   4:   1:F:  $norm5 = x.__getattribute__;" ^
+      "@   4:   1:F:  $norm5 = *get_attribute(x, __getattribute__);" ^
       "\n@   6:   1:F:  $norm0 = $norm5;" ^
       "\n@   8:   1:F:  $norm6 = \"__neg__\";" ^
       "\n@  10:   1:F:  $norm8 = *get_call($norm0);" ^
@@ -621,7 +621,7 @@ let unop_minus_test = gen_module_test "unop_minus_test"
       "\n@  28:    :F:  $norm15 = $norm14($norm13);" ^
       "\n@  70:    :F:  goto 69 if not $norm15;" ^
       "\n@  30:    :F:  $norm2 = $norm4;" ^
-      "\n@  34:  31:F:  $norm17 = x.__getattr__;" ^
+      "\n@  34:  31:F:  $norm17 = *get_attribute(x, __getattr__);" ^
       "\n@  36:  31:F:  $norm1 = $norm17;" ^
       "\n@  55:    :F:  goto 32;" ^
       "\n@  31:    :F:  catch $norm16;" ^
@@ -671,7 +671,7 @@ let unop_not_test = gen_module_test "unop_not_test"
 let gen_binop_test (name : string) (opstring : string) (opfunc : string ) =
   gen_module_test name ("x " ^ opstring ^ " y")
     begin
-      "@   4:   1:F:  $norm5 = x.__getattribute__;" ^
+      "@   4:   1:F:  $norm5 = *get_attribute(x, __getattribute__);" ^
       "\n@   6:   1:F:  $norm0 = $norm5;" ^
       "\n@   8:   1:F:  $norm6 = \"" ^ opfunc ^ "\";" ^
       "\n@  10:   1:F:  $norm8 = *get_call($norm0);" ^
@@ -688,7 +688,7 @@ let gen_binop_test (name : string) (opstring : string) (opfunc : string ) =
       "\n@  28:    :F:  $norm15 = $norm14($norm13);" ^
       "\n@  70:    :F:  goto 69 if not $norm15;" ^
       "\n@  30:    :F:  $norm2 = $norm4;" ^
-      "\n@  34:  31:F:  $norm17 = x.__getattr__;" ^
+      "\n@  34:  31:F:  $norm17 = *get_attribute(x, __getattr__);" ^
       "\n@  36:  31:F:  $norm1 = $norm17;" ^
       "\n@  55:    :F:  goto 32;" ^
       "\n@  31:    :F:  catch $norm16;" ^
@@ -772,7 +772,7 @@ let boolop_or_test = gen_module_test "boolop_or_test"
 let gen_cmpop_test (name : string) (opstring : string) (opfunc : string ) =
   (* gen_module_test name ("x " ^ opstring ^ " y")
      begin
-      "@   2:    :F:  $norm0 = x." ^ opfunc ^ ";" ^
+      "@   2:    :F:  $norm0 = *get_attribute(x, " ^ opfunc ^ ");" ^
       "\n@   4:    :F:  $norm1 = $norm0(y);"
      end *)
   gen_binop_test name opstring opfunc
@@ -781,7 +781,7 @@ let gen_cmpop_test (name : string) (opstring : string) (opfunc : string ) =
 let multi_compare_test = gen_module_test "multi_compare_test"
     "x < y < z"
     begin
-      "@   4:   1:F:  $norm5 = x.__getattribute__;" ^
+      "@   4:   1:F:  $norm5 = *get_attribute(x, __getattribute__);" ^
       "\n@   6:   1:F:  $norm0 = $norm5;" ^
       "\n@   8:   1:F:  $norm6 = \"__lt__\";" ^
       "\n@  10:   1:F:  $norm8 = *get_call($norm0);" ^
@@ -798,7 +798,7 @@ let multi_compare_test = gen_module_test "multi_compare_test"
       "\n@  28:    :F:  $norm15 = $norm14($norm13);" ^
       "\n@  70:    :F:  goto 69 if not $norm15;" ^
       "\n@  30:    :F:  $norm2 = $norm4;" ^
-      "\n@  34:  31:F:  $norm17 = x.__getattr__;" ^
+      "\n@  34:  31:F:  $norm17 = *get_attribute(x, __getattr__);" ^
       "\n@  36:  31:F:  $norm1 = $norm17;" ^
       "\n@  55:    :F:  goto 32;" ^
       "\n@  31:    :F:  catch $norm16;" ^
@@ -831,7 +831,7 @@ let multi_compare_test = gen_module_test "multi_compare_test"
       "\n@  79:    :F:  $norm32 = *bool;" ^
       "\n@  81:    :F:  $norm33 = $norm32($norm30);" ^
       "\n@ 166:    :F:  goto 165 if not $norm33;" ^
-      "\n@  85:  82:F:  $norm39 = y.__getattribute__;" ^
+      "\n@  85:  82:F:  $norm39 = *get_attribute(y, __getattribute__);" ^
       "\n@  87:  82:F:  $norm34 = $norm39;" ^
       "\n@  89:  82:F:  $norm40 = \"__lt__\";" ^
       "\n@  91:  82:F:  $norm42 = *get_call($norm34);" ^
@@ -848,7 +848,7 @@ let multi_compare_test = gen_module_test "multi_compare_test"
       "\n@ 109:    :F:  $norm49 = $norm48($norm47);" ^
       "\n@ 151:    :F:  goto 150 if not $norm49;" ^
       "\n@ 111:    :F:  $norm36 = $norm38;" ^
-      "\n@ 115: 112:F:  $norm51 = y.__getattr__;" ^
+      "\n@ 115: 112:F:  $norm51 = *get_attribute(y, __getattr__);" ^
       "\n@ 117: 112:F:  $norm35 = $norm51;" ^
       "\n@ 136:    :F:  goto 113;" ^
       "\n@ 112:    :F:  catch $norm50;" ^
@@ -1081,7 +1081,7 @@ let while_test = gen_module_test "while_test"
       "\n@   6:    :T:  $norm1 = *bool;" ^
       "\n@   8:    :T:  $norm2 = $norm1($norm0);" ^
       "\n@  92:    :T:  goto 2 if not $norm2;" ^
-      "\n@  12:   9:T:  $norm8 = x.__getattribute__;" ^
+      "\n@  12:   9:T:  $norm8 = *get_attribute(x, __getattribute__);" ^
       "\n@  14:   9:T:  $norm3 = $norm8;" ^
       "\n@  16:   9:T:  $norm9 = \"__add__\";" ^
       "\n@  18:   9:T:  $norm11 = *get_call($norm3);" ^
@@ -1098,7 +1098,7 @@ let while_test = gen_module_test "while_test"
       "\n@  36:    :T:  $norm18 = $norm17($norm16);" ^
       "\n@  78:    :T:  goto 77 if not $norm18;" ^
       "\n@  38:    :T:  $norm5 = $norm7;" ^
-      "\n@  42:  39:T:  $norm20 = x.__getattr__;" ^
+      "\n@  42:  39:T:  $norm20 = *get_attribute(x, __getattr__);" ^
       "\n@  44:  39:T:  $norm4 = $norm20;" ^
       "\n@  63:    :T:  goto 40;" ^
       "\n@  39:    :T:  catch $norm19;" ^
