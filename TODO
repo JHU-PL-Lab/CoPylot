@@ -1,5 +1,6 @@
-Change dunder names to be a special type of identifier
-Add DUP command
+Change dunder names to call foo.__class__.whatever instead of foo.whatever
 Add SET command
-Tex up GET helper function
-Add IS operator
+ON MONDAY:
+Continue working on interpreter. Start working on builtin functions.
+Ensure wrap_function and wrap_method are working right. Right now they never get wrapped up as methods, but as functions instead
+

@@ -40,8 +40,8 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
       MIS.create [Inert(Micro_value(obj_val));]
     in
     { prog with micro = new_micro; }
-    (* BIND command: takes an identifier and a memloc. Binds the memloc to the id,
-       and returns nothing *)
+  (* BIND command: takes an identifier and a memloc. Binds the memloc to the id,
+     and returns nothing *)
   | BIND ->
     let x, popped_stack1 = pop_var_or_fail rest_of_stack "BIND" in
     let m, popped_stack2 = pop_memloc_or_fail popped_stack1 "BIND"in
@@ -259,8 +259,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      address is "false". If the value is "true" it does nothing. If the value
      is any non-boolean, the program fails.*)
   | GOTOIFNOT uid ->
-    let m, popped_stack = pop_memloc_or_fail rest_of_stack "GOTOIFNOT" in
-    let value = Heap.get_value m prog.heap in
+    let value, popped_stack = pop_value_or_fail rest_of_stack "GOTOIFNOT" in
     let new_micro_list =
       match value with
       | Bool(true)  -> [ Command(ADVANCE); ]
@@ -336,10 +335,13 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
   (* RETRIEVE command: Takes a memloc which points to an object, and an
      identifier. Retrieves the object field corresponding to that identifier. *)
   | RETRIEVE ->
-    let member, popped_stack = pop_var_or_fail rest_of_stack "RETRIEVE" in
-    let obj_memloc, popped_stack2 = pop_memloc_or_fail popped_stack "RETRIEVE" in
-    let obj = retrieve_binding_or_fail prog.heap obj_memloc in
-    let attr = Bindings.get_memloc member obj in
+    let x, popped_stack = pop_var_or_fail rest_of_stack "RETRIEVE" in
+    let v, popped_stack2 = pop_value_or_fail popped_stack "RETRIEVE" in
+    let attr =
+      match v with
+      | Bindings(b) -> Bindings.get_memloc x b
+      | _ -> failwith "Non-binding value passed to RETRIEVE!"
+    in
     let new_micro =
       match attr with
       | None ->
@@ -366,9 +368,9 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
     (* Assignment from literal (also includes function values) *)
     | Assign(x, {body = Literal(l); _}) ->
       let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
-      let lval = literal_to_value l curr_eta in
+      let v = literal_to_value l curr_eta in
       [
-        Inert(Micro_value(lval));
+        Inert(Micro_value(v));
         Inert(Micro_var(x));
         Command(ASSIGN);
         Command(ADVANCE);
@@ -417,8 +419,12 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
       [
         Inert(Micro_var(x1));
         Command(LOOKUP);
+        Command(GET);
         Inert(Micro_var(x2));
         Command(RETRIEVE);
+        Command(DUP);
+        Command(GET);
+        Command(WRAP);
         Inert(Micro_var(x));
         Command(BIND);
         Command(ADVANCE);
@@ -433,6 +439,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
       [
         Inert(Micro_var(x0));
         Command(LOOKUP);
+        Command(GET);
         Inert(Micro_var("*value"));
         Command(RETRIEVE);
         Command(GET);
@@ -497,6 +504,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
       [
         Inert(Micro_var(x));
         Command(LOOKUP);
+        Command(GET);
         Command(GOTOIFNOT(uid));
       ]
 
@@ -524,10 +532,14 @@ let rec step_program (prog : program_state) (ctx : program_context)
 ;;
 
 let interpret_program (prog : modl) =
-  let Module(stmts, _) = prog in
+  let Module(input_stmts, end_uid) = prog in
   (* Assume that the uid of the Module is the maximum uid that appears in the
      program. This is valid if we generated it through normalization from
      Python. *)
+  let Module(builtin_stmts, _) =
+    Python2_pys_interpreter_builtin_defs.parse_all_builtin_defs (end_uid + 1)
+  in
+  let stmts = builtin_stmts @ input_stmts in
   let starting_ctx = { program = Body.create stmts; } in
   let global_memloc = Python2_pys_interpreter_init.global_memloc in
   let starting_frame =
