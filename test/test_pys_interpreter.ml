@@ -59,7 +59,16 @@ let int_test = gen_module_test "int_test"
                              )
                            end
                          |> Heap.update_binding (Memloc(1)) (Num(Int(4)))
-                         |> Heap.update_binding (Memloc(2)) (Bindings(Bindings.empty))
+                         |> Heap.update_binding (Memloc(2))
+                           begin
+                             Bindings(
+                               starting_bindings
+                               |> Bindings.update_binding "*value" (Memloc(1))
+                               |> Bindings.update_binding "__class__" (Builtin_type_memloc(Int_type))
+                               |> Bindings.update_binding "__add__" (Builtin_fun_memloc(Builtin_int_add))
+                               |> Bindings.update_binding "__neg__" (Builtin_fun_memloc(Builtin_int_neg))
+                             )
+                           end
     }
 ;;
 
@@ -77,7 +86,16 @@ let int_assign_test = gen_module_test "int_assign_test"
                              )
                            end
                          |> Heap.update_binding (Memloc(1)) (Num(Int(4)))
-                         |> Heap.update_binding (Memloc(2)) (Bindings(Bindings.empty))
+                         |> Heap.update_binding (Memloc(2))
+                           begin
+                             Bindings(
+                               starting_bindings
+                               |> Bindings.update_binding "*value" (Memloc(1))
+                               |> Bindings.update_binding "__class__" (Builtin_type_memloc(Int_type))
+                               |> Bindings.update_binding "__add__" (Builtin_fun_memloc(Builtin_int_add))
+                               |> Bindings.update_binding "__neg__" (Builtin_fun_memloc(Builtin_int_neg))
+                             )
+                           end
     }
 ;;
 
