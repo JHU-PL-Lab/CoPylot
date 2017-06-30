@@ -55,7 +55,7 @@ let gen_module_test (name : string) (prog : string)
     (expected : string)=
   name>::
   ( fun _ ->
-      let actual = parse_to_abstract_safe prog true false in
+      let actual = parse_to_abstract_safe prog true false 1 in
       Python2_ast_simplifier.reset_unique_name ();
       Python2_ast_normalizer.reset_unique_name ();
       let distinct_uids = verify_unique_uids actual in

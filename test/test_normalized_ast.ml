@@ -34,12 +34,7 @@ let rec check_for_duplicates (lst : int list) : bool =
         rest
     in value
 
-let rec verify_unique_uids = function
-  | Module(body, uid) ->
-    let uids = List.concat (List.map collect_uids_stmt body) in
-    check_for_duplicates (uid::uids)
-
-and collect_uids_stmt s =
+let rec collect_uids_stmt s =
   let rest =
     match s.body with
     | Assign (_, {uid = u; body = Literal(FunctionVal(_, body)); _})
@@ -49,6 +44,13 @@ and collect_uids_stmt s =
     | _ -> []
   in
   s.uid::rest
+;;
+
+
+let rec verify_unique_uids = function
+  | Module(body, uid) ->
+    let uids = List.concat (List.map collect_uids_stmt body) in
+    check_for_duplicates (uid::uids)
 ;;
 
 let get_call_def =
@@ -146,7 +148,7 @@ let gen_module_test (name : string) (prog : string)
     (expected : string) =
   name>::
   ( fun _ ->
-      let actual = parse_to_normalized_safe prog true false in
+      let actual = parse_to_normalized_safe prog true false 1 in
       Python2_ast_simplifier.reset_unique_name ();
       Python2_ast_normalizer.reset_unique_name ();
 
@@ -163,7 +165,7 @@ let gen_full_module_test (name : string) (prog : string)
     (expected : string) =
   name>::
   ( fun _ ->
-      let actual = parse_to_normalized_safe prog true false in
+      let actual = parse_to_normalized_safe prog true false 1 in
       Python2_ast_simplifier.reset_unique_name ();
       Python2_ast_normalizer.reset_unique_name ();
 
@@ -1282,7 +1284,7 @@ let expect_error_test
      assert_raises
        expected
        (fun _ ->
-          parse_to_normalized prog true true);
+          parse_to_normalized prog true false 1);
      Python2_ast_simplifier.reset_unique_name ();
      Python2_ast_normalizer.reset_unique_name ()
   )

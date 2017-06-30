@@ -16,8 +16,8 @@ type uid_context = {
   annotation_map: Python2_ast.Pos.t Uid_hashtbl.t
 }
 
-let create_new_uid_context () =
-  { uid_counter = 0; annotation_map = Uid_hashtbl.create 10}
+let create_new_uid_context starting_uid =
+  { uid_counter = starting_uid; annotation_map = Uid_hashtbl.create 10}
 
 let get_next_uid ctx annot =
   let count = ctx.uid_counter in

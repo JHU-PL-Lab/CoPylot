@@ -1,6 +1,7 @@
 Create the global *get_attribute definition
 Set interpreter to automatically prepend *get_attribute and *call
 Change dunder names to be a special type of identifier
-Update interpreter testing
-Update interpreter:
-  Change how wrap/GetObj works
+Add DUP command
+Add SET command
+Tex up GET helper function
+Add IS operator
