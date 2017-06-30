@@ -388,6 +388,8 @@ type micro_command =
   | LOOKUP
   | GET
   | ASSIGN
+  | EQ
+  | DUP
   | LIST of int (* size *)
   | TUPLE of int (* size *)
   | ADVANCE

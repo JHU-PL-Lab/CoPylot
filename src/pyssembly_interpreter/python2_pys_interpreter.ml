@@ -1,10 +1,10 @@
 open Batteries;;
 open Jhupllib_utils;;
+
 open Python2_ast_types;;
-module Normalized = Python2_normalized_ast;;
-open Normalized;;
+open Python2_normalized_ast;;
+
 open Python2_pys_interpreter_types;;
-(* open Python2_pys_interpreter_builtin_objects;; *)
 open Python2_pys_interpreter_utils;;
 
 let execute_micro_command (prog : program_state) (ctx : program_context)
@@ -179,6 +179,22 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
           Inert(Micro_var(x));
           Command(BIND);
         ]
+    in
+    { prog with micro = new_micro }
+
+  | EQ ->
+    let m1, popped_stack = pop_memloc_or_fail rest_of_stack "EQ" in
+    let m2, popped_stack2 = pop_memloc_or_fail popped_stack "EQ" in
+    let v : value = if m1 = m2 then Bool(true) else Bool(false) in
+    let new_micro = MIS.insert popped_stack2 @@
+      MIS.create [Inert(Micro_value(v))]
+    in
+    { prog with micro = new_micro }
+
+  | DUP ->
+    let z, popped_stack = MIS.pop_first_inert rest_of_stack in
+    let new_micro = MIS.insert popped_stack @@
+      MIS.create [Inert(z); Inert(z)]
     in
     { prog with micro = new_micro }
 
