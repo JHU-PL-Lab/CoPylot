@@ -11,7 +11,7 @@ let convert_builtin b =
   | Ast.Builtin_bool -> Function(Builtin_func(Builtin_bool))
   | Ast.Builtin_slice -> Function(Builtin_func(Builtin_slice))
   | Ast.Builtin_type -> Function(Builtin_func(Builtin_type_func))
-  | Ast.Builtin_method_wrapper_type -> Builtin_type(Builtin_method_wrapper_type);
+  | Ast.Builtin_method_wrapper_type -> Builtin_type(Method_wrapper_type);
   | Ast.Builtin_AttributeError -> Builtin_exception(Builtin_AttributeError)
   | Ast.Builtin_ValueError -> Builtin_exception(Builtin_ValueError)
   | Ast.Builtin_TypeError -> Builtin_exception(Builtin_TypeError)

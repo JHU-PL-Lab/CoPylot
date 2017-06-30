@@ -27,15 +27,43 @@ type builtin_exception =
 ;;
 
 type builtin_function =
+  (* Globals *)
   | Builtin_bool
   | Builtin_slice
   | Builtin_type_func
   | Builtin_call
+  (* Methods *)
+  (* --Ints-- *)
+  | Builtin_int_add
+  | Builtin_int_neg
+  (* --Floats-- *)
+  | Builtin_float_add
+  | Builtin_float_neg
+  (* --Strings-- *)
+  | Builtin_string_add
+  | Builtin_string_contains
+  (* --Lists-- *)
+  | Builtin_list_add
+  | Builtin_list_iter
+  | Builtin_list_contains
+  | Builtin_list_getitem
+  (* --Tuples-- *)
+  | Builtin_tuple_add
+  | Builtin_tuple_iter
+  | Builtin_tuple_contains
+  | Builtin_tuple_getitem
 [@@deriving eq, ord, show]
 ;;
 
 type builtin_type =
-  | Builtin_method_wrapper_type
+  | Int_type
+  | Float_type
+  | String_type
+  | None_type
+  | List_type
+  | Tuple_type
+  | Function_type
+  | Method_wrapper_type
 [@@deriving eq, ord, show]
 ;;
 
@@ -45,6 +73,7 @@ type memloc =
   | None_memloc
   | Builtin_exn_memloc of builtin_exception
   | Builtin_fun_memloc of builtin_function
+  | Builtin_type_memloc of builtin_type
 [@@deriving eq, ord, show]
 ;;
 
