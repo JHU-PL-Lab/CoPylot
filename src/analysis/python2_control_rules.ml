@@ -6,7 +6,7 @@ open Python2_pds;;
 open Python2_ast_types;;
 open Python2_abstract_ast;;
 open Python2_analysis_result_structure;;
-open Uid_generation;;
+open Python2_normalization_ctx;;
 
 (* TODO: This can be made much more efficient *)
 let is_active (v : vertex) (gph : Control_cfg.t) =
@@ -80,7 +80,7 @@ let apply_rules (curr : analysis_result) (e : Lexical_cfg.edge)
               match except with
               | None -> raise @@ Utils.Not_yet_implemented "Exception outside of try"
               | Some (uid) ->
-                let handler = Uid_hashtbl.find curr.analysis_uid_map uid in
+                let handler = Counter_hashtbl.find curr.analysis_uid_map uid in
                 return @@ Control_cfg.Edge(v1, Program_point(handler))
             end
           | _ -> return (Control_cfg.Edge(v1, v2))

@@ -56,9 +56,8 @@ let gen_module_test (name : string) (prog : string)
     (expected : string) =
   name>::
   ( fun _ ->
-      let actual = parse_to_normalized_safe prog true 1 in
+      let actual = parse_to_normalized_safe prog 1 0 true in
       Python2_ast_simplifier.reset_unique_name ();
-      Python2_ast_normalizer.reset_unique_name ();
 
       let distinct_uids = verify_unique_uids actual in
       assert_bool ("Repeated UIDs:\n" ^ string_of_modl actual) distinct_uids;
@@ -1175,9 +1174,8 @@ let expect_error_test
      assert_raises
        expected
        (fun _ ->
-          parse_to_normalized prog true 1);
+          parse_to_normalized prog 1 0 true);
      Python2_ast_simplifier.reset_unique_name ();
-     Python2_ast_normalizer.reset_unique_name ()
   )
 ;;
 

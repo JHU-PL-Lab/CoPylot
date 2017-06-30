@@ -54,7 +54,7 @@ end;;
 let analyze_uid (prog_point : uid) (prog : modl) (var : identifier) : Answer_set.t =
   let analysis = Analysis_result.create prog in
   let uid_to_stmt_map = get_uid_hashtbl prog in (* TODO: Redundant *)
-  let prog_point_stmt = Uid_generation.Uid_hashtbl.find uid_to_stmt_map prog_point in
+  let prog_point_stmt = Python2_normalization_ctx.Counter_hashtbl.find uid_to_stmt_map prog_point in
   Analysis_result.query analysis (Program_point(prog_point_stmt)) var
 ;;
 

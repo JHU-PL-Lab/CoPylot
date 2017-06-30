@@ -11,7 +11,7 @@ module Simplify = Python2_ast_simplifier
 module Normalize = Python2_ast_normalizer
 open Python2_normalized_ast
 open Python2_normalized_ast_pretty
-open Uid_generation
+open Python2_normalization_ctx
 
 (* TODO: Currently this has all the same tests as test_normalized_ast,
    and so is redundant. It should be changed to more properly unit test just

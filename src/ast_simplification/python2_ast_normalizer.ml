@@ -1,28 +1,12 @@
 open Python2_ast_types
 module Simplified = Python2_simplified_ast;;
 module Normalized = Python2_normalized_ast;;
-open Uid_generation;;
+open Python2_normalization_ctx;;
 
 (* FIXME: We need to create a type for builtin methods (in addition to builtin
    functions such as type, bool, slice) such as __getattr__, and use that
    instead of just a string whenever we invoke them in this file *)
 
-let name_counter = ref 0;;
-let use_shortened_names = ref false;;
-
-let gen_unique_name _ =
-  let count = !name_counter in
-  name_counter := count + 1;
-  let prefix = if !use_shortened_names
-    then
-      "$norm"
-    else
-      "$normalized_unique_name_"
-  in prefix ^ string_of_int count
-;;
-
-let reset_unique_name () = name_counter := 0;;
-let toggle_short_names (b : bool) = use_shortened_names := b;;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
@@ -39,7 +23,7 @@ let normalize_option func o =
 let gen_normalized_assignment ctx annot
     (e : Normalized.annotated_expr) =
   let u = get_next_uid ctx annot in
-  let name = gen_unique_name u in
+  let name = gen_unique_name ctx annot in
   let assignment = {
     uid = u;
     exception_target = e.exception_target;
@@ -250,7 +234,7 @@ and normalize_stmt_full
     [annotate_stmt @@ Normalized.Raise(value_result)]
 
   | Simplified.TryExcept (body, handlers, annot) ->
-    let exception_name = gen_unique_name annot in
+    let exception_name = gen_unique_name ctx annot in
     let catch = annotate_stmt @@ Normalized.Catch(exception_name) in
     let handler_start_uid = catch.uid in
     let handler_end_stmt = annotate_stmt Normalized.Pass in
@@ -431,7 +415,7 @@ and normalize_expr_full
        unbound variable error. It is guaranteed that this is the branch we
        do not run, but this still makes me sad.
     *)
-    let tmp_name = gen_unique_name annot in
+    let tmp_name = gen_unique_name ctx annot in
     let test_bindings, test_name =
       normalize_and_call_bool ctx annot
         normalize_expr
@@ -491,7 +475,7 @@ and normalize_expr_full
     (* Helper function that takes a variable name, then generates normalized
        code that inverts it *)
     let invert id =
-      let inverted_name = gen_unique_name annot in
+      let inverted_name = gen_unique_name ctx annot in
       let inverter =
         normalize_stmt_full ctx loop_start_uid loop_end_uid exception_target @@
         Simplified.Assign(inverted_name,
@@ -595,7 +579,7 @@ and normalize_expr_full
       | Simplified.Builtin _ -> [], func_name
       | Simplified.Name ("*get_call", _) -> [], func_name
       | _ ->
-        let callable_name = gen_unique_name annot in
+        let callable_name = gen_unique_name ctx annot in
         let get_call_call =
           Simplified.Assign(
             callable_name,
@@ -662,9 +646,9 @@ and normalize_expr_full
     *)
     let obj_bindings, obj_result = normalize_expr obj in
     let obj_name = Simplified.Name(obj_result, annot) in
-    let getattribute_name = gen_unique_name annot in
-    let getattr_name = gen_unique_name annot in
-    let exn_name = gen_unique_name annot in
+    let getattribute_name = gen_unique_name ctx annot in
+    let getattr_name = gen_unique_name ctx annot in
+    let exn_name = gen_unique_name ctx annot in
     let getattr_try =
       Simplified.TryExcept(
         [
@@ -681,7 +665,7 @@ and normalize_expr_full
         ],
         annot)
     in
-    let result_name = gen_unique_name annot in
+    let result_name = gen_unique_name ctx annot in
     let overall_try =
       Simplified.TryExcept(
         [

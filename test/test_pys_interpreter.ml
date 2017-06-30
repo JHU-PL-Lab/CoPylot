@@ -25,9 +25,8 @@ let gen_module_test (name : string) (prog : string)
     (expected : program_state ) =
   name>::
   ( fun _ ->
-      let actual = parse_to_normalized_safe prog true 0 in
+      let actual = parse_to_normalized_safe prog 0 0 true in
       Python2_ast_simplifier.reset_unique_name ();
-      Python2_ast_normalizer.reset_unique_name ();
 
       let result_state = interpret_program actual in
       assert_equal ~printer:string_of_program_state ~cmp:equal_program_state expected result_state
@@ -38,9 +37,8 @@ let gen_variable_test (name : string) (prog : string)
     (target: string) (expected : value) =
   name>::
   ( fun _ ->
-      let normalized = parse_to_normalized_safe prog true 0 in
+      let normalized = parse_to_normalized_safe prog 0 0 true in
       Python2_ast_simplifier.reset_unique_name ();
-      Python2_ast_normalizer.reset_unique_name ();
 
       let result_state = interpret_program normalized in
       let open Python2_pys_interpreter_utils in

@@ -1,5 +1,6 @@
 open Python2_ast_types;;
 open Python2_simplified_ast;;
+open Python2_normalization_ctx;;
 
 let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
 
@@ -16,8 +17,8 @@ let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
 *)
 (* FIXME: The TypeError string should be dynamically constructed to say what the
    original object type was *)
-let get_call_def name_generator =
-  let func_name = name_generator annot in
+let get_call_def ctx =
+  let func_name = gen_unique_name ctx annot in
   let type_test =
     Compare(
       Call(Builtin(Builtin_type, annot),
@@ -67,19 +68,17 @@ let get_call_def name_generator =
                     annot)
 ;;
 
-let get_all_builtin_defs name_generator =
+let get_all_builtin_defs ctx =
   let stmts =
     [
-      get_call_def name_generator;
+      get_call_def ctx;
     ]
   in
   Module(stmts, annot)
 ;;
 
-let parse_all_builtin_defs name_generator starting_uid =
-  let defs = get_all_builtin_defs name_generator in
-  let module Normalize = Python2_ast_normalizer in
-  let ctx = Uid_generation.create_new_uid_context starting_uid in
-  Normalize.toggle_short_names true;
-  Normalize.normalize_modl ctx defs;
+let parse_all_builtin_defs starting_uid =
+  let ctx = create_new_normalization_ctx starting_uid 0 "$builtin" in
+  let defs = get_all_builtin_defs ctx in
+  Python2_ast_normalizer.normalize_modl ctx defs;
 ;;

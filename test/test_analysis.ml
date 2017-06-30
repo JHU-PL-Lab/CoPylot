@@ -61,7 +61,7 @@ let uid_test =
   ( fun _ ->
       let actual = Module([annotate_stmt 1 @@ Assign("x", annotate_expr 2 @@ Literal(Num(Int(Zero))));
                            annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Literal(Num(Int(Pos))));], 0) in
-      let open Uid_generation in
+      let open Python2_normalization_ctx in
       let map = Python2_uid_stmt_map.get_uid_hashtbl actual in
       assert_equal (annotate_stmt 3 @@ Assign("y", annotate_expr 4 @@ Literal(Num(Int(Pos))))) (Uid_hashtbl.find map 3)
   )

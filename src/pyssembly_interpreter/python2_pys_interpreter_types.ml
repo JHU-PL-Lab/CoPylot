@@ -166,11 +166,11 @@ struct
   end
   module Uid_map = Map.Make(Uid_ord);;
   type lexical_map = uid Uid_map.t;;
-  open Uid_generation;;
+  open Python2_normalization_ctx;;
 
   type t = { stmts: annotated_stmt list;
              order: lexical_map;
-             stmt_map: annotated_stmt Uid_hashtbl.t
+             stmt_map: annotated_stmt Counter_hashtbl.t
            };;
 
   let compare t1 t2 = List.compare compare_annotated_stmt t1.stmts t2.stmts;;
@@ -184,7 +184,7 @@ struct
 
   let get_stmt (b : t) (u : uid) =
     try
-      Some(Uid_hashtbl.find b.stmt_map u)
+      Some(Counter_hashtbl.find b.stmt_map u)
     with
     | Not_found -> None
 
