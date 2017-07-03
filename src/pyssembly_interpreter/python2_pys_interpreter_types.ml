@@ -31,8 +31,8 @@ type builtin_function =
   | Builtin_bool
   | Builtin_slice
   | Builtin_type_func
-  | Builtin_call
   (* Methods *)
+  | Builtin_call
   (* --Ints-- *)
   | Builtin_int_add
   | Builtin_int_neg

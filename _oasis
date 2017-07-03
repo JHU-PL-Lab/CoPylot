@@ -122,6 +122,7 @@ Library "pyssembly_interpreter"
     Python2_pys_interpreter_types,
     Python2_pys_interpreter_builtin_objects,
     Python2_pys_interpreter_builtin_defs,
+    Python2_pys_interpreter_magics,
     Python2_pys_interpreter_init,
     Python2_pys_interpreter_utils,
     Python2_pys_interpreter

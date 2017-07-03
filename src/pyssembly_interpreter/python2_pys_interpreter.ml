@@ -308,10 +308,9 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CALL" in
     (* TODO: Current spec says this should be a value, not a memloc. May or may
        not get changed; fix when we've decided *)
-    let func_loc, popped_micro2 = pop_memloc_or_fail popped_micro "CALL" in
-    let value = Heap.get_value func_loc prog.heap in
+    let func_val, popped_micro2 = pop_value_or_fail popped_micro "CALL" in
     let new_micro =
-      match value with
+      match func_val with
       | Function (User_func(eta, args, body)) ->
         if List.length args <> numargs then
           MIS.create [ Command(ALLOCTYPEERROR); Command(RAISE); ]
@@ -325,8 +324,8 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
           MIS.insert popped_micro2 @@ MIS.create @@
           [ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds
 
-      | Function (Builtin_func _) ->
-        raise @@ Not_yet_implemented "Builtin function"
+      | Function (Builtin_func b) ->
+        Python2_pys_interpreter_magics.call_magic prog.heap popped_micro2 arg_locs b
 
       | _ -> failwith "Can only CALL a function."
     in
