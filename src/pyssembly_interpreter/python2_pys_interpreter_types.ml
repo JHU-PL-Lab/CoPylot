@@ -401,6 +401,7 @@ type micro_command =
   | CALL of int (* numargs *)
   | CONVERT of int (* numargs *)
   | RETRIEVE
+  | ALLOC
   | ALLOCNAMEERROR
   | ALLOCTYPEERROR
   | ALLOCATTRIBUTEERROR

@@ -1,87 +1,73 @@
+open Python2_ast_types;;
 open Python2_pys_interpreter_types;;
+open Jhupllib_utils;;
 
-let make_int_obj (m : memloc) : Bindings.t =
-  let obj = Bindings.empty
-            |> Bindings.update_binding "*value" m
-            |> Bindings.update_binding "__class__" @@ Builtin_type_memloc(Int_type)
-            |> Bindings.update_binding "__add__" @@ Builtin_fun_memloc(Builtin_int_add)
-            |> Bindings.update_binding "__neg__" @@ Builtin_fun_memloc(Builtin_int_neg)
+let get_fill_commands (m : memloc) (v: value) : micro_instruction list =
+  (* Helper functions *)
+  let store_method met =
+    [
+      Command(ALLOC);
+      Inert(Micro_value(Method(m, Builtin_func(met))));
+      Command(STORE);
+    ]
   in
-  obj
-;;
-
-let make_float_obj (m : memloc) : Bindings.t =
-  let obj = Bindings.empty
-            |> Bindings.update_binding "*value" m
-            |> Bindings.update_binding "__class__" @@ Builtin_type_memloc(Float_type)
-            |> Bindings.update_binding "__add__" @@ Builtin_fun_memloc(Builtin_float_add)
-            |> Bindings.update_binding "__neg__" @@ Builtin_fun_memloc(Builtin_float_neg)
+  let store_type t =
+    [Inert(Micro_memloc(Builtin_type_memloc(t)))]
   in
-  obj
-;;
-
-let make_string_obj (m : memloc) : Bindings.t =
-  let obj = Bindings.empty
-            |> Bindings.update_binding "*value" m
-            |> Bindings.update_binding "__class__" @@ Builtin_type_memloc(String_type)
-            |> Bindings.update_binding "__add__" @@ Builtin_fun_memloc(Builtin_string_add)
-            |> Bindings.update_binding "__contains__" @@ Builtin_fun_memloc(Builtin_string_contains)
+  let bind_all lst =
+    List.concat @@ List.map
+      (fun (var, micro) ->
+         [Inert(Micro_memloc m)] @ micro @ [Inert(Micro_var(var)); Command(BIND)])
+      lst
   in
-  obj
-;;
-
-let make_bool_obj (m : memloc) : Bindings.t =
-  let obj = Bindings.empty
-            |> Bindings.update_binding "*value" m
+  let type_bindings =
+    match v with
+    | Num(Int _) ->
+      [
+        ("__class__", store_type Int_type);
+        ("__add__", store_method Builtin_int_add);
+        ("__neg__", store_method Builtin_int_neg);
+      ]
+    | Num(Float _) ->
+      [
+        ("__class__", store_type Float_type);
+        ("__add__", store_method Builtin_float_add);
+        ("__neg__", store_method Builtin_float_neg);
+      ]
+    | Str _ ->
+      [
+        ("__class__", store_type String_type);
+        ("__add__", store_method Builtin_string_add);
+        ("__contains__", store_method Builtin_string_contains);
+      ]
+    | ListVal _ ->
+      [
+        ("__class__", store_type List_type);
+        ("__add__", store_method Builtin_list_add);
+        ("__contains__", store_method Builtin_list_contains);
+        ("__getitem__", store_method Builtin_list_getitem);
+      ]
+    | TupleVal _ ->
+      [
+        ("__class__", store_type Tuple_type);
+        ("__add__", store_method Builtin_tuple_add);
+        ("__contains__", store_method Builtin_tuple_contains);
+        ("__getitem__", store_method Builtin_tuple_getitem);
+      ]
+    | Function _ ->
+      [
+        ("__class__", store_type Function_type);
+      ]
+    | Method _ ->
+      [
+        ("__class__", store_type Method_wrapper_type);
+        ("__add__", store_method Builtin_call);
+      ]
+    | Builtin_exception _
+    | Builtin_type _
+    | Bool _
+    | NoneVal -> raise @@ Not_yet_implemented "Wrapping value"
+    | Bindings _ -> failwith "Tried to fill existing bindings"
   in
-  obj
-;;
-
-let make_none_obj (_ : memloc) : Bindings.t =
-  failwith "Doesn't actually make sense to make a None object, since there can only be one"
-  (* let obj = Bindings.empty
-            |> Bindings.update_binding "*value" m
-            |> Bindings.update_binding "__class__" @@ Builtin_type_memloc(None_type)
-  in
-  obj *)
-;;
-
-let make_function_obj (m : memloc) : Bindings.t =
-  let obj = Bindings.empty
-            |> Bindings.update_binding "*value" m
-            |> Bindings.update_binding "__class__" @@ Builtin_type_memloc(Function_type)
-  in
-  obj
-;;
-
-let make_method_obj (m : memloc) : Bindings.t =
-  let obj = Bindings.empty
-            |> Bindings.update_binding "*value" m
-            |> Bindings.update_binding "__class__" @@ Builtin_type_memloc(Method_wrapper_type)
-  in
-  obj
-;;
-
-let make_list_obj (m : memloc) : Bindings.t =
-  let obj = Bindings.empty
-            |> Bindings.update_binding "*value" m
-            |> Bindings.update_binding "__class__" @@ Builtin_type_memloc(List_type)
-            |> Bindings.update_binding "__add__" @@ Builtin_fun_memloc(Builtin_list_add)
-            |> Bindings.update_binding "__iter__" @@ Builtin_fun_memloc(Builtin_list_iter)
-            |> Bindings.update_binding "__contains__" @@ Builtin_fun_memloc(Builtin_list_contains)
-            |> Bindings.update_binding "__getitem__" @@ Builtin_fun_memloc(Builtin_list_getitem)
-  in
-  obj
-;;
-
-let make_tuple_obj (m : memloc) : Bindings.t =
-  let obj = Bindings.empty
-            |> Bindings.update_binding "*value" m
-            |> Bindings.update_binding "__class__" @@ Builtin_type_memloc(Tuple_type)
-            |> Bindings.update_binding "__add__" @@ Builtin_fun_memloc(Builtin_tuple_add)
-            |> Bindings.update_binding "__iter__" @@ Builtin_fun_memloc(Builtin_tuple_iter)
-            |> Bindings.update_binding "__contains__" @@ Builtin_fun_memloc(Builtin_tuple_contains)
-            |> Bindings.update_binding "__getitem__" @@ Builtin_fun_memloc(Builtin_tuple_getitem)
-  in
-  obj
+  bind_all type_bindings
 ;;

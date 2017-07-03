@@ -3,7 +3,6 @@ open Python2_ast_types;;
 open Python2_normalized_ast;;
 open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter_builtin_objects;;
-open Jhupllib_utils;;
 
 let convert_builtin b =
   let module Ast = Python2_ast_types in
@@ -83,24 +82,23 @@ let rec pop_n_memlocs
 ;;
 
 (* This is the implementation of GetObj in the spec *)
-let wrap_value (m : memloc) (v : value) : value =
-  let bindings =
-    match v with
-    | Num(Int _) -> make_int_obj m
-    | Num(Float _) -> make_float_obj m
-    | Str _ -> make_string_obj m
-    | ListVal _ -> make_list_obj m
-    | TupleVal _ -> make_tuple_obj m
-    | Function _ -> make_function_obj m
-    | Method _ -> make_method_obj m
-    | Bindings b -> b
-    | Builtin_exception _
-    | Builtin_type _
-    | Bool _
-    | NoneVal -> raise @@ Not_yet_implemented "Wrapping value"
-  in
-  Bindings(bindings)
-
+let wrap_value (m1 : memloc) (m2 : memloc) (v : value)
+  : Micro_instruction_stack.t =
+  let module MIS = Micro_instruction_stack in
+  match v with
+  | Bindings b -> MIS.create @@
+    [Inert(Micro_memloc(m2)); Inert(Micro_value(Bindings(b)));]
+  | _ ->
+    let base_obj =
+      Bindings.empty
+      |> Bindings.update_binding "*value" m2
+      (* TODO: get_attribute *)
+    in
+    let fill_commands = get_fill_commands m1 v in
+    MIS.create @@
+    [Inert(Micro_memloc(m1))] @
+    fill_commands @
+    [Inert(Micro_value(Bindings(base_obj)))]
 ;;
 
 let extract_option_or_fail (opt: 'a option) (failmsg: string) : 'a =

@@ -19,14 +19,22 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
                      Pp_utils.pp_to_string MIS.pp prog.micro);
   let command, rest_of_stack = MIS.pop_first_command prog.micro in
   match command with
-  (* STORE command; takes a value and binds it to a fresh memory location on
+  (* ALLOC command; takes no inputs, and returns a fresh memory location *)
+  | ALLOC ->
+    let m = Heap.get_new_memloc prog.heap in
+    let new_micro =
+      MIS.insert rest_of_stack @@ MIS.create [Inert(Micro_memloc(m))]
+    in
+    { prog with micro = new_micro }
+
+  (* STORE command: takes a value and binds it to a fresh memory location on
      the heap. Returns the fresh memory location. *)
   | STORE ->
-    let val_to_store, popped_stack = pop_value_or_fail rest_of_stack "STORE" in
-    let fresh_memloc = Heap.get_new_memloc prog.heap in
-    let new_heap = Heap.update_binding fresh_memloc val_to_store prog.heap in
+    let v, popped_stack = pop_value_or_fail rest_of_stack "STORE" in
+    let m, popped_stack = pop_memloc_or_fail popped_stack "STORE" in
+    let new_heap = Heap.update_binding m v prog.heap in
     let new_micro = MIS.insert popped_stack @@
-      MIS.create [Inert(Micro_memloc(fresh_memloc))]
+      MIS.create [Inert(Micro_memloc(m))]
     in
     {
       prog with
@@ -40,28 +48,28 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      object. *)
   | WRAP ->
     let v, popped_stack = pop_value_or_fail rest_of_stack "WRAP" in
-    let m, popped_stack2 = pop_memloc_or_fail popped_stack "WRAP" in
-    let obj_val = wrap_value m v in
-    let new_micro = MIS.insert popped_stack2 @@
-      MIS.create [Inert(Micro_value(obj_val));]
-    in
+    let m, popped_stack = pop_memloc_or_fail popped_stack "WRAP" in
+    let mobj, popped_stack = pop_memloc_or_fail popped_stack "WRAP" in
+    let obj_bindings = wrap_value mobj m v in
+    let new_micro = MIS.insert popped_stack obj_bindings in
     { prog with micro = new_micro; }
+
   (* BIND command: takes an identifier and a memloc. Binds the memloc to the id,
      and returns nothing *)
   | BIND ->
-    let x, popped_stack1 = pop_var_or_fail rest_of_stack "BIND" in
-    let m, popped_stack2 = pop_memloc_or_fail popped_stack1 "BIND"in
-    let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
+    let x, popped_stack = pop_var_or_fail rest_of_stack "BIND" in
+    let m, popped_stack = pop_memloc_or_fail popped_stack "BIND" in
+    let eta, popped_stack = pop_memloc_or_fail popped_stack "BIND" in
     let bindings =
-      retrieve_binding_or_fail prog.heap curr_eta
+      retrieve_binding_or_fail prog.heap eta
     in
     let new_bindings = Bindings.update_binding x m bindings in
     let new_heap =
-      Heap.update_binding curr_eta (Bindings(new_bindings)) prog.heap
+      Heap.update_binding eta (Bindings(new_bindings)) prog.heap
     in
     {
       prog with
-      micro = popped_stack2;
+      micro = popped_stack;
       heap = new_heap;
     }
 
@@ -173,10 +181,14 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      identifier. *)
   | ASSIGN ->
     let x, popped_stack = pop_var_or_fail rest_of_stack "ASSIGN" in
-    let v, popped_stack2 = pop_value_or_fail popped_stack "ASSIGN" in
-    let new_micro = MIS.insert popped_stack2 @@
+    let v, popped_stack = pop_value_or_fail popped_stack "ASSIGN" in
+    let eta = Stack_frame.get_eta @@ Program_stack.top prog.stack in
+    let new_micro = MIS.insert popped_stack @@
       MIS.create
         [
+          Inert(Micro_memloc(eta));
+          Command(ALLOC);
+          Command(ALLOC);
           Inert(Micro_value(v));
           Command(STORE);
           Inert(Micro_value(v));
@@ -228,13 +240,14 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      frame. Otherwise, if the exception statement points to a catch statement,
      we move to that catch and execute it. *)
   | RAISE ->
+    let m, popped_stack = pop_memloc_or_fail rest_of_stack "RAISE" in
     let stack_top, stack_body = Program_stack.pop prog.stack in
     let active = get_active_or_fail stack_top ctx in
     begin
       match active.exception_target with
       | None -> (* No exception target, pop a stack frame *)
-        let new_micro = MIS.insert rest_of_stack @@
-          MIS.create [ Command(POP); Command(RAISE); ]
+        let new_micro = MIS.insert popped_stack @@
+          MIS.create [ Command(POP); Inert(Micro_memloc(m)); Command(RAISE); ]
         in
         { prog with micro = new_micro }
 
@@ -242,10 +255,18 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
         let catch_stmt = Body.get_stmt ctx.program uid in
         match catch_stmt with
         | Some({body = Catch (x);_}) ->
-          let new_micro = MIS.insert rest_of_stack @@
-            MIS.create [ Inert(Micro_var(x)); Command(BIND); Command(ADVANCE); ]
-          in
           let catch_frame = Stack_frame.update_active_uid stack_top uid in
+          let eta = Stack_frame.get_eta catch_frame in
+          let new_micro = MIS.insert popped_stack @@
+            MIS.create
+              [
+                Inert(Micro_memloc(eta));
+                Inert(Micro_memloc(m));
+                Inert(Micro_var(x));
+                Command(BIND);
+                Command(ADVANCE);
+              ]
+          in
           let new_stack = Program_stack.push stack_body catch_frame in
           { prog with micro = new_micro; stack = new_stack; }
 
@@ -282,7 +303,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      ourselves with a call command. *)
   | CONVERT numargs ->
     let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CONVERT" in
-    let func_val, popped_micro2 = pop_value_or_fail popped_micro "CONVERT" in
+    let func_val, popped_micro = pop_value_or_fail popped_micro "CONVERT" in
     let new_micro =
       match func_val with
       | Function _ ->
@@ -293,7 +314,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
 
       | Method (arg, func) ->
         let arglist = List.map (fun m -> Inert(Micro_memloc(m))) arg_locs in
-        MIS.insert popped_micro2 @@
+        MIS.insert popped_micro @@
         MIS.create @@
         [
           Inert(Micro_value(Function(func)));
@@ -312,8 +333,6 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      binds all the arguments appropriately. *)
   | CALL numargs ->
     let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CALL" in
-    (* TODO: Current spec says this should be a value, not a memloc. May or may
-       not get changed; fix when we've decided *)
     let func_val, popped_micro2 = pop_value_or_fail popped_micro "CALL" in
     let new_micro =
       match func_val with
@@ -331,7 +350,8 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
           [ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds
 
       | Function (Builtin_func b) ->
-        Python2_pys_interpreter_magics.call_magic prog.heap popped_micro2 arg_locs b
+        let open Python2_pys_interpreter_magics in
+        call_magic prog.heap popped_micro2 arg_locs b
 
       | _ -> failwith "Can only CALL a function."
     in
@@ -341,7 +361,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      identifier. Retrieves the object field corresponding to that identifier. *)
   | RETRIEVE ->
     let x, popped_stack = pop_var_or_fail rest_of_stack "RETRIEVE" in
-    let v, popped_stack2 = pop_value_or_fail popped_stack "RETRIEVE" in
+    let v, popped_stack = pop_value_or_fail popped_stack "RETRIEVE" in
     let attr =
       match v with
       | Bindings(b) -> Bindings.get_memloc x b
@@ -352,8 +372,16 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
       | None ->
         MIS.create [ Command(ALLOCATTRIBUTEERROR); Command (RAISE); ]
       | Some(m) ->
-        MIS.insert popped_stack2 @@
-        MIS.create [ Inert(Micro_memloc(m)); ]
+        MIS.insert popped_stack @@
+        MIS.create
+          [
+            Command(ALLOC);
+            Inert(Micro_memloc(m));
+            Command(DUP);
+            Command(GET);
+            Command(WRAP);
+            Command(STORE);
+          ]
     in
     { prog with micro = new_micro; }
 
@@ -368,6 +396,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
      is nonempty! *)
   let new_micro_list =
     let curr_frame, stack_body = Program_stack.pop prog.stack in
+    let eta = Stack_frame.get_eta curr_frame in
     let stmt = get_active_or_fail curr_frame ctx in
     add_to_log `trace ("Executing statement: " ^
                        Pp_utils.pp_to_string pp_stmt stmt.body);
@@ -386,6 +415,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
     (* Variable Aliasing *)
     | Assign(x1, {body = Name(x2); _}) ->
       [
+        Inert(Micro_memloc(eta));
         Inert(Micro_var(x2));
         Command(LOOKUP);
         Inert(Micro_var(x1));
@@ -424,6 +454,8 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
     (* Object attribute *)
     | Assign(x, {body = Attribute(x1, x2); _}) ->
       [
+        Inert(Micro_memloc(eta));
+        Command(ALLOC);
         Inert(Micro_var(x1));
         Command(LOOKUP);
         Command(GET);
@@ -432,6 +464,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
         Command(DUP);
         Command(GET);
         Command(WRAP);
+        Command(STORE);
         Inert(Micro_var(x));
         Command(BIND);
         Command(ADVANCE);
@@ -486,12 +519,14 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
       let active_stmt =
         Body.get_stmt ctx.program @@ Stack_frame.get_active_uid caller
       in
+      let caller_eta = Stack_frame.get_eta caller in
       let x2 =
         match active_stmt with
         | Some({body = Assign(id, _); _}) -> id
         | _ -> failwith "Did not see assign on return from call!"
       in
       [
+        Inert(Micro_memloc(caller_eta));
         Inert(Micro_var(x));
         Command(LOOKUP);
         Command(POP);
