@@ -21,6 +21,14 @@ let parse_to_normalized_safe prog short_names =
                       p.pos_lnum p.pos_cnum)
 ;;
 
+let parse_pyssembly_safe prog =
+  try
+    Python2_pys_parser.parse_from_string prog
+  with
+  | Python2_pys_parser.Parse_error loc ->
+    assert_failure (Printf.sprintf "Error at location %d" loc)
+;;
+
 let gen_module_test (name : string) (prog : string)
     (expected : program_state ) =
   name>::
@@ -33,13 +41,12 @@ let gen_module_test (name : string) (prog : string)
   )
 ;;
 
-let gen_variable_test (name : string) (prog : string)
+let gen_variable_test (name : string) (prog: string)
+    (parse_func: string -> Python2_normalized_ast.modl)
     (target: string) (expected : value) =
   name>::
   ( fun _ ->
-      let normalized = parse_to_normalized_safe prog 0 0 true in
-      Python2_ast_simplifier.reset_unique_name ();
-
+      let normalized = parse_func prog in
       let result_state = interpret_program normalized in
       let open Python2_pys_interpreter_utils in
       let var_memloc =
@@ -62,6 +69,22 @@ let gen_variable_test (name : string) (prog : string)
   )
 ;;
 
+let gen_python_variable_test (name : string) (prog : string)
+    (target: string) (expected : value) =
+  let parse_func =
+    (fun p ->
+       let normalized = parse_to_normalized_safe p 0 0 true in
+       Python2_ast_simplifier.reset_unique_name ();
+       normalized)
+  in
+  gen_variable_test name prog parse_func target expected
+;;
+
+let gen_pyssembly_variable_test (name : string) (prog : string)
+    (target: string) (expected : value) =
+  gen_variable_test name prog parse_pyssembly_safe target expected
+;;
+
 let starting_bindings = Bindings.empty;;
 let empty_state =
   {
@@ -72,21 +95,27 @@ let empty_state =
 ;;
 
 let literal_tests = [
-  gen_variable_test "int_test_pos" "x = 4" "x" @@ Num(Int(4));
-  gen_variable_test "int_test_neg" "x = -4" "x" @@ Num(Int(-4));
-  gen_variable_test "int_test_zero" "x = 0" "x" @@ Num(Int(0));
+  gen_python_variable_test "int_test_pos" "x = 4" "x" @@ Num(Int(4));
+  gen_python_variable_test "int_test_neg" "x = -4" "x" @@ Num(Int(-4));
+  gen_python_variable_test "int_test_zero" "x = 0" "x" @@ Num(Int(0));
 
-  gen_variable_test "float_test_pos" "x = 4.0" "x" @@ Num(Float(4.0));
-  gen_variable_test "float_test_neg" "x = -4.0" "x" @@ Num(Float(-4.0));
-  gen_variable_test "float_test_zero" "x = 0.0" "x" @@ Num(Float(0.0));
+  gen_python_variable_test "float_test_pos" "x = 4.0" "x" @@ Num(Float(4.0));
+  gen_python_variable_test "float_test_neg" "x = -4.0" "x" @@ Num(Float(-4.0));
+  gen_python_variable_test "float_test_zero" "x = 0.0" "x" @@ Num(Float(0.0));
 
-  gen_variable_test "string_test" "x = \"foo\"" "x" @@ Str(StringLiteral("foo"));
+  gen_python_variable_test "string_test" "x = \"foo\"" "x" @@ Str(StringLiteral("foo"));
 
-  gen_variable_test "list_test" "x = []" "x" @@ ListVal([]);
-  gen_variable_test "tuple_test" "x = (None,)" "x" @@ TupleVal([None_memloc]);
+  gen_python_variable_test "list_test" "x = []" "x" @@ ListVal([]);
+  gen_python_variable_test "tuple_test" "x = (None,)" "x" @@ TupleVal([None_memloc]);
 ]
+;;
 
-let alias_test_light = gen_variable_test "alias_test_light"
+let operator_tests = [
+  gen_pyssembly_variable_test "add_test" "x=1;y=2;add=x.__add__;z=add(y);" "z" @@ Num(Int(3));
+]
+;;
+
+let alias_test_light = gen_python_variable_test "alias_test_light"
     "x = 4; y = x; z = y; y = 5;"
     "z"
   @@ Num(Int(4))
@@ -95,6 +124,7 @@ let alias_test_light = gen_variable_test "alias_test_light"
 let tests =
   "test_pys_interpreter">:::
   literal_tests @
+  (* operator_tests @ *)
   [
     alias_test_light;
   ]

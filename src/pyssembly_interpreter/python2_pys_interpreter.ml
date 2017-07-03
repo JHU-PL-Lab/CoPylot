@@ -1,5 +1,5 @@
 open Batteries;;
-open Jhupllib_utils;;
+open Jhupllib;;
 
 open Python2_ast_types;;
 open Python2_normalized_ast;;
@@ -7,10 +7,16 @@ open Python2_normalized_ast;;
 open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter_utils;;
 
+(* Change this to change what output we see from the logger *)
+Logger_utils.set_default_logging_level `warn;;
+
+let add_to_log = Logger_utils.make_logger "Pyssembly Interpreter\n";;
+
 let execute_micro_command (prog : program_state) (ctx : program_context)
   : program_state =
   let module MIS = Micro_instruction_stack in
-
+  add_to_log `trace ("Executing Micro Instruction with stack " ^
+                     Pp_utils.pp_to_string MIS.pp prog.micro);
   let command, rest_of_stack = MIS.pop_first_command prog.micro in
   match command with
   (* STORE command; takes a value and binds it to a fresh memory location on
@@ -351,9 +357,9 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     in
     { prog with micro = new_micro; }
 
-  | ALLOCNAMEERROR -> raise @@ Not_yet_implemented "ALLOCNAMEERROR"
-  | ALLOCTYPEERROR -> raise @@ Not_yet_implemented "ALLOCTYPEERROR"
-  | ALLOCATTRIBUTEERROR -> raise @@ Not_yet_implemented "ALLOCATTRIBUTEERROR"
+  | ALLOCNAMEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCNAMEERROR"
+  | ALLOCTYPEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCTYPEERROR"
+  | ALLOCATTRIBUTEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCATTRIBUTEERROR"
 ;;
 
 let execute_stmt (prog : program_state) (ctx: program_context): program_state =
@@ -363,6 +369,8 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
   let new_micro_list =
     let curr_frame, stack_body = Program_stack.pop prog.stack in
     let stmt = get_active_or_fail curr_frame ctx in
+    add_to_log `trace ("Executing statement: " ^
+                       Pp_utils.pp_to_string pp_stmt stmt.body);
     match stmt.body with
     (* Assignment from literal (also includes function values) *)
     | Assign(x, {body = Literal(l); _}) ->
@@ -510,7 +518,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
     (* Catch statement *)
     | Catch _ -> failwith "Encountered catch with no raised value!"
 
-    | Print _ ->  raise @@ Not_yet_implemented "Print statements NYI"
+    | Print _ ->  raise @@ Utils.Not_yet_implemented "Print statements NYI"
   in
   { prog with micro = Micro_instruction_stack.create new_micro_list }
 ;;
