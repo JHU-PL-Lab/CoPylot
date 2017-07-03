@@ -8,7 +8,7 @@ open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter_utils;;
 
 (* Change this to change what output we see from the logger *)
-Logger_utils.set_default_logging_level `warn;;
+Logger_utils.set_default_logging_level `trace;;
 
 let add_to_log = Logger_utils.make_logger "Pyssembly Interpreter\n";;
 
@@ -21,11 +21,11 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
   match command with
   (* ALLOC command; takes no inputs, and returns a fresh memory location *)
   | ALLOC ->
-    let m = Heap.get_new_memloc prog.heap in
+    let m, new_heap = Heap.get_new_memloc prog.heap in
     let new_micro =
       MIS.insert rest_of_stack @@ MIS.create [Inert(Micro_memloc(m))]
     in
-    { prog with micro = new_micro }
+    { prog with micro = new_micro; heap = new_heap }
 
   (* STORE command: takes a value and binds it to a fresh memory location on
      the heap. Returns the fresh memory location. *)
@@ -127,9 +127,9 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
   | PUSH (uid) ->
     let eta, popped_micro = pop_memloc_or_fail rest_of_stack "PUSH" in
 
-    let new_eta = Heap.get_new_memloc prog.heap in
+    let new_eta, new_heap = Heap.get_new_memloc prog.heap in
     let new_scope = Bindings.singleton "*parent" eta in
-    let new_heap = Heap.update_binding new_eta (Bindings(new_scope)) prog.heap in
+    let new_heap = Heap.update_binding new_eta (Bindings(new_scope)) new_heap in
 
     let new_frame = Stack_frame.create new_eta uid in
     let new_stack = Program_stack.push prog.stack new_frame in
@@ -581,7 +581,7 @@ let interpret_program (prog : modl) =
   let Module(builtin_stmts, _) =
     Python2_pys_interpreter_builtin_defs.parse_all_builtin_defs (end_uid + 1)
   in
-  let stmts = builtin_stmts @ input_stmts in
+  let stmts = ignore builtin_stmts; input_stmts in
   let starting_ctx = { program = Body.create stmts; } in
   let global_memloc = Python2_pys_interpreter_init.global_memloc in
   let starting_frame =

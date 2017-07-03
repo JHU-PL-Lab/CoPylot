@@ -318,7 +318,7 @@ module Heap: sig
   val pp: Format.formatter -> t -> unit
 
   (* Return a memloc which does not yet appear in the heap *)
-  val get_new_memloc: t -> memloc
+  val get_new_memloc: t -> memloc * t
 
   (* Add a binding of the input memloc to the given value, overwriting
      the previous entry if one exists *)
@@ -351,7 +351,9 @@ struct
   ;;
   ignore @@ show;; (* This suppresses warnings that are definitely buggy *)
 
-  let get_new_memloc heap = Memloc(heap.maxval + 1);;
+  let get_new_memloc heap =
+    Memloc(heap.maxval + 1), { heap with maxval = heap.maxval + 1 }
+  ;;
 
   let update_binding mem value heap =
     let new_map = Memloc_map.add mem value heap.map in

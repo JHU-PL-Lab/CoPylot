@@ -96,9 +96,9 @@ let wrap_value (m1 : memloc) (m2 : memloc) (v : value)
     in
     let fill_commands = get_fill_commands m1 v in
     MIS.create @@
-    [Inert(Micro_memloc(m1))] @
+    [Inert(Micro_memloc(m1)); Inert(Micro_value(Bindings(base_obj))); Command(STORE)] @
     fill_commands @
-    [Inert(Micro_value(Bindings(base_obj)))]
+    [Inert(Micro_memloc(m1)); Command(GET)]
 ;;
 
 let extract_option_or_fail (opt: 'a option) (failmsg: string) : 'a =
