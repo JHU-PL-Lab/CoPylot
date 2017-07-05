@@ -405,6 +405,7 @@ type micro_command =
   | RETRIEVE
   | ALLOC
   | ASSERT of int (* numargs *)
+  | SUM
   | ALLOCNAMEERROR
   | ALLOCTYPEERROR
   | ALLOCATTRIBUTEERROR
@@ -505,6 +506,7 @@ struct
     | RETRIEVE -> fprintf fmt "RETRIEVE"
     | ALLOC -> fprintf fmt "ALLOC"
     | ASSERT n -> fprintf fmt "ASSERT %d" n
+    | SUM -> fprintf fmt "SUM"
     | ALLOCNAMEERROR -> fprintf fmt "ALLOCNAMEERROR"
     | ALLOCTYPEERROR -> fprintf fmt "ALLOCTYPEERROR"
     | ALLOCATTRIBUTEERROR -> fprintf fmt "ALLOCATTRIBUTEERROR"

@@ -359,20 +359,17 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
           | Assign(x, _) -> x
           | _ -> failwith "Active stmt is not an assign when calling builtin!"
         in
-        let success, func_commands =
-          Python2_pys_interpreter_magics.call_magic prog.heap arg_locs b
+        let func_commands =
+          Python2_pys_interpreter_magics.call_magic arg_locs b
         in
-        if success then
-          MIS.insert popped_micro @@
-          MIS.create @@
-          func_commands @
-          [
-            Inert(Micro_var(target));
-            Command(ASSIGN);
-            Command(ADVANCE);
-          ]
-        else
-          MIS.create func_commands
+        MIS.insert popped_micro @@
+        MIS.create @@
+        func_commands @
+        [
+          Inert(Micro_var(target));
+          Command(ASSIGN);
+          Command(ADVANCE);
+        ]
 
       | _ -> failwith "Can only CALL a function."
     in
@@ -401,6 +398,10 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     in
     { prog with micro = new_micro; }
 
+  (* ASSERT command: Takes n memlocs and a value. The memlocs should be
+     Builtin_type_memlocs. If the value is of the type referenced by the first
+     memloc, then we just return the value. Otherwise, we remove that memloc and
+     recurse. If we see ASSERT 0, we raise a type error. *)
   | ASSERT n ->
     if n = 0 then
       {prog with micro = MIS.create [Command(ALLOCTYPEERROR); Command(RAISE);] }
@@ -433,6 +434,24 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
       in
       let new_micro = MIS.insert popped_stack @@ MIS.create next_commands in
       { prog with micro = new_micro; }
+
+  (* SUM command: Takes two numeric values, and returns their sum *)
+  | SUM ->
+    let v2, popped_stack = pop_value_or_fail rest_of_stack "SUM" in
+    let v1, popped_stack = pop_value_or_fail popped_stack "SUM" in
+    let result =
+      match v1, v2 with
+      | Num(Int n1), Num(Int n2) -> Int(n1 + n2)
+      | Num(Int n), Num(Float f)
+      | Num(Float f), Num(Int n) -> Float(float_of_int(n) +. f)
+      | Num(Float f1), Num(Float f2) -> Float(f1 +. f2)
+      | _ -> failwith "SUM did not get two numeric types (int or float)"
+    in
+    let new_micro =
+      MIS.insert popped_stack @@
+      MIS.create [Inert(Micro_value(Num(result)))]
+    in
+    { prog with micro = new_micro; }
 
   | ALLOCNAMEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCNAMEERROR"
   | ALLOCTYPEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCTYPEERROR"
