@@ -451,9 +451,74 @@ end =
 struct
   (* TODO: replace these lists with an actual stack data type? *)
   type t = micro_inert list * micro_instruction list
-  [@@deriving eq, ord, show]
+  [@@deriving eq, ord (*, show *)]
   ;;
-  ignore @@ show;; (* This suppresses warnings that are definitely buggy *)
+
+  open Format;;
+
+
+  (* Value definition:
+     | Bindings of Bindings.t
+     | Num of number
+     | Str of str
+     | Bool of bool
+     | ListVal of memloc list
+     | TupleVal of memloc list
+     | Builtin_exception of builtin_exception
+     | Builtin_type of builtin_type
+     | Function of function_val
+     | Method of memloc * function_val
+     | NoneVal
+  *)
+  let pp_inert fmt = function
+    | Micro_var x -> fprintf fmt "%s" x
+    | Micro_memloc m ->
+      begin
+        match m with
+        | Memloc n -> fprintf fmt "m(%d)" n
+        | None_memloc -> fprintf fmt "m(None)"
+        | _ -> pp_memloc fmt m
+      end
+    | Micro_value v -> pp_value fmt v
+  ;;
+
+  let pp_command fmt = function
+    | STORE -> fprintf fmt "STORE"
+    | WRAP -> fprintf fmt "WRAP"
+    | BIND -> fprintf fmt "BIND"
+    | LOOKUP -> fprintf fmt "LOOKUP"
+    | GET -> fprintf fmt "GET"
+    | ASSIGN -> fprintf fmt "ASSIGN"
+    | EQ -> fprintf fmt "EQ"
+    | DUP -> fprintf fmt "DUP"
+    | LIST n -> fprintf fmt "LIST %d" n
+    | TUPLE n -> fprintf fmt "TUPLE %d" n
+    | ADVANCE -> fprintf fmt "ADVANCE"
+    | POP -> fprintf fmt "POP"
+    | PUSH u-> fprintf fmt "PUSH %a" pp_uid u
+    | RAISE -> fprintf fmt "RAISE"
+    | GOTO u -> fprintf fmt "GOTO %a" pp_uid u
+    | GOTOIFNOT u -> fprintf fmt "GOTOIFNOT %a" pp_uid u
+    | CALL n -> fprintf fmt "CALL %d" n
+    | CONVERT n -> fprintf fmt "CONVERT %d" n
+    | RETRIEVE -> fprintf fmt "RETRIEVE"
+    | ALLOC -> fprintf fmt "ALLOC"
+    | ALLOCNAMEERROR -> fprintf fmt "ALLOCNAMEERROR"
+    | ALLOCTYPEERROR -> fprintf fmt "ALLOCTYPEERROR"
+    | ALLOCATTRIBUTEERROR -> fprintf fmt "ALLOCATTRIBUTEERROR"
+  ;;
+
+  let pp_micro fmt = function
+    | Inert i -> pp_inert fmt i
+    | Command c -> pp_command fmt c
+  ;;
+
+  let pp fmt stack =
+    let open Jhupllib_pp_utils in
+    pp_list pp_inert fmt (List.rev (fst stack));
+    fprintf fmt " + ";
+    pp_list pp_micro fmt (snd stack)
+  ;;
 
   let rec gather_inerts inerts lst =
     match lst with

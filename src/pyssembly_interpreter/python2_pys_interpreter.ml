@@ -8,14 +8,14 @@ open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter_utils;;
 
 (* Change this to change what output we see from the logger *)
-Logger_utils.set_default_logging_level `trace;;
+Logger_utils.set_default_logging_level `warn;;
 
-let add_to_log = Logger_utils.make_logger "Pyssembly Interpreter\n";;
+let add_to_log = Logger_utils.make_logger "Pyssembly Interpreter";;
 
 let execute_micro_command (prog : program_state) (ctx : program_context)
   : program_state =
   let module MIS = Micro_instruction_stack in
-  add_to_log `trace ("Executing Micro Instruction with stack " ^
+  add_to_log `trace ("Executing Micro Instruction\n" ^
                      Pp_utils.pp_to_string MIS.pp prog.micro);
   let command, rest_of_stack = MIS.pop_first_command prog.micro in
   match command with
@@ -333,7 +333,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      binds all the arguments appropriately. *)
   | CALL numargs ->
     let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CALL" in
-    let func_val, popped_micro2 = pop_value_or_fail popped_micro "CALL" in
+    let func_val, popped_micro = pop_value_or_fail popped_micro "CALL" in
     let new_micro =
       match func_val with
       | Function (User_func(eta, args, body)) ->
@@ -346,12 +346,33 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
               )
               arg_locs args
           in
-          MIS.insert popped_micro2 @@ MIS.create @@
+          MIS.insert popped_micro @@ MIS.create @@
           [ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds
 
       | Function (Builtin_func b) ->
-        let open Python2_pys_interpreter_magics in
-        call_magic prog.heap popped_micro2 arg_locs b
+        let active_stmt =
+          Program_stack.top prog.stack
+          |> (fun curr_frame -> get_active_or_fail curr_frame ctx)
+        in
+        let target =
+          match active_stmt.body with
+          | Assign(x, _) -> x
+          | _ -> failwith "Active stmt is not an assign when calling builtin!"
+        in
+        let success, func_commands =
+          Python2_pys_interpreter_magics.call_magic prog.heap arg_locs b
+        in
+        if success then
+          MIS.insert popped_micro @@
+          MIS.create @@
+          func_commands @
+          [
+            Inert(Micro_var(target));
+            Command(ASSIGN);
+            Command(ADVANCE);
+          ]
+        else
+          MIS.create func_commands
 
       | _ -> failwith "Can only CALL a function."
     in
@@ -375,12 +396,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
         MIS.insert popped_stack @@
         MIS.create
           [
-            Command(ALLOC);
             Inert(Micro_memloc(m));
-            Command(DUP);
-            Command(GET);
-            Command(WRAP);
-            Command(STORE);
           ]
     in
     { prog with micro = new_micro; }
@@ -398,8 +414,8 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
     let curr_frame, stack_body = Program_stack.pop prog.stack in
     let eta = Stack_frame.get_eta curr_frame in
     let stmt = get_active_or_fail curr_frame ctx in
-    add_to_log `trace ("Executing statement: " ^
-                       Pp_utils.pp_to_string pp_stmt stmt.body);
+    add_to_log `trace ("Executing statement \n" ^
+                       Pp_utils.pp_to_string (Python2_normalized_ast_pretty.pp_stmt "  ") stmt);
     match stmt.body with
     (* Assignment from literal (also includes function values) *)
     | Assign(x, {body = Literal(l); _}) ->

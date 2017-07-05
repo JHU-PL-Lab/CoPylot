@@ -124,7 +124,7 @@ let alias_test_light = gen_python_variable_test "alias_test_light"
 let tests =
   "test_pys_interpreter">:::
   literal_tests @
-  (* operator_tests @ *)
+  operator_tests @
   [
     alias_test_light;
   ]
