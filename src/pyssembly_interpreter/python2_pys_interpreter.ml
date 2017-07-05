@@ -126,12 +126,12 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      its body and that memloc, and pushes that frame to the stack. *)
   | PUSH (uid) ->
     let eta, popped_micro = pop_memloc_or_fail rest_of_stack "PUSH" in
+    let etaprime, popped_micro = pop_memloc_or_fail popped_micro "PUSH" in
 
-    let new_eta, new_heap = Heap.get_new_memloc prog.heap in
     let new_scope = Bindings.singleton "*parent" eta in
-    let new_heap = Heap.update_binding new_eta (Bindings(new_scope)) new_heap in
+    let new_heap = Heap.update_binding etaprime (Bindings(new_scope)) prog.heap in
 
-    let new_frame = Stack_frame.create new_eta uid in
+    let new_frame = Stack_frame.create etaprime uid in
     let new_stack = Program_stack.push prog.stack new_frame in
     { micro = popped_micro; stack = new_stack; heap = new_heap }
 
@@ -347,7 +347,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
               arg_locs args
           in
           MIS.insert popped_micro @@ MIS.create @@
-          [ Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds
+          [ Command(ALLOC); Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds
 
       | Function (Builtin_func b) ->
         let active_stmt =

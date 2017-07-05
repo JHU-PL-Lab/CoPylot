@@ -103,6 +103,8 @@ let literal_tests = [
   gen_python_variable_test "float_test_neg" "x = -4.0" "x" @@ Num(Float(-4.0));
   gen_python_variable_test "float_test_zero" "x = 0.0" "x" @@ Num(Float(0.0));
 
+  (* gen_python_variable_test "bool_test" "x = True" "x" @@ Bool(true); *)
+
   gen_python_variable_test "string_test" "x = \"foo\"" "x" @@ Str(StringLiteral("foo"));
 
   gen_python_variable_test "list_test" "x = []" "x" @@ ListVal([]);

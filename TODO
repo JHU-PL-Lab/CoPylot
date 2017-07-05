@@ -1,4 +1,2 @@
 Change dunder names to call foo.__class__.whatever instead of foo.whatever
-
-Make logging of the interpreter pretty
-Keep testing & fixing interpreter
+Make micro-instructions for magics 
