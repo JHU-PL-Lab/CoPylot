@@ -18,6 +18,7 @@ let int_add
       let v1 =
         retrieve_binding_or_fail heap m1
         |> Bindings.get_memloc "*value"
+          (* TODO: When we implement classes, this should raise a TypeError instead of failing *)
         |> (fun o -> extract_option_or_fail o "First argument to int add did not have *value field!")
         |> (fun m -> Heap.get_value m heap)
       in
