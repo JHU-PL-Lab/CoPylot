@@ -401,6 +401,39 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     in
     { prog with micro = new_micro; }
 
+  | ASSERT n ->
+    if n = 0 then
+      {prog with micro = MIS.create [Command(ALLOCTYPEERROR); Command(RAISE);] }
+    else
+      let intermediate_args, popped_stack =
+        pop_n_memlocs (n-1) [] rest_of_stack "ASSERT"
+      in
+      let m, popped_stack = pop_memloc_or_fail popped_stack "ASSERT" in
+      let v, popped_stack = pop_value_or_fail popped_stack "ASSERT" in
+      let next_commands =
+        match v,m with
+        | Num(Int _), Builtin_type_memloc(Int_type)
+        | Num(Float _), Builtin_type_memloc(Float_type)
+        | Str _, Builtin_type_memloc(String_type)
+        | ListVal _, Builtin_type_memloc(List_type)
+        | TupleVal _, Builtin_type_memloc(Tuple_type)
+        | Method _, Builtin_type_memloc(Method_wrapper_type)
+          ->
+          [Inert(Micro_value(v))]
+
+        | Function _, Builtin_type_memloc(Function_type)
+        | NoneVal, Builtin_type_memloc(None_type)
+          -> raise @@ Jhupllib_utils.Not_yet_implemented "Assert_type"
+
+        | _ ->
+          let rest =
+            List.map (fun m -> Inert(Micro_memloc(m))) intermediate_args
+          in
+          [Inert(Micro_value(v)); ] @ rest
+      in
+      let new_micro = MIS.insert popped_stack @@ MIS.create next_commands in
+      { prog with micro = new_micro; }
+
   | ALLOCNAMEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCNAMEERROR"
   | ALLOCTYPEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCTYPEERROR"
   | ALLOCATTRIBUTEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCATTRIBUTEERROR"

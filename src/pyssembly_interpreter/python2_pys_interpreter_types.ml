@@ -404,6 +404,7 @@ type micro_command =
   | CONVERT of int (* numargs *)
   | RETRIEVE
   | ALLOC
+  | ASSERT of int (* numargs *)
   | ALLOCNAMEERROR
   | ALLOCTYPEERROR
   | ALLOCATTRIBUTEERROR
@@ -503,6 +504,7 @@ struct
     | CONVERT n -> fprintf fmt "CONVERT %d" n
     | RETRIEVE -> fprintf fmt "RETRIEVE"
     | ALLOC -> fprintf fmt "ALLOC"
+    | ASSERT n -> fprintf fmt "ASSERT %d" n
     | ALLOCNAMEERROR -> fprintf fmt "ALLOCNAMEERROR"
     | ALLOCTYPEERROR -> fprintf fmt "ALLOCTYPEERROR"
     | ALLOCATTRIBUTEERROR -> fprintf fmt "ALLOCATTRIBUTEERROR"
