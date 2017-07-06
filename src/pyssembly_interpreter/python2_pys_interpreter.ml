@@ -8,7 +8,7 @@ open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter_utils;;
 
 (* Change this to change what output we see from the logger *)
-Logger_utils.set_default_logging_level `warn;;
+Logger_utils.set_default_logging_level `debug;;
 
 let add_to_log = Logger_utils.make_logger "Pyssembly Interpreter";;
 
@@ -311,7 +311,8 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      function value by adding the self arg to the micro-stack, and then replace
      ourselves with a call command. *)
   | CONVERT numargs ->
-    let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CONVERT" in
+    let new_eta, popped_micro = pop_memloc_or_fail rest_of_stack "CONVERT" in
+    let arg_locs, popped_micro = pop_n_memlocs numargs [] popped_micro "CONVERT" in
     let func_val, popped_micro = pop_value_or_fail popped_micro "CONVERT" in
     let new_micro =
       match func_val with
@@ -330,7 +331,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
           Inert(Micro_memloc(arg));
         ] @
         arglist @
-        [Command(CALL(numargs+1))]
+        [Inert(Micro_memloc(new_eta)); Command(CALL(numargs+1))]
 
       | _ -> failwith "CONVERT not given a function or method!"
     in
@@ -341,7 +342,8 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      instructions to push a stack frame corresponding to that function, then
      binds all the arguments appropriately. *)
   | CALL numargs ->
-    let arg_locs, popped_micro = pop_n_memlocs numargs [] rest_of_stack "CALL" in
+    let new_eta, popped_micro = pop_memloc_or_fail rest_of_stack "CALL" in
+    let arg_locs, popped_micro = pop_n_memlocs numargs [] popped_micro "CALL" in
     let func_val, popped_micro = pop_value_or_fail popped_micro "CALL" in
     let new_micro =
       match func_val with
@@ -351,13 +353,12 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
         else
           let binds = List.concat @@
             List.map2 (fun m x ->
-                (* FIXME: we need to add the eta they bind to here *)
-                [ Inert(Micro_memloc(m)); Inert(Micro_var(x)); Command(BIND); ]
+                [ Inert(Micro_memloc(new_eta)); Inert(Micro_memloc(m)); Inert(Micro_var(x)); Command(BIND); ]
               )
               arg_locs args
           in
           MIS.insert popped_micro @@ MIS.create @@
-          [ Command(ALLOC); Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds
+          [ Inert(Micro_memloc(new_eta)); Inert(Micro_memloc(eta)); Command(PUSH body); ] @ binds
 
       | Function (Builtin_func b) ->
         let active_stmt =
@@ -654,7 +655,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
         Command(GET);
       ] @
       arg_lookups @
-      [ Command(CONVERT(List.length args)); ]
+      [ Command(ALLOC); Command(CONVERT(List.length args)); ]
 
     (*(left op right)*)
     | Assign(x, {body = Binop(x1, Binop_is, x2); _}) ->
