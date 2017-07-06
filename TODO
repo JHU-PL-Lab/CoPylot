@@ -1,2 +1,4 @@
 Change dunder names to call foo.__class__.whatever instead of foo.whatever
-Make micro-instructions for magics 
+Add global contains which is added to lists and tuples
+Implement existing magics
+Make logging sane

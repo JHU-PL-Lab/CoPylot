@@ -114,6 +114,7 @@ let literal_tests = [
 
 let operator_tests = [
   gen_pyssembly_variable_test "int_add_test" "x=1;y=2;add=x.__add__;z=add(y);" "z" @@ Num(Int(3));
+  (* gen_python_variable_test "real_int_add_test" "z = 1+2" "z" @@ Num(Int(3)); *)
 ]
 ;;
 

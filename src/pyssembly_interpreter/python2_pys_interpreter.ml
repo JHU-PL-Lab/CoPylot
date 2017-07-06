@@ -15,7 +15,7 @@ let add_to_log = Logger_utils.make_logger "Pyssembly Interpreter";;
 let execute_micro_command (prog : program_state) (ctx : program_context)
   : program_state =
   let module MIS = Micro_instruction_stack in
-  add_to_log `trace ("Executing Micro Instruction\n" ^
+  add_to_log `debug ("Executing Micro Instruction\n" ^
                      Pp_utils.pp_to_string MIS.pp prog.micro);
   let command, rest_of_stack = MIS.pop_first_command prog.micro in
   match command with
@@ -140,10 +140,18 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
      if the variable is unbound. *)
   | LOOKUP ->
     let target, popped_stack = pop_var_or_fail rest_of_stack "LOOKUP" in
+
     let rec lookup
         (eta : memloc)
         (id: identifier)
       : memloc option =
+      (* Jhupllib_logger_utils.bracket_log (add_to_log `trace)
+        ("Lookin up. Eta:" ^
+         (Pp_utils.pp_to_string pp_memloc eta)
+         ^ " Id: " ^ target ^ "\n")
+        (fun m -> match m with | None -> "None" | Some m -> "Some " ^ (Pp_utils.pp_to_string pp_memloc m))
+      @@ fun () -> *)
+
       let bindings = retrieve_binding_or_fail prog.heap eta in
       let m = Bindings.get_memloc id bindings in
       match m with
@@ -154,6 +162,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
         | None -> None
         | Some(p) -> lookup p id
     in
+
     let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
     let lookup_result = lookup curr_eta target in
     let new_micro =
@@ -453,6 +462,78 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     in
     { prog with micro = new_micro; }
 
+  (*
+(* NEG command: takes a numeric value and returns its negation *)
+  | NEG ->
+    let v, popped_stack = pop_value_or_fail rest_of_stack "NEG" in
+    let result =
+      match v with
+      | Num(Int n) -> Num(Int(-n))
+      | Num(Float f) -> Num(Float(-.f))
+      | _ -> failwith "NEG not given a numeric value (int or float)"
+    in
+    let new_micro =
+      MIS.insert popped_stack @@
+      MIS.create [Inert(Micro_value(result))]
+    in
+    { prog with micro = new_micro; }
+
+  (* STRCONCAT command: concatenates two strings *)
+  | STRCONCAT ->
+    let v2, popped_stack = pop_value_or_fail rest_of_stack "SUM" in
+    let v1, popped_stack = pop_value_or_fail popped_stack "SUM" in
+    let result =
+      match v1, v2 with
+      | Str(StringLiteral(s1)), Str(StringLiteral(s2)) -> Str(StringLiteral(String.concat s1 [s2]))
+      | _ -> failwith "SUM did not get two numeric types (int or float)"
+    in
+    let new_micro =
+      MIS.insert popped_stack @@
+      MIS.create [Inert(Micro_value(result))]
+    in
+    { prog with micro = new_micro; }
+
+(* STRCONTAINS command: takes two values, and returns true if the first is a
+   substring of the second, false otherwise *)
+  | STRCONTAINS ->
+    let v2, popped_stack = pop_value_or_fail rest_of_stack "SUM" in
+    let v1, popped_stack = pop_value_or_fail popped_stack "SUM" in
+    let result =
+      match v1, v2 with
+      | Str(StringLiteral(s1)), Str(StringLiteral(s2)) ->
+        if String.exists s1 s2 then
+          Bool(true)
+        else
+          Bool(false)
+      | _ -> failwith "SUM did not get two numeric types (int or float)"
+    in
+    let new_micro =
+      MIS.insert popped_stack @@
+      MIS.create [Inert(Micro_value(result))]
+    in
+    { prog with micro = new_micro; }
+
+(* CONTAINS command: takes a list or tuple and a value; returns true if the
+   value is in the list/tuple, and false otherwise *)
+  | CONTAINS ->
+    let v2, popped_stack = pop_value_or_fail rest_of_stack "SUM" in
+    let v1, popped_stack = pop_value_or_fail popped_stack "SUM" in
+    let result =
+      match v1, v2 with
+      | Str(StringLiteral(s1)), Str(StringLiteral(s2)) ->
+        if String.exists s1 s2 then
+          Bool(true)
+        else
+          Bool(false)
+      | _ -> failwith "SUM did not get two numeric types (int or float)"
+    in
+    let new_micro =
+      MIS.insert popped_stack @@
+      MIS.create [Inert(Micro_value(result))]
+    in
+          { prog with micro = new_micro; }
+      *)
+
   | ALLOCNAMEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCNAMEERROR"
   | ALLOCTYPEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCTYPEERROR"
   | ALLOCATTRIBUTEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCATTRIBUTEERROR"
@@ -466,7 +547,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
     let curr_frame, stack_body = Program_stack.pop prog.stack in
     let eta = Stack_frame.get_eta curr_frame in
     let stmt = get_active_or_fail curr_frame ctx in
-    add_to_log `trace ("Executing statement \n" ^
+    add_to_log `debug ("Executing statement \n" ^
                        Pp_utils.pp_to_string (Python2_normalized_ast_pretty.pp_stmt "  ") stmt);
     match stmt.body with
     (* Assignment from literal (also includes function values) *)
@@ -628,6 +709,8 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
 
 let rec step_program (prog : program_state) (ctx : program_context)
   : program_state =
+  add_to_log `trace ("Taking step \n" ^
+                     Pp_utils.pp_to_string (pp_program_state) prog);
   if Program_stack.is_empty prog.stack then
     prog
   else
