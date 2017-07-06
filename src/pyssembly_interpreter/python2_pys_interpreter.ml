@@ -8,7 +8,7 @@ open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter_utils;;
 
 (* Change this to change what output we see from the logger *)
-Logger_utils.set_default_logging_level `trace;;
+Logger_utils.set_default_logging_level `warn;;
 
 let add_to_log = Logger_utils.make_logger "Pyssembly Interpreter";;
 
@@ -351,6 +351,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
         else
           let binds = List.concat @@
             List.map2 (fun m x ->
+                (* FIXME: we need to add the eta they bind to here *)
                 [ Inert(Micro_memloc(m)); Inert(Micro_var(x)); Command(BIND); ]
               )
               arg_locs args
@@ -778,7 +779,9 @@ let interpret_program (prog : modl) =
     Python2_pys_interpreter_builtin_defs.parse_all_builtin_defs (end_uid + 1)
   in
   (* Execute only the defintions of builtins so they get put on the heap *)
+  add_to_log `trace ("Executing builtins");
   let intermediate_state = simple_interpret builtins in
+  add_to_log `trace ("Done executing builtins");
   (* TODO: Check for errors? There shouldn't be any, but still *)
 
   (* Create full program *)
@@ -803,5 +806,7 @@ let interpret_program (prog : modl) =
       stack = new_stack;
     }
   in
+  add_to_log `trace ("Executing program:" ^
+                    Pp_utils.pp_to_string Body.pp full_ctx.program);
   step_program starting_program full_ctx
 ;;

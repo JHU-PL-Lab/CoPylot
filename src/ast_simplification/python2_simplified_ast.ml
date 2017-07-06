@@ -26,8 +26,8 @@ and 'a expr =
   | IfExp of 'a expr (* test *) * 'a expr (* body *) * 'a expr (* orelse *) * 'a
   | Compare of 'a expr (* left *) * cmpop list (* ops *) * 'a expr list (* comparators *) * 'a
   | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a
-  | Attribute of 'a expr (* object *) * identifier (* attr *) * 'a
-  | SimpleAttribute of 'a expr (* object *) * identifier (* attr *) * 'a (* Double-dot operator *)
+  | Attribute of 'a expr (* object *) * string (* attr *) * 'a
+  | SimpleAttribute of 'a expr (* object *) * string (* attr *) * 'a (* Double-dot operator *)
   | ImmediateAttribute of 'a expr (* object *) * identifier (* attr *) * 'a (* Triple-dot operator *)
   | List of 'a expr list (* elts *)  * 'a
   | Tuple of 'a expr list (* elts *)  * 'a

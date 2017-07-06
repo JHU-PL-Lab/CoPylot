@@ -177,7 +177,7 @@ struct
 
   let compare t1 t2 = List.compare compare_annotated_stmt t1.stmts t2.stmts;;
   let equal t1 t2 = List.eq equal_annotated_stmt t1.stmts t2.stmts;;
-  let pp fmt t1 = List.iter (pp_annotated_stmt fmt) t1.stmts;;
+  let pp fmt t1 = Format.fprintf fmt "Body of:\n"; Python2_normalized_ast_pretty.pp_modl fmt @@ Module(t1.stmts, -1);;
 
   open Python2_ast_types;;
 

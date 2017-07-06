@@ -647,6 +647,7 @@ and normalize_expr_full
     let getattribute_name = gen_unique_name ctx annot in
     let getattr_name = gen_unique_name ctx annot in
     let exn_name = gen_unique_name ctx annot in
+
     let getattr_try =
       Simplified.TryExcept(
         [
@@ -698,11 +699,15 @@ and normalize_expr_full
 
   | Simplified.SimpleAttribute (obj, attr, annot) ->
     let obj_bindings, obj_result = normalize_expr obj in
+    let attr_bindings, attr_result = gen_normalized_assignment ctx annot @@
+      annotate_expr @@
+      Normalized.Literal(Normalized.Str(StringLiteral(attr)))
+    in
     let assignment, result = gen_normalized_assignment ctx annot @@
       annotate_expr @@
-      Normalized.Call("*get_attribute", [obj_result; attr])
+      Normalized.Call("*get_attribute", [obj_result; attr_result])
     in
-    obj_bindings @ assignment, result
+    obj_bindings @ attr_bindings @ assignment, result
 
   | Simplified.ImmediateAttribute (obj, attr, annot) ->
     let obj_bindings, obj_result = normalize_expr obj in
