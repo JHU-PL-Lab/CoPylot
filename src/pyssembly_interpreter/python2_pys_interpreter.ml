@@ -394,7 +394,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
         in
         MIS.insert popped_micro @@
         MIS.create @@
-        func_commands @ bind_commands
+        bind_commands
 
 
       | _ -> failwith "Can only CALL a function."
@@ -673,6 +673,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
         Inert(Micro_var(x1));
         Command(LOOKUP);
         Inert(Micro_var(x2));
+        Command(LOOKUP);
         Command(EQ);
         Inert(Micro_var(x));
         Command(ASSIGN);

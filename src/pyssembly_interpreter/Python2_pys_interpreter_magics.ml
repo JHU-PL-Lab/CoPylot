@@ -2,6 +2,21 @@ open Python2_ast_types;; (* TODO: This might cause name conflicts, maybe *)
 open Python2_pys_interpreter_types;;
 open Jhupllib_utils;;
 
+let type_func
+    (m : memloc list)
+  : micro_instruction list =
+  match m with
+  | m1::[] ->
+    [
+      Inert(Micro_memloc(m1));
+      Command(GET);
+      Inert(Micro_value(Str(StringLiteral "__class__")));
+      Command(RETRIEVE);
+    ]
+  (* Wrong number of args *)
+  | _ -> failwith "Wrong number of args to int_add"
+;;
+
 let int_add
     (m : memloc list)
   : micro_instruction list =
@@ -130,6 +145,7 @@ let call_magic m b =
   (* TODO: check number of args *)
   (* [Command(ALLOCTYPEERROR); Command(RAISE);] *)
   match b with
+  | Builtin_type_func -> type_func m
   | Builtin_int_add -> int_add m
   | Builtin_int_neg -> int_neg m
   | Builtin_string_add -> str_add m
@@ -139,9 +155,10 @@ let call_magic m b =
 ;;
 
 let returns_memloc = function
-| Builtin_int_add -> false
-| Builtin_int_neg -> false
-| Builtin_string_add -> false
-| Builtin_string_contains -> false
-| Builtin_list_getitem -> true
-| _ -> raise @@ Not_yet_implemented "returns_memloc for most magics"
+  | Builtin_type_func -> true
+  | Builtin_int_add -> false
+  | Builtin_int_neg -> false
+  | Builtin_string_add -> false
+  | Builtin_string_contains -> false
+  | Builtin_list_getitem -> true
+  | _ -> raise @@ Not_yet_implemented "returns_memloc for most magics"
