@@ -146,11 +146,11 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
         (id: identifier)
       : memloc option =
       (* Jhupllib_logger_utils.bracket_log (add_to_log `trace)
-        ("Lookin up. Eta:" ^
+         ("Lookin up. Eta:" ^
          (Pp_utils.pp_to_string pp_memloc eta)
          ^ " Id: " ^ target ^ "\n")
-        (fun m -> match m with | None -> "None" | Some m -> "Some " ^ (Pp_utils.pp_to_string pp_memloc m))
-      @@ fun () -> *)
+         (fun m -> match m with | None -> "None" | Some m -> "Some " ^ (Pp_utils.pp_to_string pp_memloc m))
+         @@ fun () -> *)
 
       let bindings = retrieve_binding_or_fail prog.heap eta in
       let m = Bindings.get_memloc id bindings in
@@ -462,14 +462,13 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     in
     { prog with micro = new_micro; }
 
-  (*
-(* NEG command: takes a numeric value and returns its negation *)
+  (* NEG command: takes a numeric value and returns its negation *)
   | NEG ->
     let v, popped_stack = pop_value_or_fail rest_of_stack "NEG" in
-    let result =
+    let (result : value) =
       match v with
       | Num(Int n) -> Num(Int(-n))
-      | Num(Float f) -> Num(Float(-.f))
+                         | Num(Float f) -> Num(Float(-.f))
       | _ -> failwith "NEG not given a numeric value (int or float)"
     in
     let new_micro =
@@ -480,9 +479,9 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
 
   (* STRCONCAT command: concatenates two strings *)
   | STRCONCAT ->
-    let v2, popped_stack = pop_value_or_fail rest_of_stack "SUM" in
-    let v1, popped_stack = pop_value_or_fail popped_stack "SUM" in
-    let result =
+    let v2, popped_stack = pop_value_or_fail rest_of_stack "STRCONCAT" in
+    let v1, popped_stack = pop_value_or_fail popped_stack "STRCONCAT" in
+    let (result : value) =
       match v1, v2 with
       | Str(StringLiteral(s1)), Str(StringLiteral(s2)) -> Str(StringLiteral(String.concat s1 [s2]))
       | _ -> failwith "SUM did not get two numeric types (int or float)"
@@ -493,12 +492,12 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     in
     { prog with micro = new_micro; }
 
-(* STRCONTAINS command: takes two values, and returns true if the first is a
-   substring of the second, false otherwise *)
+  (* STRCONTAINS command: takes two values, and returns true if the first is a
+     substring of the second, false otherwise *)
   | STRCONTAINS ->
-    let v2, popped_stack = pop_value_or_fail rest_of_stack "SUM" in
-    let v1, popped_stack = pop_value_or_fail popped_stack "SUM" in
-    let result =
+    let v2, popped_stack = pop_value_or_fail rest_of_stack "STRCONTAINS" in
+    let v1, popped_stack = pop_value_or_fail popped_stack "STRCONTAINS" in
+    let (result : value) =
       match v1, v2 with
       | Str(StringLiteral(s1)), Str(StringLiteral(s2)) ->
         if String.exists s1 s2 then
@@ -513,30 +512,35 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     in
     { prog with micro = new_micro; }
 
-(* CONTAINS command: takes a list or tuple and a value; returns true if the
-   value is in the list/tuple, and false otherwise *)
-  | CONTAINS ->
-    let v2, popped_stack = pop_value_or_fail rest_of_stack "SUM" in
-    let v1, popped_stack = pop_value_or_fail popped_stack "SUM" in
-    let result =
-      match v1, v2 with
-      | Str(StringLiteral(s1)), Str(StringLiteral(s2)) ->
-        if String.exists s1 s2 then
-          Bool(true)
-        else
-          Bool(false)
-      | _ -> failwith "SUM did not get two numeric types (int or float)"
-    in
+  (* GETITEM command: takes a list or tuple and an index (integer). If the
+     index is valid, returns that element of the list/tuple; otherwise, raises
+     an IndexError *)
+  | GETITEM ->
+    let v2, popped_stack = pop_value_or_fail rest_of_stack "GETITEM" in
+    let v1, popped_stack = pop_value_or_fail popped_stack "GETITEM" in
     let new_micro =
-      MIS.insert popped_stack @@
-      MIS.create [Inert(Micro_value(result))]
+      match v1 with
+      | ListVal elts
+      | TupleVal elts ->
+        begin
+          match v2 with
+          | Num(Int n) ->
+            if n > 0 && n < List.length elts then
+              MIS.insert popped_stack @@ MIS.create
+                [Inert(Micro_memloc(List.nth elts n))]
+            else
+              MIS.create [Command(ALLOCINDEXERROR); Command(RAISE)]
+          | _ -> raise @@ Utils.Not_yet_implemented "GETITEM index not an int"
+
+        end
+      | _ -> failwith "GETITEM did not get a list or tuple as first arg!"
     in
-          { prog with micro = new_micro; }
-      *)
+    { prog with micro = new_micro; }
 
   | ALLOCNAMEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCNAMEERROR"
   | ALLOCTYPEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCTYPEERROR"
   | ALLOCATTRIBUTEERROR -> raise @@ Utils.Not_yet_implemented "ALLOCATTRIBUTEERROR"
+  | ALLOCINDEXERROR -> raise @@ Utils.Not_yet_implemented "ALLOCINDEXERROR"
 ;;
 
 let execute_stmt (prog : program_state) (ctx: program_context): program_state =

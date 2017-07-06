@@ -406,9 +406,14 @@ type micro_command =
   | ALLOC
   | ASSERT of int (* numargs *)
   | SUM
+  | NEG
+  | STRCONCAT
+  | STRCONTAINS
+  | GETITEM
   | ALLOCNAMEERROR
   | ALLOCTYPEERROR
   | ALLOCATTRIBUTEERROR
+  | ALLOCINDEXERROR
 [@@deriving eq, ord, show]
 ;;
 
@@ -507,9 +512,14 @@ struct
     | ALLOC -> fprintf fmt "ALLOC"
     | ASSERT n -> fprintf fmt "ASSERT %d" n
     | SUM -> fprintf fmt "SUM"
+    | NEG -> fprintf fmt "NEG"
+    | STRCONCAT -> fprintf fmt "STRCONCAT"
+    | STRCONTAINS -> fprintf fmt "STRCONTAINS"
+    | GETITEM-> fprintf fmt "GETITEM"
     | ALLOCNAMEERROR -> fprintf fmt "ALLOCNAMEERROR"
     | ALLOCTYPEERROR -> fprintf fmt "ALLOCTYPEERROR"
     | ALLOCATTRIBUTEERROR -> fprintf fmt "ALLOCATTRIBUTEERROR"
+    | ALLOCINDEXERROR -> fprintf fmt "ALLOCTYPEERROR"
   ;;
 
   let pp_micro fmt = function
