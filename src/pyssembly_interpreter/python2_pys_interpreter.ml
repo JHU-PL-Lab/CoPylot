@@ -368,17 +368,32 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
           | Assign(x, _) -> x
           | _ -> failwith "Active stmt is not an assign when calling builtin!"
         in
+        let open Python2_pys_interpreter_magics in
         let func_commands =
-          Python2_pys_interpreter_magics.call_magic arg_locs b
+          call_magic arg_locs b
+        in
+        let bind_commands =
+          if returns_memloc b then
+            let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
+            [Inert(Micro_memloc(curr_eta))] @
+            func_commands @
+            [
+              Inert(Micro_var(target));
+              Command(BIND);
+              Command(ADVANCE);
+            ]
+          else
+            func_commands @
+            [
+              Inert(Micro_var(target));
+              Command(ASSIGN);
+              Command(ADVANCE);
+            ]
         in
         MIS.insert popped_micro @@
         MIS.create @@
-        func_commands @
-        [
-          Inert(Micro_var(target));
-          Command(ASSIGN);
-          Command(ADVANCE);
-        ]
+        func_commands @ bind_commands
+
 
       | _ -> failwith "Can only CALL a function."
     in
@@ -468,7 +483,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     let (result : value) =
       match v with
       | Num(Int n) -> Num(Int(-n))
-                         | Num(Float f) -> Num(Float(-.f))
+      | Num(Float f) -> Num(Float(-.f))
       | _ -> failwith "NEG not given a numeric value (int or float)"
     in
     let new_micro =
@@ -483,7 +498,7 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
     let v1, popped_stack = pop_value_or_fail popped_stack "STRCONCAT" in
     let (result : value) =
       match v1, v2 with
-      | Str(StringLiteral(s1)), Str(StringLiteral(s2)) -> Str(StringLiteral(String.concat s1 [s2]))
+      | Str(StringLiteral(s1)), Str(StringLiteral(s2)) -> Str(StringLiteral(s1 ^s2))
       | _ -> failwith "SUM did not get two numeric types (int or float)"
     in
     let new_micro =

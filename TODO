@@ -2,3 +2,4 @@ Change dunder names to call foo.__class__.whatever instead of foo.whatever
 Add global contains which is added to lists and tuples
 Implement existing magics
 Make logging sane
+Remove the bool type

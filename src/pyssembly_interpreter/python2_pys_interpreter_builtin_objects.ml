@@ -22,6 +22,7 @@ let get_fill_commands (m : memloc) (v: value) : micro_instruction list =
   in
   let type_bindings =
     match v with
+    | Bool _ (* FIXME; Just get rid of the bool type altogether *)
     | Num(Int _) ->
       [
         ("__class__", store_type Int_type);
@@ -65,7 +66,6 @@ let get_fill_commands (m : memloc) (v: value) : micro_instruction list =
       ]
     | Builtin_exception _
     | Builtin_type _
-    | Bool _
     | NoneVal -> raise @@ Not_yet_implemented "Wrapping value"
     | Bindings _ -> failwith "Tried to fill existing bindings"
   in

@@ -114,6 +114,10 @@ let literal_tests = [
 
 let operator_tests = [
   gen_pyssembly_variable_test "int_add_test" "x=1;y=2;add=x.__add__;z=add(y);" "z" @@ Num(Int(3));
+  gen_pyssembly_variable_test "int_neg_test" "x=1;neg=x.__neg__;z=neg();" "z" @@ Num(Int(-1));
+  gen_pyssembly_variable_test "str_add_test" "x=\"foo\";y=\"bar\";add=x.__add__;z=add(y);" "z" @@ Str(StringLiteral "foobar");
+  gen_pyssembly_variable_test "str_contains_test" "x=\"abcdef\";y=\"bcd\";contains=x.__contains__;z=contains(y);" "z" @@ Bool(true);
+  gen_pyssembly_variable_test "list_getitem_test1" "a=0;b=1;c=2;d=\"three\";x=[a,b,c,d];y=2;getitem=x.__getitem__;z=getitem(y);" "z" @@ Num(Int(2));
   (* gen_python_variable_test "real_int_add_test" "z = 1+2" "z" @@ Num(Int(3)); *)
 ]
 ;;
