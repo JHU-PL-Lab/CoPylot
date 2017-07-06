@@ -404,11 +404,16 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
   (* RETRIEVE command: Takes a memloc which points to an object, and an
      identifier. Retrieves the object field corresponding to that identifier. *)
   | RETRIEVE ->
-    let x, popped_stack = pop_var_or_fail rest_of_stack "RETRIEVE" in
-    let v, popped_stack = pop_value_or_fail popped_stack "RETRIEVE" in
+    let v2, popped_stack = pop_value_or_fail rest_of_stack "RETRIEVE" in
+    let v1, popped_stack = pop_value_or_fail popped_stack "RETRIEVE" in
+    let attrstr =
+      match v2 with
+      | Str(StringLiteral s) -> s
+      | _ -> failwith "Non-string value passed to RETRIEVE!"
+    in
     let attr =
-      match v with
-      | Bindings(b) -> Bindings.get_memloc x b
+      match v1 with
+      | Bindings(b) -> Bindings.get_memloc attrstr b
       | _ -> failwith "Non-binding value passed to RETRIEVE!"
     in
     let new_micro =
@@ -630,6 +635,11 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
         Command(LOOKUP);
         Command(GET);
         Inert(Micro_var(x2));
+        Command(LOOKUP);
+        Command(GET);
+        Inert(Micro_value(Str(StringLiteral "*value")));
+        Command(RETRIEVE);
+        Command(GET);
         Command(RETRIEVE);
         Command(DUP);
         Command(GET);
@@ -650,7 +660,7 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
         Inert(Micro_var(x0));
         Command(LOOKUP);
         Command(GET);
-        Inert(Micro_var("*value"));
+        Inert(Micro_value(Str(StringLiteral "*value")));
         Command(RETRIEVE);
         Command(GET);
       ] @
@@ -780,9 +790,9 @@ let interpret_program (prog : modl) =
     Python2_pys_interpreter_builtin_defs.parse_all_builtin_defs (end_uid + 1)
   in
   (* Execute only the defintions of builtins so they get put on the heap *)
-  add_to_log `trace ("Executing builtins");
+  add_to_log `debug ("Executing builtins");
   let intermediate_state = simple_interpret builtins in
-  add_to_log `trace ("Done executing builtins");
+  add_to_log `debug ("Done executing builtins");
   (* TODO: Check for errors? There shouldn't be any, but still *)
 
   (* Create full program *)
@@ -808,6 +818,6 @@ let interpret_program (prog : modl) =
     }
   in
   add_to_log `trace ("Executing program:" ^
-                    Pp_utils.pp_to_string Body.pp full_ctx.program);
+                     Pp_utils.pp_to_string Body.pp full_ctx.program);
   step_program starting_program full_ctx
 ;;

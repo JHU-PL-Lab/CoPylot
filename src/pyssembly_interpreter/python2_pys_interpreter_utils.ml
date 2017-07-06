@@ -92,7 +92,7 @@ let wrap_value (m1 : memloc) (m2 : memloc) (v : value)
     let base_obj =
       Bindings.empty
       |> Bindings.update_binding "*value" m2
-      (* TODO: get_attribute *)
+      |> Bindings.update_binding "__getattribute__" @@ Builtin_fun_memloc(Builtin_get_attribute)
     in
     let fill_commands = get_fill_commands m1 v in
     MIS.create @@

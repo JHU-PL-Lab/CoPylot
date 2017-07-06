@@ -1,4 +1,4 @@
-(* open Python2_ast_types;; (* TODO: This might cause name conflicts, maybe *) *)
+open Python2_ast_types;; (* TODO: This might cause name conflicts, maybe *)
 open Python2_pys_interpreter_types;;
 open Jhupllib_utils;;
 
@@ -10,14 +10,14 @@ let int_add
     [
       Inert(Micro_memloc(m1));
       Command(GET);
-      Inert(Micro_var("*value"));
+      Inert(Micro_value(Str(StringLiteral "*value")));
       Command(RETRIEVE);
       Command(GET);
       Inert(Micro_memloc(Builtin_type_memloc(Int_type)));
       Command(ASSERT 1);
       Inert(Micro_memloc(m2));
       Command(GET);
-      Inert(Micro_var("*value"));
+      Inert(Micro_value(Str(StringLiteral "*value")));
       Command(RETRIEVE);
       Command(GET);
       Inert(Micro_memloc(Builtin_type_memloc(Int_type)));
@@ -37,7 +37,7 @@ let int_neg
     [
       Inert(Micro_memloc(m1));
       Command(GET);
-      Inert(Micro_var("*value"));
+      Inert(Micro_value(Str(StringLiteral "*value")));
       Command(RETRIEVE);
       Command(GET);
       Inert(Micro_memloc(Builtin_type_memloc(Int_type)));
@@ -56,14 +56,14 @@ let str_add
     [
       Inert(Micro_memloc(m1));
       Command(GET);
-      Inert(Micro_var("*value"));
+      Inert(Micro_value(Str(StringLiteral "*value")));
       Command(RETRIEVE);
       Command(GET);
       Inert(Micro_memloc(Builtin_type_memloc(String_type)));
       Command(ASSERT 1);
       Inert(Micro_memloc(m2));
       Command(GET);
-      Inert(Micro_var("*value"));
+      Inert(Micro_value(Str(StringLiteral "*value")));
       Command(RETRIEVE);
       Command(GET);
       Inert(Micro_memloc(Builtin_type_memloc(String_type)));
@@ -82,14 +82,14 @@ let str_contains
     [
       Inert(Micro_memloc(m1));
       Command(GET);
-      Inert(Micro_var("*value"));
+      Inert(Micro_value(Str(StringLiteral "*value")));
       Command(RETRIEVE);
       Command(GET);
       Inert(Micro_memloc(Builtin_type_memloc(String_type)));
       Command(ASSERT 1);
       Inert(Micro_memloc(m2));
       Command(GET);
-      Inert(Micro_var("*value"));
+      Inert(Micro_value(Str(StringLiteral "*value")));
       Command(RETRIEVE);
       Command(GET);
       Inert(Micro_memloc(Builtin_type_memloc(String_type)));
@@ -108,14 +108,14 @@ let list_getitem
     [
       Inert(Micro_memloc(m1));
       Command(GET);
-      Inert(Micro_var("*value"));
+      Inert(Micro_value(Str(StringLiteral "*value")));
       Command(RETRIEVE);
       Command(GET);
       Inert(Micro_memloc(Builtin_type_memloc(List_type)));
       Command(ASSERT 1);
       Inert(Micro_memloc(m2));
       Command(GET);
-      Inert(Micro_var("*value"));
+      Inert(Micro_value(Str(StringLiteral "*value")));
       Command(RETRIEVE);
       Command(GET);
       Inert(Micro_memloc(Builtin_type_memloc(Int_type)));
