@@ -8,7 +8,7 @@ open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter_utils;;
 
 (* Change this to change what output we see from the logger *)
-Logger_utils.set_default_logging_level `warn;;
+Logger_utils.set_default_logging_level `trace;;
 
 let add_to_log = Logger_utils.make_logger "Pyssembly Interpreter";;
 
@@ -743,23 +743,21 @@ let rec step_program (prog : program_state) (ctx : program_context)
     step_program next_prog ctx
 ;;
 
-let interpret_program (prog : modl) =
-  let Module(input_stmts, end_uid) = prog in
-  (* Assume that the uid of the Module is the maximum uid that appears in the
-     program. This is valid if we generated it through normalization from
-     Python. *)
-  let Module(builtin_stmts, _) =
-    Python2_pys_interpreter_builtin_defs.parse_all_builtin_defs (end_uid + 1)
-  in
-  let stmts = ignore builtin_stmts; input_stmts in
+(* Interpret a program directly without prepending builtins. Should not
+   be called diretly; use interpret_program instead *)
+(* TODO: Add sig to make sure it can't be called directly *)
+let simple_interpret prog =
+  let Module(stmts, _) = prog in
   let starting_ctx = { program = Body.create stmts; } in
-  let global_memloc = Python2_pys_interpreter_init.global_memloc in
+
   let starting_frame =
-    Stack_frame.create global_memloc @@ Body.get_first_uid starting_ctx.program
+    Stack_frame.create Python2_pys_interpreter_init.global_memloc @@
+    Body.get_first_uid starting_ctx.program
   in
   let starting_stack = Program_stack.singleton starting_frame in
-  let starting_heap =
-    Python2_pys_interpreter_init.starting_heap in
+
+  let starting_heap = Python2_pys_interpreter_init.starting_heap in
+
   let starting_micro = Micro_instruction_stack.empty in
   let starting_program =
     {
@@ -769,4 +767,41 @@ let interpret_program (prog : modl) =
     }
   in
   step_program starting_program starting_ctx
+;;
+
+let interpret_program (prog : modl) =
+  let Module(input_stmts, end_uid) = prog in
+  (* Assume that the uid of the Module is the maximum uid that appears in the
+     program. This is valid if we generated it through normalization from
+     Python. *)
+  let builtins =
+    Python2_pys_interpreter_builtin_defs.parse_all_builtin_defs (end_uid + 1)
+  in
+  (* Execute only the defintions of builtins so they get put on the heap *)
+  let intermediate_state = simple_interpret builtins in
+  (* TODO: Check for errors? There shouldn't be any, but still *)
+
+  (* Create full program *)
+  let Module(builtin_stmts, _) = builtins in
+  let stmts = builtin_stmts @ input_stmts in
+  let full_ctx = { program = Body.create stmts; } in
+
+  let new_frame =
+    Stack_frame.create Python2_pys_interpreter_init.global_memloc @@
+    Body.get_first_uid (Body.create input_stmts)
+  in
+  let new_stack = Program_stack.singleton new_frame in
+
+  let new_micro =
+    Micro_instruction_stack.create Python2_pys_interpreter_init.builtin_binds
+  in
+
+  let starting_program =
+    {
+      intermediate_state with
+      micro = new_micro;
+      stack = new_stack;
+    }
+  in
+  step_program starting_program full_ctx
 ;;

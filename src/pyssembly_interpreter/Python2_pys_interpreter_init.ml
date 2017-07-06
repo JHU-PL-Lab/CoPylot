@@ -56,5 +56,27 @@ let starting_heap =
   |> Heap.update_binding (Builtin_fun_memloc(Builtin_tuple_iter)) (Function(Builtin_func(Builtin_tuple_iter)))
   |> Heap.update_binding (Builtin_fun_memloc(Builtin_tuple_contains)) (Function(Builtin_func(Builtin_tuple_contains)))
   |> Heap.update_binding (Builtin_fun_memloc(Builtin_tuple_getitem)) (Function(Builtin_func(Builtin_tuple_getitem)))
+;;
 
+let builtin_binds =
+  let bind_one_builtin (varname, memloc) =
+    [
+      Inert(Micro_memloc(global_memloc));
+      (* Copy value to builtin memloc *)
+      Inert(Micro_memloc(memloc));
+      Inert(Micro_var(varname));
+      Command(LOOKUP);
+      Command(GET);
+      Command(STORE);
+      (* TODO: Should probably del the value at the old memloc just to be safe *)
+      (* Update varname to point to the new memloc *)
+      Inert(Micro_var(varname));
+      Command(BIND);
+    ]
+  in
+  List.concat @@ List.map bind_one_builtin
+    [
+      "*get_call", Builtin_fun_memloc(Builtin_get_call);
+      "*get_attribute", Builtin_fun_memloc(Builtin_get_attribute);
+    ]
 ;;
