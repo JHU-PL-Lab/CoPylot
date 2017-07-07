@@ -1,6 +1,6 @@
 Change dunder names to call foo.__class__.whatever instead of foo.whatever
 Add global contains which is added to lists and tuples
-Implement existing magics
 Make logging sane
-Remove the bool type
 Remove StringLiterals pre-abstraction
+Add builtin type globals to spec, and __call__ in classes to spec
+Make initial objects literally empty

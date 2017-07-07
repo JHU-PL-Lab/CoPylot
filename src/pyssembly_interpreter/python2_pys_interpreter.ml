@@ -8,7 +8,7 @@ open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter_utils;;
 
 (* Change this to change what output we see from the logger *)
-Logger_utils.set_default_logging_level `debug;;
+Logger_utils.set_default_logging_level `trace;;
 
 let add_to_log = Logger_utils.make_logger "Pyssembly Interpreter";;
 
@@ -370,31 +370,50 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
           | Assign(x, _) -> x
           | _ -> failwith "Active stmt is not an assign when calling builtin!"
         in
-        let open Python2_pys_interpreter_magics in
-        let func_commands =
-          call_magic arg_locs b
-        in
-        let bind_commands =
-          if returns_memloc b then
-            let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
-            [Inert(Micro_memloc(curr_eta))] @
-            func_commands @
+        begin
+          match b with
+          | Builtin_get_attribute ->
+            MIS.insert popped_micro @@
+            MIS.create @@
             [
-              Inert(Micro_var(target));
-              Command(BIND);
-              Command(ADVANCE);
-            ]
-          else
-            func_commands @
+              Inert(Micro_memloc(Builtin_fun_memloc(Builtin_get_attribute)));
+              Command(GET);
+              Inert(Micro_value(Str(StringLiteral "*value")));
+              Command(RETRIEVE);
+              Command(GET);
+            ] @
+            List.map (fun m -> Inert(Micro_memloc(m))) arg_locs @
             [
-              Inert(Micro_var(target));
-              Command(ASSIGN);
-              Command(ADVANCE);
+              Inert(Micro_memloc(new_eta));
+              Command(CALL 2);
             ]
-        in
-        MIS.insert popped_micro @@
-        MIS.create @@
-        bind_commands
+          | _ ->
+            let open Python2_pys_interpreter_magics in
+            let func_commands =
+              call_magic arg_locs b
+            in
+            let bind_commands =
+              if returns_memloc b then
+                let curr_eta = Stack_frame.get_eta (Program_stack.top prog.stack) in
+                [Inert(Micro_memloc(curr_eta))] @
+                func_commands @
+                [
+                  Inert(Micro_var(target));
+                  Command(BIND);
+                  Command(ADVANCE);
+                ]
+              else
+                func_commands @
+                [
+                  Inert(Micro_var(target));
+                  Command(ASSIGN);
+                  Command(ADVANCE);
+                ]
+            in
+            MIS.insert popped_micro @@
+            MIS.create @@
+            bind_commands
+        end
 
 
       | _ -> failwith "Can only CALL a function."
@@ -556,6 +575,15 @@ let execute_micro_command (prog : program_state) (ctx : program_context)
 
         end
       | _ -> failwith "GETITEM did not get a list or tuple as first arg!"
+    in
+    { prog with micro = new_micro; }
+
+  (* BOOL command: takes a value, and converts it into a boolean value *)
+  | BOOL ->
+    let v, popped_stack = pop_value_or_fail rest_of_stack "BOOL" in
+    let new_micro =
+      MIS.insert popped_stack @@ MIS.create
+        [Inert(Micro_value(Bool(value_to_bool v)))]
     in
     { prog with micro = new_micro; }
 
@@ -727,6 +755,9 @@ let execute_stmt (prog : program_state) (ctx: program_context): program_state =
       [
         Inert(Micro_var(x));
         Command(LOOKUP);
+        Command(GET);
+        Inert(Micro_value(Str(StringLiteral "*value")));
+        Command(RETRIEVE);
         Command(GET);
         Command(GOTOIFNOT(uid));
       ]

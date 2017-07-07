@@ -44,28 +44,31 @@ let gen_module_test (name : string) (prog : string)
 let gen_variable_test (name : string) (prog: string)
     (parse_func: string -> Python2_normalized_ast.modl)
     (target: string) (expected : value) =
-  name>::
-  ( fun _ ->
-      let normalized = parse_func prog in
-      let result_state = interpret_program normalized in
-      let open Python2_pys_interpreter_utils in
-      let var_memloc =
-        retrieve_binding_or_fail result_state.heap Python2_pys_interpreter_init.global_memloc
-        |> Bindings.get_memloc target
-      in
-      let var_memloc =
-        extract_option_or_fail var_memloc @@
-        "Requested variable" ^ target ^ "not bound"
-      in
-      let value_memloc =
-        retrieve_binding_or_fail result_state.heap var_memloc
-        |> Bindings.get_memloc "*value"
-      in
-      let value_memloc = extract_option_or_fail value_memloc @@
-        "Requested variable" ^ target ^ "not bound"
-      in
-      let actual = Heap.get_value value_memloc result_state.heap in
-      assert_equal ~printer:string_of_value ~cmp:equal_value expected actual
+  name>:
+  OUnitTest.TestCase(
+    OUnitTest.Long,
+    ( fun _ ->
+        let normalized = parse_func prog in
+        let result_state = interpret_program normalized in
+        let open Python2_pys_interpreter_utils in
+        let var_memloc =
+          retrieve_binding_or_fail result_state.heap Python2_pys_interpreter_init.global_memloc
+          |> Bindings.get_memloc target
+        in
+        let var_memloc =
+          extract_option_or_fail var_memloc @@
+          "Requested variable" ^ target ^ "not bound"
+        in
+        let value_memloc =
+          retrieve_binding_or_fail result_state.heap var_memloc
+          |> Bindings.get_memloc "*value"
+        in
+        let value_memloc = extract_option_or_fail value_memloc @@
+          "Requested variable" ^ target ^ "not bound"
+        in
+        let actual = Heap.get_value value_memloc result_state.heap in
+        assert_equal ~printer:string_of_value ~cmp:equal_value expected actual
+    )
   )
 ;;
 

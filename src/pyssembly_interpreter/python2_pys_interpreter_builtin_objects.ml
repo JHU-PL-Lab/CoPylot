@@ -58,6 +58,7 @@ let get_fill_commands (m : memloc) (v: value) : micro_instruction list =
     | Function _ ->
       [
         ("__class__", store_type Function_type);
+        ("__call__", store_method Builtin_call);
       ]
     | Method _ ->
       [

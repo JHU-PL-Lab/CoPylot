@@ -7,6 +7,7 @@ let global_memloc = Memloc(0);;
 let starting_bindings =
   Bindings.empty
   |> Bindings.update_binding "*None" None_memloc
+  |> Bindings.update_binding "*builtin_method_wrapper_type" @@ Builtin_type_memloc(Method_wrapper_type)
   |> Bindings.update_binding "NameError" @@ Builtin_exn_memloc(Builtin_NameError)
   |> Bindings.update_binding "TypeError" @@ Builtin_exn_memloc(Builtin_TypeError)
   |> Bindings.update_binding "ValueError" @@ Builtin_exn_memloc(Builtin_ValueError)

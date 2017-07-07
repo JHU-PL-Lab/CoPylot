@@ -23,7 +23,7 @@ let get_call_def ctx =
            [Name(target, annot)],
            annot),
       [IsNot],
-      [Builtin(Builtin_method_wrapper_type, annot)],
+      [Name("*builtin_method_wrapper_type", annot)],
       annot)
   in
   (* This might be an infinite loop if the user is doing shenanigans *)

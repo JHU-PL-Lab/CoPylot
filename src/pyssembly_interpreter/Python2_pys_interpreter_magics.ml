@@ -14,7 +14,24 @@ let type_func
       Command(RETRIEVE);
     ]
   (* Wrong number of args *)
-  | _ -> failwith "Wrong number of args to int_add"
+  | _ -> failwith "Wrong number of args to type_func"
+;;
+
+let bool_func
+    (m : memloc list)
+  : micro_instruction list =
+  match m with
+  | m1::[] ->
+    [
+      Inert(Micro_memloc(m1));
+      Command(GET);
+      Inert(Micro_value(Str(StringLiteral "*value")));
+      Command(RETRIEVE);
+      Command(GET);
+      Command(BOOL);
+    ]
+  (* Wrong number of args *)
+  | _ -> failwith "Wrong number of args to bool_func"
 ;;
 
 let int_add
@@ -146,6 +163,7 @@ let call_magic m b =
   (* [Command(ALLOCTYPEERROR); Command(RAISE);] *)
   match b with
   | Builtin_type_func -> type_func m
+  | Builtin_bool -> bool_func m
   | Builtin_int_add -> int_add m
   | Builtin_int_neg -> int_neg m
   | Builtin_string_add -> str_add m
@@ -156,6 +174,7 @@ let call_magic m b =
 
 let returns_memloc = function
   | Builtin_type_func -> true
+  | Builtin_bool -> false
   | Builtin_int_add -> false
   | Builtin_int_neg -> false
   | Builtin_string_add -> false

@@ -89,15 +89,28 @@ let wrap_value (m1 : memloc) (m2 : memloc) (v : value)
   | Bindings b -> MIS.create @@
     [Inert(Micro_memloc(m2)); Inert(Micro_value(Bindings(b)));]
   | _ ->
-    let base_obj =
-      Bindings.empty
-      |> Bindings.update_binding "*value" m2
-      |> Bindings.update_binding "__getattribute__" @@ Builtin_fun_memloc(Builtin_get_attribute)
-    in
-    let fill_commands = get_fill_commands m1 v in
+    let generic_fill_commands =
+      [
+        Inert(Micro_memloc(m1));
+        Inert(Micro_value(Bindings(Bindings.empty)));
+        Command(STORE);
+
+        Inert(Micro_memloc(m1));
+        Inert(Micro_memloc(m2));
+        Inert(Micro_var("*value"));
+        Command(BIND);
+
+        Inert(Micro_memloc(m1));
+        Command(ALLOC);
+        Inert(Micro_value(Method(m1, Builtin_func(Builtin_get_attribute))));
+        Command(STORE);
+        Inert(Micro_var("__getattribute__"));
+        Command(BIND);
+      ] in
+    let specific_fill_commands = get_fill_commands m1 v in
     MIS.create @@
-    [Inert(Micro_memloc(m1)); Inert(Micro_value(Bindings(base_obj))); Command(STORE)] @
-    fill_commands @
+    generic_fill_commands @
+    specific_fill_commands @
     [Inert(Micro_memloc(m1)); Command(GET)]
 ;;
 
@@ -122,11 +135,27 @@ let get_active_or_fail (frame : Stack_frame.t) (ctx : program_context)
   let active_uid = Stack_frame.get_active_uid frame in
   let active_stmt = Body.get_stmt ctx.program active_uid in
   extract_option_or_fail active_stmt "Failed to find active statement"
-
 ;;
 
 let get_parent_or_fail (child : memloc) (heap : Heap.t) : memloc =
   let parent_binding = retrieve_binding_or_fail heap child in
   let parent = Bindings.get_memloc "*parent" parent_binding in
   extract_option_or_fail parent "Failed to find parent scope"
+;;
+
+let value_to_bool (v : value) : bool =
+  match v with
+  | Num(Int n) -> n <> 0
+  | Num(Float f) -> f <> 0.0
+  | Str(StringLiteral s) -> s <> ""
+  | Bool b -> b
+  | ListVal elts
+  | TupleVal elts -> List.length elts <> 0
+  | Builtin_exception _
+  | Builtin_type _
+  | Bindings _
+  | Function _
+  | Method _ -> true
+  | NoneVal -> false
+
 ;;

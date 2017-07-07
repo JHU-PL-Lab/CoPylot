@@ -407,6 +407,7 @@ type micro_command =
   | RETRIEVE
   | ALLOC
   | ASSERT of int (* numargs *)
+  | BOOL
   | SUM
   | NEG
   | STRCONCAT
@@ -513,6 +514,7 @@ struct
     | RETRIEVE -> fprintf fmt "RETRIEVE"
     | ALLOC -> fprintf fmt "ALLOC"
     | ASSERT n -> fprintf fmt "ASSERT %d" n
+    | BOOL -> fprintf fmt "BOOL"
     | SUM -> fprintf fmt "SUM"
     | NEG -> fprintf fmt "NEG"
     | STRCONCAT -> fprintf fmt "STRCONCAT"
