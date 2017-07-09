@@ -8,7 +8,7 @@ open Python2_pys_interpreter_types;;
 open Python2_pys_interpreter_utils;;
 
 (* Change this to change what output we see from the logger *)
-Logger_utils.set_default_logging_level `trace;;
+(* Logger_utils.set_default_logging_level `trace;; *)
 
 let add_to_log = Logger_utils.make_logger "Pyssembly Interpreter\n";;
 

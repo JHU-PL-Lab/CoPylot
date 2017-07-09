@@ -13,6 +13,8 @@ let all_tests =
     Test_abs_parser.tests;
     (* Test_normalized_pp.tests; *) (* Redundant with test_normalized_ast *)
 
+    Test_lamia_parser.tests;
+
     Test_pys_interpreter.tests;
     (* Test_analysis.tests; *)
     (* Test_analysis_integration.tests; *)
