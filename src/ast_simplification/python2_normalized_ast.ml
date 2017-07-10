@@ -1,44 +1,42 @@
 open Python2_ast_types
 
-type annotated_stmt = stmt annotation
+type 'a modl =
+    | Module of 'a stmt list (* body *) * 'a
 [@@deriving eq, ord, show, to_yojson]
 
-and annotated_expr = expr annotation
+and 'a stmt =
+    | Assign of identifier (* target *) * 'a expr (* value *) * 'a
+  | Return of identifier (* value *) * 'a
+  | While of identifier (* test *) * 'a stmt list (* body *) * 'a
+  | If of identifier (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
+  | Raise of identifier (* value *) * 'a
+  | TryExcept of 'a stmt list (* body *) * identifier (* exn name *) * 'a stmt list (* handler *) * 'a
+  | Pass of 'a
+  | Break of 'a
+  | Continue of 'a
 [@@deriving eq, ord, show, to_yojson]
 
-and modl =
-    | Module of annotated_stmt list (* body *) * uid
+and 'a expr =
+    | Binop of identifier (* left *) * binop (* op *) * identifier (* right *) * 'a
+  | UnaryOp of unaryop (* op *) * identifier (* value *) * 'a
+  | Call of identifier (* func *) * identifier list (* args *) * 'a
+  | Attribute of identifier (* object *) * identifier (* attr *) * 'a
+  | List of identifier list (* elts *) * 'a
+  | Tuple of identifier list (* elts *) * 'a
+  | Literal of 'a literal * 'a
+  | Name of identifier (* id *) * 'a
 [@@deriving eq, ord, show, to_yojson]
 
-and stmt =
-    | Assign of identifier (* target *) * annotated_expr (* value *)
-  | Return of identifier (* value *)
-  | Print of identifier option (* dest *) * identifier list (* values *) * bool (* nl *)
-  | Raise of identifier (* value *)
-  | Catch of identifier (* name *)
-  | Pass
-  | Goto of uid (* dest *)
-  | GotoIfNot of identifier (* test *) * uid (* dest *) (* Jump iff test is falsey *)
-[@@deriving eq, ord, show, to_yojson]
-
-and expr =
-    | Binop of identifier (* left *) * binop (* op *) * identifier (* right *)
-  | Call of identifier (* func *) * identifier list (* args *)
-  | Attribute of identifier (* object *) * identifier (* attr *)
-  | List of identifier list (* elts *)
-  | Tuple of identifier list (* elts *)
-  | Literal of literal
-  | Name of identifier (* id *)
-[@@deriving eq, ord, show, to_yojson]
-
-and literal =
+and 'a literal =
     | Num of number
   | Str of string
   | Bool of bool
   | Builtin of builtin
-  | FunctionVal of identifier list (* args *) * annotated_stmt list (* body *)
+  | FunctionVal of identifier list (* args *) * 'a stmt list (* body *)
 [@@deriving eq, ord, show, to_yojson]
 
-and binop =
-    | Binop_is
+and binop = Is
+[@@deriving eq, ord, show, to_yojson]
+
+and unaryop = Not
 [@@deriving eq, ord, show, to_yojson]
