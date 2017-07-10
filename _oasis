@@ -134,6 +134,30 @@ Library "pyssembly_interpreter"
     pds-reachability,
     CoPylot.ast_simplification
 
+Library "lamia_language"
+  FindlibParent: CoPylot
+  Path: src/lamia_language
+  Modules:
+    Lamia_ast
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std,
+    ppx_deriving_yojson,
+    CoPylot.ast_simplification
+
+Library "lamia_parser"
+  FindlibParent: CoPylot
+  Path: src/lamia_parser
+  Modules:
+    Lamia_parser
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std,
+    ppx_deriving_yojson,
+    CoPylot.lamia_language
+
 Executable "test"
   Path: test/
   MainIs: test.ml
@@ -149,7 +173,9 @@ Executable "test"
     CoPylot.ast_simplification,
     CoPylot.analysis,
     CoPylot.pyssembly_parser,
-    CoPylot.pyssembly_interpreter
+    CoPylot.pyssembly_interpreter,
+    CoPylot.lamia_language,
+    CoPylot.lamia_parser
 
 Test test
   Command: $test
