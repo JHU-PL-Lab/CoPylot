@@ -2,7 +2,6 @@ open Python2_ast_types
 module Simplified = Python2_simplified_ast;;
 module Normalized = Python2_normalized_ast;;
 open Python2_simplification_ctx;;
-open Jhupllib;;
 
 (* FIXME: We need to create a type for builtin methods (in addition to builtin
    functions such as type, bool, slice) such as __getattr__, and use that
@@ -115,7 +114,7 @@ and normalize_stmt ctx
   | Simplified.Continue annot ->
     [ Normalized.Continue annot ]
 
-  | Simplified.Expr (e, annot) ->
+  | Simplified.Expr (e, _) ->
     let bindings, _ =
       match e with
       (* If this is just a name, we generate a useless assignment so that
@@ -162,27 +161,11 @@ and normalize_expr ctx
        which we know how to call. *)
     let func_bindings, func_name = normalize_expr func in
     let arg_bindings, arg_names = normalize_list normalize_expr args in
-    let get_call_bindings, callable_name = raise @@ Utils.Not_yet_implemented "Normalize_call" (*TODO*)
-    (* match func with
-       | Simplified.Builtin _ -> [], func_name
-       | Simplified.Name ("*get_call", _) -> [], func_name
-       | _ ->
-       let callable_name = gen_unique_name ctx annot in
-       let get_call_call =
-        Simplified.Assign(
-          callable_name,
-          Simplified.Call(Simplified.Name("*get_call", annot),
-                          [Simplified.Name(func_name, annot)],
-                          annot),
-          annot)
-       in
-       normalize_stmt get_call_call, callable_name *)
-    in
     let assignment, name =
       gen_normalized_assignment ctx annot @@
-      Normalized.Call(callable_name, arg_names, annot)
+      Normalized.Call(func_name, arg_names, annot)
     in
-    let bindings = func_bindings @ arg_bindings @ get_call_bindings @ assignment in
+    let bindings = func_bindings @ arg_bindings @ assignment in
     bindings, name
 
   | Simplified.Num (n, annot) ->

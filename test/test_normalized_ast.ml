@@ -3,9 +3,9 @@ open Batteries;;
 open Jhupllib;;
 open Pp_utils;;
 
-open Python2_ast_types;;
+(* open Python2_ast_types;; *)
 open Python2_ast_pipeline;;
-open Python2_normalized_ast;;
+(* open Python2_normalized_ast;; *)
 open Python2_normalized_ast_pretty;;
 
 let string_of_modl m = Pp_utils.pp_to_string pp_modl m;;
@@ -21,7 +21,7 @@ let parse_to_normalized_safe prog short_names =
 ;;
 
 (* Return true if there are no duplicates (which is what we want) *)
-let rec check_for_duplicates (lst : int list) : bool =
+(* let rec check_for_duplicates (lst : int list) : bool =
   let sorted = List.sort compare lst in
   match sorted with
   | [] -> true
@@ -50,17 +50,13 @@ let rec verify_unique_uids = function
   | Module(body, uid) ->
     let uids = List.concat (List.map collect_uids_stmt body) in
     check_for_duplicates (uid::uids)
-;;
+;; *)
 
 let gen_module_test (name : string) (prog : string)
     (expected : string) =
   name>::
   ( fun _ ->
-      let actual = parse_to_normalized_safe prog 1 0 true in
-      Python2_ast_simplifier.reset_unique_name ();
-
-      let distinct_uids = verify_unique_uids actual in
-      assert_bool ("Repeated UIDs:\n" ^ string_of_modl actual) distinct_uids;
+      let actual = parse_to_normalized_safe prog 1 true in
 
       let pyssembly = pp_to_string pp_modl actual in
       let full_expected = expected in
@@ -1192,8 +1188,7 @@ let expect_error_test
      assert_raises
        expected
        (fun _ ->
-          parse_to_normalized prog 1 0 true);
-     Python2_ast_simplifier.reset_unique_name ();
+          parse_to_normalized prog 1 true);
   )
 ;;
 

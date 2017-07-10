@@ -12,10 +12,6 @@ type number = Python2_ast_types.number
 [@@deriving eq, ord, show]
 ;;
 
-type str = Python2_ast_types.str
-[@@deriving eq, ord, show]
-;;
-
 type value_variable =
   | Value_variable of identifier
 [@@deriving eq, ord, show]

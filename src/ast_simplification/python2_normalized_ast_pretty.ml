@@ -28,42 +28,32 @@ let rec pp_modl fmt = function
     pp_lines (pp_stmt "  ") fmt body
 
 (* The statements should have line number. *)
-and pp_stmt indent fmt {uid=uid;exception_target=exc;multi=multi;body} =
-  fprintf fmt "%a:" pp_label(uid,exc,multi);
-  fprintf fmt "%s" indent;
-  begin
+and pp_stmt indent fmt body =
+  fprintf fmt "%s" indent; ignore body; (* TODO: Re-implement this! *)
+  (* begin
     match body with
-    | Assign (target,value) ->
+    | Assign (target,value,_) ->
       fprintf fmt "%a = %a"
         pp_id target
         (pp_compound_expr indent) value
-    | Return (value) ->
+    | Return (value,_) ->
       fprintf fmt "return %a"
         pp_id value
-    | Print (_,values,_) ->
-      fprintf fmt "print %a" (* TODO: print dest if relevant *)
-        (pp_list pp_id) values
+    (* | Print (_,values,_) ->
+      fprintf fmt "print %a"
+        (pp_list pp_id) values *)
     (* (pp_option pp_simple_expr) dest *)
-    | Raise (value) ->
+    | Raise (value,_) ->
       fprintf fmt "raise %a"
         pp_id value
-    | Catch (name) ->
-      fprintf fmt "catch %a"
-        pp_id name
-    | Pass ->
+    | Pass _ ->
       fprintf fmt "pass"
-    | Goto (dest) ->
-      fprintf fmt "goto %a"
-        pp_print_int dest
-    | GotoIfNot (test,dest) ->
-      fprintf fmt "goto %a if not %a"
-        pp_print_int dest
-        pp_id test
-  end;
+  end; *)
   fprintf fmt "%s" ";"
 
-and pp_compound_expr indent fmt {uid=_;exception_target=_;multi=_;body} =
-  match body with
+and pp_compound_expr indent fmt body =
+  ignore indent; ignore fmt; ignore body; (* TODO: Re-implement this! *)
+  (* match body with
   | Binop (left,op,right) ->
     fprintf fmt "%a %a %a"
       pp_id left
@@ -84,7 +74,7 @@ and pp_compound_expr indent fmt {uid=_;exception_target=_;multi=_;body} =
     fprintf fmt "(%a)"
       (pp_list pp_id) lst
   | Literal (l) -> (pp_literal indent) fmt l
-  | Name (id)   -> pp_id fmt id
+  | Name (id)   -> pp_id fmt id *)
 
 and pp_id fmt id =
   if id = "None" || id = "True" || id = "False"
@@ -105,10 +95,10 @@ and pp_num fmt = function
   | Float f -> fprintf fmt "%f" f
 
 and pp_str fmt = function
-  | StringLiteral s -> fprintf fmt "\"%s\"" (String.escaped s)
+  | s -> fprintf fmt "\"%s\"" (String.escaped s)
 
 and pp_binop fmt = function
-  | Binop_is -> fprintf fmt "%s" "is"
+  | Is -> fprintf fmt "%s" "is"
 
 and pp_builtin fmt = function
   | Builtin_slice -> fprintf fmt "*slice"
@@ -123,17 +113,3 @@ and pp_functionval indent fmt args body =
   fprintf fmt "def (%a) {\n%a\n}"
     (pp_list pp_id) args
     (pp_lines (pp_stmt (indent ^ "  "))) body
-
-and pp_multi fmt m =
-  if m then fprintf fmt "T" else fprintf fmt "F"
-
-and pp_exc fmt = function
-  | None    -> fprintf fmt "%s" "    "
-  | Some(n) -> fprintf fmt "%4d" n
-
-and pp_label fmt (uid,exc,multi) =
-  fprintf fmt "@%4d:%a:%a"
-    uid
-    pp_exc exc
-    pp_multi multi
-;;

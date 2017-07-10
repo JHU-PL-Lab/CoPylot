@@ -62,13 +62,8 @@ Library "ast_simplification"
     Python2_ast_simplifier,
     Python2_normalized_ast,
     Python2_ast_normalizer,
-    Python2_abstract_ast,
-    Python2_ast_lifter,
     Python2_simplification_ctx,
-    Python2_normalization_ctx,
-    Python2_uid_stmt_map,
     Python2_normalized_ast_pretty,
-    Python2_abstract_ast_pretty,
     Python2_ast_pipeline
   BuildDepends:
     batteries,
@@ -76,64 +71,6 @@ Library "ast_simplification"
     ppx_deriving.std,
     ppx_deriving_yojson,
     CoPylot.parser
-
-Library "analysis"
-  FindlibParent: CoPylot
-  Path: src/analysis
-  Modules:
-    Python2_cfg,
-    Python2_pds,
-    Python2_analysis,
-    Python2_control_rules,
-    Python2_pds_edge_functions,
-    Python2_analysis_result_structure
-  BuildDepends:
-    batteries,
-    jhupllib,
-    ppx_deriving.std,
-    ppx_deriving_yojson,
-    pds-reachability,
-    CoPylot.parser,
-    CoPylot.ast_simplification,
-    CoPylot.utils
-
-Library "pyssembly_parser"
-  FindlibParent: CoPylot
-  Path: src/pyssembly_parser
-  Modules:
-    Python2_pys_generated_lexer,
-    Python2_pys_generated_parser,
-    Python2_pys_parser,
-    Python2_abs_generated_lexer,
-    Python2_abs_generated_parser,
-    Python2_abs_parser
-  BuildDepends:
-    batteries,
-    jhupllib,
-    ppx_deriving.std,
-    ppx_deriving_yojson,
-    pds-reachability,
-    CoPylot.ast_simplification,
-    CoPylot.utils
-
-Library "pyssembly_interpreter"
-  FindlibParent: CoPylot
-  Path: src/pyssembly_interpreter
-  Modules:
-    Python2_pys_interpreter_types,
-    Python2_pys_interpreter_builtin_objects,
-    Python2_pys_interpreter_builtin_defs,
-    Python2_pys_interpreter_magics,
-    Python2_pys_interpreter_init,
-    Python2_pys_interpreter_utils,
-    Python2_pys_interpreter
-  BuildDepends:
-    batteries,
-    jhupllib,
-    ppx_deriving.std,
-    ppx_deriving_yojson,
-    pds-reachability,
-    CoPylot.ast_simplification
 
 Library "lamia_language"
   FindlibParent: CoPylot

@@ -390,7 +390,7 @@ and simplify_stmt ctx
     in
     binds @ simplify_stmt tryexcept @ simplify_stmt final_assign
 
-  | Concrete.Print (dest, values, nl, annot) ->
+  | Concrete.Print _ (*(dest, values, nl, annot)*) ->
     raise @@ Utils.Not_yet_implemented "Print statements"
   (* [Simplified.Print (
       simplify_expr_option dest,
