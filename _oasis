@@ -64,6 +64,7 @@ Library "ast_simplification"
     Python2_ast_normalizer,
     Python2_abstract_ast,
     Python2_ast_lifter,
+    Python2_simplification_ctx,
     Python2_normalization_ctx,
     Python2_uid_stmt_map,
     Python2_normalized_ast_pretty,

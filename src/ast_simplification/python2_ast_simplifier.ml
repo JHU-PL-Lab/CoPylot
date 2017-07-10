@@ -1,5 +1,6 @@
 open Jhupllib;;
 open Python2_ast_types;;
+open Python2_simplification_ctx;;
 module Concrete = Python2_concrete_ast;;
 module Simplified = Python2_simplified_ast;;
 exception Invalid_assignment of string;;
@@ -7,23 +8,6 @@ exception Invalid_assignment of string;;
 (* FIXME: We need to create a type for builtin methods (in addition to builtin
    functions such as type, bool, slice) such as __getattr__, and use that
    instead of just a string whenever we invoke them in this file *)
-
-let name_counter = ref 0;;
-let use_shortened_names = ref false;;
-
-let gen_unique_name _ =
-  let count = !name_counter in
-  name_counter := count + 1;
-  let prefix = if !use_shortened_names
-    then
-      "$simp"
-    else
-      "$simplified_unique_name_"
-  in prefix ^ string_of_int count
-;;
-
-let reset_unique_name () = name_counter := 0;;
-let toggle_short_names (b : bool) = use_shortened_names := b;;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
@@ -47,14 +31,18 @@ let simplify_option func o =
   | Some(x) -> Some(func x)
 ;;
 
-let rec simplify_modl (m : 'a Concrete.modl) : 'a Simplified.modl =
+let rec simplify_modl (ctx : simp_context) (m : 'a Concrete.modl)
+  : 'a Simplified.modl =
   match m with
   | Concrete.Module (body, annot) ->
-    Simplified.Module(map_and_concat simplify_stmt body, annot)
+    Simplified.Module(map_and_concat (simplify_stmt ctx) body, annot)
 
-and simplify_stmt
+and simplify_stmt ctx
     (s : 'a Concrete.stmt)
   : 'a Simplified.stmt list =
+  let gen_unique_name = gen_unique_name ctx in
+  let simplify_stmt = simplify_stmt ctx in
+  let simplify_expr = simplify_expr ctx in
   match s with
   | Concrete.FunctionDef (func_name, args, body, _, annot)->
     let simplified_args = simplify_arguments args in
@@ -68,7 +56,7 @@ and simplify_stmt
 
   | Concrete.Return (value, annot) ->
     begin
-      match simplify_expr_option value with
+      match simplify_option simplify_expr value with
       | None -> [Simplified.Return(Simplified.Name("*None", annot), annot)]
       | Some(b, v) -> b @ [Simplified.Return(v, annot)]
     end
@@ -120,7 +108,7 @@ and simplify_stmt
 
          | Concrete.Subscript (lst, slice, _, _) ->
            let lst_bindings, lst_result = simplify_expr lst in
-           let slice_bindings, slice_result = simplify_slice slice annot in
+           let slice_bindings, slice_result = simplify_slice ctx slice annot in
            lst_bindings @ slice_bindings @
            [Simplified.Expr(
                Simplified.Call(
@@ -336,9 +324,9 @@ and simplify_stmt
           [Simplified.Assign (tmp1, obj_result, annot)],
           Concrete.Attribute (Concrete.Name(tmp1, Concrete.Load, annot), id, ctx, annot)
 
-        | Concrete.Subscript (lst, slice, ctx, annot) ->
+        | Concrete.Subscript (lst, slice, concrete_ctx, annot) ->
           let lst_binds, lst_result = simplify_expr lst in
-          let slice_binds, slice_result = simplify_slice slice annot in
+          let slice_binds, slice_result = simplify_slice ctx slice annot in
           let slice_name = gen_unique_name annot in
           lst_binds @ slice_binds @
           [
@@ -347,7 +335,7 @@ and simplify_stmt
           ],
           Concrete.Subscript(Concrete.Name(tmp1, Concrete.Load, annot),
                              Concrete.Index(Concrete.Name(tmp2, Concrete.Load, annot)),
-                             ctx,
+                             concrete_ctx,
                              annot)
 
         | Concrete.List _
@@ -538,7 +526,7 @@ and simplify_stmt
     [Simplified.TryExcept (
         map_and_concat simplify_stmt body,
         exn_id,
-        simplify_excepthandlers exn_id handlers annot,
+        simplify_excepthandlers ctx exn_id handlers annot,
         annot)]
 
   | Concrete.Expr (e, annot) ->
@@ -559,8 +547,11 @@ and simplify_stmt
    the assignments necessary to compute it, and the name of the final
    variable that was bound *)
 and simplify_expr
+    (ctx : simp_context)
     (e : 'a Concrete.expr)
   : 'a Simplified.stmt list * 'a Simplified.expr =
+  let gen_unique_name = gen_unique_name ctx in
+  let simplify_expr = simplify_expr ctx in
   match e with
   (* BoolOps are a tricky case because of short-circuiting. We need to
      make sure that when we evaluate "a and False and b", b is never
@@ -755,7 +746,7 @@ and simplify_expr
   (* Turn subscripts into calls to __getitem__() *)
   | Concrete.Subscript (value, slice, _, annot) ->
     let value_bindings, value_result = simplify_expr value in
-    let slice_bindings, slice_result = simplify_slice slice annot in
+    let slice_bindings, slice_result = simplify_slice ctx slice annot in
     value_bindings @ slice_bindings,
     Simplified.Call(
       Simplified.Attribute(
@@ -787,18 +778,10 @@ and simplify_expr
     [],
     Simplified.Builtin(b, annot)
 
-and simplify_expr_option
-    (o : 'a Concrete.expr option)
-  : ('a Simplified.stmt list * 'a Simplified.expr) option =
-  let simplified_opt = simplify_option simplify_expr o in
-  match simplified_opt with
-  | None -> None
-  | Some(result) -> Some(result)
-
 (* Turn a slice operator into a call to the slice() function, with
    the same arguments. E.g. 1:2:3 becomes slice(1,2,3), and
    1:2 becomes slice (1,2,None) *)
-and simplify_slice
+and simplify_slice ctx
     (s : 'a Concrete.slice)
     annot
   : 'a Simplified.stmt list * 'a Simplified.expr =
@@ -809,7 +792,7 @@ and simplify_slice
     | None ->
       [], Simplified.Name("*None", annot)
     | Some(x) ->
-      simplify_expr x
+      simplify_expr ctx x
   in
   match s with
   | Concrete.Slice (lower, upper, step) ->
@@ -829,7 +812,7 @@ and simplify_slice
       annot
     )
   | Concrete.Index (value) ->
-    simplify_expr value
+    simplify_expr ctx value
 
 and simplify_boolop b =
   match b with
@@ -867,7 +850,7 @@ and simplify_cmpop o =
   | Concrete.Is
   | Concrete.IsNot -> failwith "No corresponding comparison function"
 
-and simplify_excepthandlers exn_id handlers annot =
+and simplify_excepthandlers ctx exn_id handlers annot =
   match handlers with
   | [] ->
     [Simplified.Raise(Simplified.Name(exn_id, annot), annot)]
@@ -877,7 +860,7 @@ and simplify_excepthandlers exn_id handlers annot =
       match typ with
       | None -> [], Simplified.Bool(true, annot)
       | Some(t) ->
-        simplify_expr @@
+        simplify_expr ctx @@
         Concrete.Compare(
           Concrete.Call(Concrete.Builtin(Builtin_type, annot),
                         [Concrete.Name(exn_id, Concrete.Load, annot)],
@@ -900,8 +883,8 @@ and simplify_excepthandlers exn_id handlers annot =
     [
       Simplified.If(
         typ_result,
-        name_bind @ map_and_concat simplify_stmt body,
-        simplify_excepthandlers exn_id rest annot,
+        name_bind @ map_and_concat (simplify_stmt ctx) body,
+        simplify_excepthandlers ctx exn_id rest annot,
         annot
       )]
 
