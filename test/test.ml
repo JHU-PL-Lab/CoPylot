@@ -6,7 +6,7 @@ let all_tests =
     Test_parser.tests;
     Test_rename.tests;
     Test_simplified_ast.tests;
-    Test_normalized_ast.tests;
+    (* Test_normalized_ast.tests; *)
 
     Test_lamia_parser.tests;
   ]

@@ -33,7 +33,7 @@ let parse_to_simplified prog short_names =
 let gen_module_test (name : string) (prog : string) (expected : 'a stmt list) =
   name>::
   ( fun _ ->
-      let actual = parse_to_simplified prog 1 false in
+      let actual = parse_to_simplified prog 0 false in
       assert_equal ~printer:string_of_modl ~cmp:equivalent_modl
         (Module(expected, annot)) actual
   )
@@ -151,13 +151,8 @@ let var_assign_test = gen_module_test "var_assign_test"
     "x = 5"
     [
       Assign(
-        "$simplified_unique_name_0",
-        Num(Int(5), annot),
-        annot
-      );
-      Assign(
         "x",
-        Name("$simplified_unique_name_0", annot),
+        Num(Int(5), annot),
         annot
       )
     ]
@@ -291,10 +286,6 @@ let assign_iterator obj num =
 let assign_to_index_test = gen_module_test "assign_to_index_test"
     "list[1+2] = 3"
     [
-      Assign(
-        "$simplified_unique_name_0",
-        Num(Int(3), annot),
-        annot);
       Expr(
         Call(
           Attribute(
@@ -306,7 +297,7 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
               Attribute(Num(Int(1), annot), "__add__", annot),
               [Num(Int(2), annot)],
               annot);
-            Name("$simplified_unique_name_0", annot);
+            Num(Int(3), annot);
           ],
           annot
         ),
@@ -318,10 +309,6 @@ let assign_to_index_test = gen_module_test "assign_to_index_test"
 let assign_to_slice_test = gen_module_test "assign_to_slice_test"
     "list[1:2] = 3"
     [
-      Assign(
-        "$simplified_unique_name_0",
-        Num(Int(3), annot),
-        annot);
       Expr(
         Call(
           Attribute(
@@ -338,7 +325,7 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
               ],
               annot
             );
-            Name("$simplified_unique_name_0", annot);
+            Num(Int(3), annot);
           ],
           annot
         ),
@@ -350,10 +337,6 @@ let assign_to_slice_test = gen_module_test "assign_to_slice_test"
 let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
     "obj.member = 7"
     [
-      Assign(
-        "$simplified_unique_name_0",
-        Num(Int(7), annot),
-        annot);
       Expr(
         Call(
           Attribute(
@@ -363,7 +346,7 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
           ),
           [
             Str("member", annot);
-            Name("$simplified_unique_name_0", annot);
+            Num(Int(7), annot);
           ],
           annot
         ),
