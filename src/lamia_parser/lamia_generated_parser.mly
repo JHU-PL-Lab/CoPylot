@@ -160,8 +160,6 @@ value_expression:
 unary_operator:
   | NOT
     { Unop_not }
-  | HASKEY
-    { Unop_haskey }
 
 %inline
 binary_operator:
@@ -173,6 +171,8 @@ binary_operator:
     { Binop_and }
   | OR
     { Binop_or }
+  | HASKEY
+    { Binop_haskey }
 
 %inline
 separated_list_trailing(sep,item):

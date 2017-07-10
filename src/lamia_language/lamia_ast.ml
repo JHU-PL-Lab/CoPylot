@@ -35,11 +35,11 @@ and binary_operator =
   | Binop_intminus
   | Binop_and
   | Binop_or
+  | Binop_haskey
 [@@deriving eq, ord, show]
 
 and unary_operator =
     | Unop_not
-  | Unop_haskey
 [@@deriving eq, ord, show]
 
 and directive =
