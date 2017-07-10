@@ -82,9 +82,17 @@ and simplify_stmt
 
        value is the expression we are assigning from. This is only ever
        evaluated once, no matter what we're assigning to. *)
-    let value_bindings, value_result = simplify_expr value in
-    let value_id = gen_unique_name annot in
-    let value_name = Simplified.Name(value_id, annot) in
+    let value_bindings, value_name =
+      let bindings, result = simplify_expr value in
+      (* Don't generate an intermediate variable if we're only assigning to one
+         thing. Helps cut down the size of the generated code *)
+      if List.length targets = 1 then
+        bindings, result
+      else
+        let value_id = gen_unique_name annot in
+        bindings @ [Simplified.Assign(value_id, result, annot)],
+        Simplified.Name(value_id, annot)
+    in
 
     let simplify_assignment =
       (fun e ->
@@ -104,7 +112,7 @@ and simplify_stmt
                    "__setattr__",
                    annot),
                  [
-                   Simplified.Str(StringLiteral(id), annot);
+                   Simplified.Str(id, annot);
                    value_name;
                  ],
                  annot),
@@ -175,71 +183,88 @@ and simplify_stmt
            let tmp_bindings =
              List.fold_left
                (fun
-                 (prev : identifier list * 'a Simplified.stmt list)
+                 (prev : identifier list * 'a Concrete.stmt list)
                  (_ : 'a Concrete.expr) ->
                  let tmp_name = gen_unique_name annot in
                  let next_assignment =
                    [
-                     Simplified.Assign( (* tmp_i = next_val() *)
-                       tmp_name,
-                       Simplified.Call(Simplified.Name(next_val, annot),
-                                       [],
-                                       annot),
+                     Concrete.Assign( (* tmp_i = next_val() *)
+                       [Concrete.Name(tmp_name, Concrete.Store, annot)],
+                       Concrete.Call(Concrete.Name(next_val, Concrete.Load, annot),
+                                     [],
+                                     [],
+                                     None,
+                                     None,
+                                     annot),
                        annot);
                    ]
                  in
                  (fst prev) @ [tmp_name], (snd prev) @ next_assignment)
                ([], []) elts in
            let subordinate_try_except =
-             Simplified.TryExcept(
+             Concrete.TryExcept(
                [
-                 Simplified.Expr(
-                   Simplified.Call(
-                     Simplified.Name(next_val, annot),
+                 Concrete.Expr(
+                   Concrete.Call(
+                     Concrete.Name(next_val, Concrete.Load, annot),
                      [],
+                     [],
+                     None,
+                     None,
                      annot),
                    annot);
 
-                 Simplified.Raise(
-                   Simplified.Call(
-                     Simplified.Builtin(Builtin_ValueError, annot),
-                     [Simplified.Str(
-                         StringLiteral("too many values to unpack"),
-                         annot)],
-                     annot),
+                 Concrete.Raise(
+                   Some(Concrete.Call(
+                       Concrete.Builtin(Builtin_ValueError, annot),
+                       [Concrete.Str(
+                           "too many values to unpack",
+                           annot)],
+                       [],
+                       None,
+                       None,
+                       annot)),
+                   None,
+                   None,
                    annot);
                ],
-               [Simplified.ExceptHandler(
-                   Some(Simplified.Name("StopIteration", annot)),
+
+               [Concrete.ExceptHandler(
+                   Some(Concrete.Name("StopIteration", Concrete.Load, annot)),
                    None,
-                   [ Simplified.Pass(annot) ],
+                   [ Concrete.Pass(annot) ],
                    annot)],
+               [],
                annot) in
+
            let overall_try_except =
-             Simplified.TryExcept(
-               (snd tmp_bindings) @ [ subordinate_try_except ],
-               [Simplified.ExceptHandler(
-                   Some(Simplified.Name("StopIteration", annot)),
+             Concrete.TryExcept(
+               (snd tmp_bindings) @ [subordinate_try_except],
+               [Concrete.ExceptHandler(
+                   Some(Concrete.Name("StopIteration", Concrete.Load, annot)),
                    None,
                    [
-                     Simplified.Raise(
-                       Simplified.Call(
-                         Simplified.Builtin(Builtin_ValueError, annot),
-                         [Simplified.Str(
-                             (* TODO: In Python this has the actual number of
-                                elts that it successfully unpacked *)
-                             StringLiteral("too few values to unpack"),
-                             annot)],
-                         annot),
+                     Concrete.Raise(
+                       Some(Concrete.Call(
+                           Concrete.Builtin(Builtin_ValueError, annot),
+                           [Concrete.Str(
+                               (* TODO: In Python this has the actual number of
+                                  elts that it successfully unpacked *)
+                               "too few values to unpack",
+                               annot)],
+                           [],
+                           None,
+                           None,
+                           annot)),
+                       None,
+                       None,
                        annot);
                    ],
                    annot)],
+               [],
                annot) in
-           let verification =
-             [
-               bind_next_val;
-               overall_try_except;
-             ] in
+           let try_bindings = simplify_stmt overall_try_except in
+           let verification = bind_next_val::try_bindings in
            (* Now we just have to assign the values. Since the values
               might still be complex (e.g. tuples), we have to do this
               recursively. *)
@@ -509,13 +534,11 @@ and simplify_stmt
     [Simplified.Raise(typ_result, annot)]
 
   | Concrete.TryExcept (body, handlers, _, annot) ->
-    let handler_bindings, handler_results =
-      simplify_list simplify_excepthandler handlers
-    in
-    handler_bindings @
+    let exn_id = gen_unique_name annot in
     [Simplified.TryExcept (
         map_and_concat simplify_stmt body,
-        handler_results,
+        exn_id,
+        simplify_excepthandlers exn_id handlers annot,
         annot)]
 
   | Concrete.Expr (e, annot) ->
@@ -844,27 +867,43 @@ and simplify_cmpop o =
   | Concrete.Is
   | Concrete.IsNot -> failwith "No corresponding comparison function"
 
-and simplify_excepthandler h =
-  let Concrete.ExceptHandler (typ, name, body, annot) = h in
-  let typ_bindings, typ_result =
-    match typ with
-    | None -> [], None
-    | Some(e) ->
-      let bindings, result = simplify_expr e in
-      bindings, Some(result)
-  in
-  let new_name =
-    match name with
-    | None -> None
-    | Some(Concrete.Name(id,_,_)) -> Some(id)
-    | _ -> failwith "Second argument to exception handler must be an identifier"
-  in
-  typ_bindings,
-  Simplified.ExceptHandler (
-    typ_result,
-    new_name,
-    map_and_concat simplify_stmt body,
-    annot)
+and simplify_excepthandlers exn_id handlers annot =
+  match handlers with
+  | [] ->
+    [Simplified.Raise(Simplified.Name(exn_id, annot), annot)]
+
+  | Concrete.ExceptHandler (typ, name, body, annot)::rest ->
+    let typ_bindings, typ_result =
+      match typ with
+      | None -> [], Simplified.Bool(true, annot)
+      | Some(t) ->
+        simplify_expr @@
+        Concrete.Compare(
+          Concrete.Call(Concrete.Builtin(Builtin_type, annot),
+                        [Concrete.Name(exn_id, Concrete.Load, annot)],
+                        [],
+                        None,
+                        None,
+                        annot),
+          [Concrete.Is],
+          [t],
+          annot)
+    in
+    let name_bind =
+      match name with
+      | None -> []
+      | Some(Concrete.Name(id,_,_)) ->
+        [Simplified.Assign(id, Simplified.Name(exn_id, annot), annot)]
+      | _ -> failwith "Second argument to exception handler must be an identifier"
+    in
+    typ_bindings @
+    [
+      Simplified.If(
+        typ_result,
+        name_bind @ map_and_concat simplify_stmt body,
+        simplify_excepthandlers exn_id rest annot,
+        annot
+      )]
 
 and simplify_arguments a : identifier list =
   match a with
