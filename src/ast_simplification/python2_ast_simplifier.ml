@@ -29,6 +29,18 @@ let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
 ;;
 
+let simplify_list simp_func lst =
+  let simplified_list = List.map simp_func lst in
+  let extract
+      (tup1 : 'a list * 'b )
+      (tup2 : 'a list * 'b list)
+    : 'a list * 'b list =
+    (fst tup1 @ fst tup2, (snd tup1)::(snd tup2)) in
+  let bindings, results =
+    List.fold_right extract simplified_list ([], []) in
+  bindings, results
+;;
+
 let simplify_option func o =
   match o with
   | None -> None
@@ -100,7 +112,8 @@ and simplify_stmt
 
          | Concrete.Subscript (lst, slice, _, _) ->
            let lst_bindings, lst_result = simplify_expr lst in
-           lst_bindings @
+           let slice_bindings, slice_result = simplify_slice slice annot in
+           lst_bindings @ slice_bindings @
            [Simplified.Expr(
                Simplified.Call(
                  Simplified.Attribute(
@@ -108,7 +121,7 @@ and simplify_stmt
                    "__setitem__",
                    annot),
                  [
-                   simplify_slice slice annot;
+                   slice_result;
                    value_name;
                  ],
                  annot),
@@ -300,11 +313,12 @@ and simplify_stmt
 
         | Concrete.Subscript (lst, slice, ctx, annot) ->
           let lst_binds, lst_result = simplify_expr lst in
+          let slice_binds, slice_result = simplify_slice slice annot in
           let slice_name = gen_unique_name annot in
-          lst_binds @
+          lst_binds @ slice_binds @
           [
             Simplified.Assign (tmp1, lst_result, annot);
-            Simplified.Assign (slice_name, simplify_slice slice annot, annot);
+            Simplified.Assign (slice_name, slice_result, annot);
           ],
           Concrete.Subscript(Concrete.Name(tmp1, Concrete.Load, annot),
                              Concrete.Index(Concrete.Name(tmp2, Concrete.Load, annot)),
@@ -470,7 +484,7 @@ and simplify_stmt
       ]
     in
     full_test_bindings @
-    [ Simplified.While(Simplified.Name(tmp_name, annot),
+    [ Simplified.While(tmp_name,
                        (* Re-bind the test variable after each loop *)
                        map_and_concat simplify_stmt body @ full_test_bindings,
                        annot)]
@@ -495,9 +509,13 @@ and simplify_stmt
     [Simplified.Raise(typ_result, annot)]
 
   | Concrete.TryExcept (body, handlers, _, annot) ->
+    let handler_bindings, handler_results =
+      simplify_list simplify_excepthandler handlers
+    in
+    handler_bindings @
     [Simplified.TryExcept (
         map_and_concat simplify_stmt body,
-        List.map simplify_excepthandler handlers,
+        handler_results,
         annot)]
 
   | Concrete.Expr (e, annot) ->
@@ -644,52 +662,107 @@ and simplify_expr
     Simplified.Name(result_name, annot)
 
   | Concrete.Compare (left, ops, comparators, annot) ->
-    Simplified.Compare (simplify_expr left,
-                        List.map simplify_cmpop ops,
-                        List.map simplify_expr comparators,
-                        annot)
+    (* "x < y < z" is equivalent to "x < y and y < z", except y is only
+       evaluated once. We treat compare in almost exactly the same way
+       as we treat boolean operators.
+
+       Specifically, we turn "x < y < z < ..."
+
+       into
+
+       tmp1 = x
+       tmp2 = y
+       tmp3 = tmp1.__lt__
+       tmp4 = tmp3(tmp2)
+       if tmp4 then (tmp2 < z < ...) else tmp4
+    *)
+    begin
+      match ops with
+      | [] -> failwith "No right operand given to compare"
+      | op::rest ->
+        let left_bindings, left_result = simplify_expr left in
+        let right_bindings, right_result = simplify_expr (List.hd comparators) in
+        let right_id = gen_unique_name annot in
+        let assign = Simplified.Assign(right_id, right_result, annot) in
+        let bindings = left_bindings @ right_bindings @ [assign] in
+        let comparison =
+          generate_comparison left_result op (Simplified.Name(right_id, annot)) annot
+        in
+        let rest_of_bindings, rest_of_comparison =
+          match rest with
+          | [] -> [], comparison
+          | _ ->
+            let comparison_id = gen_unique_name annot in
+            let comparison_name = Concrete.Name(comparison_id, Concrete.Load, annot) in
+            simplify_expr @@
+            Concrete.IfExp(comparison_name,
+                           Concrete.Compare(Concrete.Name(right_id, Concrete.Load, annot),
+                                            rest, List.tl comparators, annot),
+                           comparison_name,
+                           annot)
+        in
+        bindings @ rest_of_bindings, rest_of_comparison
+    end
 
   | Concrete.Call (func, args, _, _, _, annot) ->
-    Simplified.Call (simplify_expr func,
-                     List.map simplify_expr args,
+    let func_bindings, func_result = simplify_expr func in
+    let arg_bindings, arg_results = simplify_list simplify_expr args in
+    func_bindings @ arg_bindings,
+    Simplified.Call (func_result,
+                     arg_results,
                      annot)
 
   | Concrete.Num (n, annot) ->
+    [],
     Simplified.Num(n, annot)
 
   | Concrete.Str (s, annot) ->
+    [],
     Simplified.Str(s, annot)
 
   | Concrete.Bool (b, annot) ->
+    [],
     Simplified.Bool(b, annot)
 
   | Concrete.Attribute (obj, attr, _, annot) ->
-    Simplified.Attribute (simplify_expr obj, attr, annot)
+    let obj_bindings, obj_result = simplify_expr obj in
+    obj_bindings,
+    Simplified.Attribute (obj_result, attr, annot)
 
   (* Turn subscripts into calls to __getitem__() *)
   | Concrete.Subscript (value, slice, _, annot) ->
+    let value_bindings, value_result = simplify_expr value in
+    let slice_bindings, slice_result = simplify_slice slice annot in
+    value_bindings @ slice_bindings,
     Simplified.Call(
       Simplified.Attribute(
-        simplify_expr value,
+        value_result,
         "__getitem__",
         annot),
-      [simplify_slice slice annot],
+      [slice_result],
       annot)
 
   | Concrete.Name (id, _, annot) -> (* Throw out context *)
+    [],
     Simplified.Name(id, annot)
 
   | Concrete.List (elts, _, annot) ->
-    Simplified.List (List.map simplify_expr elts, annot)
+    let elt_bindings, elt_results = simplify_list simplify_expr elts in
+    elt_bindings,
+    Simplified.List(elt_results, annot)
 
   | Concrete.Tuple (elts, _, annot) ->
-    Simplified.Tuple (List.map simplify_expr elts, annot)
+    let elt_bindings, elt_results = simplify_list simplify_expr elts in
+    elt_bindings,
+    Simplified.Tuple(elt_results, annot)
 
   | Concrete.NoneExpr (annot) ->
+    [],
     Simplified.Name("*None", annot);
 
   | Concrete.Builtin (b, annot) ->
-    Simplified.Builtin (b, annot)
+    [],
+    Simplified.Builtin(b, annot)
 
 and simplify_expr_option
     (o : 'a Concrete.expr option)
@@ -705,24 +778,28 @@ and simplify_expr_option
 and simplify_slice
     (s : 'a Concrete.slice)
     annot
-  : 'a Simplified.expr =
+  : 'a Simplified.stmt list * 'a Simplified.expr =
   (* Turn a "None" option into the python "None" object, and turn a
      "Some" option into the simplified version of its contents *)
   let exp_opt_to_slice_arg e =
     match e with
     | None ->
-      Simplified.Name("*None", annot)
+      [], Simplified.Name("*None", annot)
     | Some(x) ->
       simplify_expr x
   in
   match s with
   | Concrete.Slice (lower, upper, step) ->
+    let lower_bindings, lower_result = exp_opt_to_slice_arg lower in
+    let upper_bindings, upper_result = exp_opt_to_slice_arg upper in
+    let step_bindings, step_result = exp_opt_to_slice_arg step in
     let args_list =
       [
-        exp_opt_to_slice_arg lower;
-        exp_opt_to_slice_arg upper;
-        exp_opt_to_slice_arg step;
+        lower_result;
+        upper_result;
+        step_result;
       ] in
+    lower_bindings @ upper_bindings @ step_bindings,
     Simplified.Call(
       Simplified.Builtin(Builtin_slice, annot),
       args_list,
@@ -754,39 +831,40 @@ and simplify_augoperator o =
   | Concrete.Mod  ->  "__imod__"
   | Concrete.Pow  ->  "__ipow__"
 
-
 and simplify_cmpop o =
   match o with
-  | Concrete.Eq -> Simplified.Eq
-  | Concrete.NotEq -> Simplified.NotEq
-  | Concrete.Lt -> Simplified.Lt
-  | Concrete.LtE -> Simplified.LtE
-  | Concrete.Gt -> Simplified.Gt
-  | Concrete.GtE -> Simplified.GtE
-  | Concrete.Is -> Simplified.Is
-  | Concrete.IsNot -> Simplified.IsNot
-  | Concrete.In -> Simplified.In
-  | Concrete.NotIn -> Simplified.NotIn
+  | Concrete.Eq -> "__eq__"
+  | Concrete.NotEq -> "__ne__"
+  | Concrete.Lt -> "__lt__"
+  | Concrete.LtE -> "__le__"
+  | Concrete.Gt -> "__gt__"
+  | Concrete.GtE -> "__ge__"
+  | Concrete.In -> "__contains__"
+  | Concrete.NotIn
+  | Concrete.Is
+  | Concrete.IsNot -> failwith "No corresponding comparison function"
 
 and simplify_excepthandler h =
-  match h with
-  | Concrete.ExceptHandler (typ, name, body, annot) ->
-    let new_typ =
-      match typ with
-      | None -> None
-      | Some(e) -> Some(simplify_expr e)
-    in
-    let new_name =
-      match name with
-      | None -> None
-      | Some(Concrete.Name(id,_,_)) -> Some(id)
-      | _ -> failwith "Second argument to exception handler must be an identifier"
-    in
-    Simplified.ExceptHandler (
-      new_typ,
-      new_name,
-      map_and_concat simplify_stmt body,
-      annot)
+  let Concrete.ExceptHandler (typ, name, body, annot) = h in
+  let typ_bindings, typ_result =
+    match typ with
+    | None -> [], None
+    | Some(e) ->
+      let bindings, result = simplify_expr e in
+      bindings, Some(result)
+  in
+  let new_name =
+    match name with
+    | None -> None
+    | Some(Concrete.Name(id,_,_)) -> Some(id)
+    | _ -> failwith "Second argument to exception handler must be an identifier"
+  in
+  typ_bindings,
+  Simplified.ExceptHandler (
+    typ_result,
+    new_name,
+    map_and_concat simplify_stmt body,
+    annot)
 
 and simplify_arguments a : identifier list =
   match a with
@@ -798,3 +876,20 @@ and simplify_arguments a : identifier list =
          | _ -> failwith "The arguments in a function definition must be identifiers"
       )
       args
+
+and generate_comparison lhs op rhs annot =
+  match op with
+  | Concrete.Is ->
+    Simplified.Binop(lhs, Simplified.Is, rhs, annot)
+  | Concrete.IsNot ->
+    Simplified.UnaryOp(Simplified.Not,
+                       Simplified.Binop(lhs, Simplified.Is, rhs, annot),
+                       annot)
+  | Concrete.NotIn -> raise @@ Utils.Not_yet_implemented "NotIn simplification"
+  | _ ->
+    (* FIXME: comparison operators are actually a lot more complicated *)
+    let cmp_func = simplify_cmpop op in
+    Simplified.Call(
+      Simplified.Attribute(lhs, cmp_func, annot),
+      [rhs],
+      annot)

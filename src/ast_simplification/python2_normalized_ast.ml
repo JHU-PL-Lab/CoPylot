@@ -33,7 +33,7 @@ and expr =
 
 and literal =
     | Num of number
-  | Str of str
+  | Str of string
   | Bool of bool
   | Builtin of builtin
   | FunctionVal of identifier list (* args *) * annotated_stmt list (* body *)

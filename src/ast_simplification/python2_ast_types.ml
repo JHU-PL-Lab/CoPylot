@@ -22,11 +22,6 @@ type number =
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
-type str =
-  | StringLiteral of string
-[@@deriving eq, ord, show, to_yojson]
-;;
-
 type builtin =
   | Builtin_bool
   | Builtin_slice

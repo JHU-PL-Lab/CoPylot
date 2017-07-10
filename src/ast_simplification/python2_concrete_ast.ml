@@ -58,7 +58,7 @@ and 'a expr =
   | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a keyword list (* keywords *) * 'a expr option (* starargs *) * 'a expr option (* kwargs *) * 'a
   (* | Repr of 'a expr (* value *) * 'a *)
   | Num of number (* n *) * 'a
-  | Str of str (* s *) * 'a
+  | Str of string (* s *) * 'a
   | Bool of bool * 'a (* N.B. The Python formal specification does not treat Bools
                          as a type of expression. We are intentionally deviating
                          from this behavior here *)

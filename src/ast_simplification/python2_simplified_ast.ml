@@ -10,6 +10,7 @@ and 'a stmt =
   | Print of 'a expr option (* dest *) * 'a expr list (* values *) * bool (* nl *) * 'a
   (* We maintain the invariant that simplified while loops always have a boolean value as their test *)
   | While of identifier (* test *) * 'a stmt list (* body *) * 'a
+  (* TODO Same invariant as while loops *)
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
   (* Raise is very complicated, with different behaviors based on the
      number of arguments it recieves. For simplicity we require that
@@ -25,7 +26,7 @@ and 'a stmt =
 and 'a expr =
     | BoolOp of boolop (* op *) * 'a expr list (* values *) * 'a
   | UnaryOp of unaryop (* op *) * 'a expr (* value *) * 'a
-  | Compare of 'a expr (* left *) * cmpop list (* ops *) * 'a expr list (* comparators *) * 'a
+  | Binop of 'a expr (* right *) * binop (* op *) * 'a expr (* right *) * 'a
   | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a
   | Attribute of 'a expr (* object *) * string (* attr *) * 'a
   | SimpleAttribute of 'a expr (* object *) * string (* attr *) * 'a (* Double-dot operator *)
@@ -33,7 +34,7 @@ and 'a expr =
   | List of 'a expr list (* elts *)  * 'a
   | Tuple of 'a expr list (* elts *)  * 'a
   | Num of number (* n *) * 'a
-  | Str of str * 'a
+  | Str of string * 'a
   | Bool of bool * 'a
   | Name of identifier (* id *) * 'a
   | Builtin of builtin * 'a
@@ -43,7 +44,7 @@ and 'a expr =
 and boolop = And | Or
 [@@deriving eq, ord, show]
 
-and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
+and binop = Is
 [@@deriving eq, ord, show]
 
 and unaryop = Not
@@ -69,7 +70,7 @@ let extract_stmt_annot = function
 let extract_expr_annot = function
   | BoolOp (_,_,a)
   | UnaryOp (_,_,a)
-  | Compare(_,_,_,a)
+  | Binop (_,_,_,a)
   | Call(_,_,a)
   | Attribute(_,_,a)
   | SimpleAttribute(_,_,a)

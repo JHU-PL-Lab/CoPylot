@@ -191,4 +191,4 @@ and generalize_number num : Python2_ast_types.number =
   | Original.LongInt (n) -> Int(n)
   | Original.Float(f) -> Float(f)
 
-and generalize_string str = StringLiteral(str)
+and generalize_string str = str

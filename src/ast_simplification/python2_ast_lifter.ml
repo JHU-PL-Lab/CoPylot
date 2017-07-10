@@ -60,7 +60,7 @@ and lift_literal l =
   match l with
   | Concrete.Num (n) ->
     Abstract.Num (lift_number n)
-  | Concrete.Str (StringLiteral(str)) ->
+  | Concrete.Str (str) ->
     Abstract.Str (Abstract.StringLiteral(str))
   | Concrete.Bool (b) ->
     Abstract.Bool (b)
