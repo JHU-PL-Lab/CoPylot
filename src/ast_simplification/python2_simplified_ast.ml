@@ -7,9 +7,7 @@ type 'a modl =
 and 'a stmt =
     | Assign of identifier (* target *) * 'a expr (* value *) * 'a
   | Return of 'a expr (* value *) * 'a
-  (* We maintain the invariant that simplified while loops always have a boolean value as their test *)
-  | While of identifier (* test *) * 'a stmt list (* body *) * 'a
-  (* TODO Same invariant as while loops *)
+  | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
 (* Raise is very complicated, with different behaviors based on the
      number of arguments it recieves. For simplicity we require that

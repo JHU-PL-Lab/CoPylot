@@ -19,27 +19,6 @@ let gen_normalized_assignment ctx annot
   [Normalized.Assign(name, e, annot)], name
 ;;
 
-(* Normalizes the input "test" expr and then calls the builtin bool function
-   on it. Returns the bindings to do this and the name of the result. *)
-let normalize_and_call_bool ctx annot normalizer annotator test =
-  let test_bindings, test_name = normalizer test in
-  let builtin_bool_binding, builtin_bool_name =
-    gen_normalized_assignment ctx annot @@
-    annotator @@
-    Normalized.Literal(Normalized.Builtin(Builtin_bool), annot)
-  in
-  let test_bool_binding, test_bool_name =
-    gen_normalized_assignment ctx annot @@
-    annotator @@
-    (* We don't need to get the __call__ method because here we can
-       guarantee that the thing bound in builtin_bool_name is already a
-       function *)
-    Normalized.Call(builtin_bool_name, [test_name], annot)
-  in
-  test_bindings @ builtin_bool_binding @ test_bool_binding,
-  test_bool_name
-;;
-
 (* Most normalize fuctions return a list of statements and the name of the
    variable the last statement bound to. This means that apply List.map to them
    gives a list of tuples; this extracts them into two separate lists. *)
@@ -81,13 +60,14 @@ and normalize_stmt ctx
     value_bindings @ [assign]
 
   | Simplified.While (test, body, annot) ->
-    [Normalized.While(test,
+    let test_bindings, test_result = normalize_expr test in
+    test_bindings @
+    [Normalized.While(test_result,
                       map_and_concat normalize_stmt body,
                       annot)]
 
   | Simplified.If (test, body, orelse, annot) ->
     let test_bindings, test_result = normalize_expr test in
-    (* TODO: call bool() *)
     test_bindings @
     [Normalized.If (test_result,
                     map_and_concat normalize_stmt body,
@@ -212,7 +192,7 @@ and normalize_expr ctx
        described below.
     *)
     (*
-    TODO: figure out when this happens
+    TODO: This happens when converting to lamia
     let obj_bindings, obj_result = normalize_expr obj in
     let obj_name = Simplified.Name(obj_result, annot) in
     let getattribute_name = gen_unique_name ctx annot in

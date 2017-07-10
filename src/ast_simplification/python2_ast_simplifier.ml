@@ -484,22 +484,11 @@ and simplify_stmt ctx
     map_and_concat simplify_stmt [bind_next_val; try_except]
 
   | Concrete.While (test, body, _, annot) ->
-    (* We maintain the invariant that simplified while loops always have a boolean value as their test *)
-    let tmp_name = gen_unique_name annot in
     let test_bindings, test_result = simplify_expr test in
-    let full_test_bindings =
-      test_bindings @
-      [ Simplified.Assign(tmp_name,
-                          Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
-                                          [test_result],
-                                          annot),
-                          annot);
-      ]
-    in
-    full_test_bindings @
-    [ Simplified.While(tmp_name,
+    test_bindings @
+    [ Simplified.While(test_result,
                        (* Re-bind the test variable after each loop *)
-                       map_and_concat simplify_stmt body @ full_test_bindings,
+                       map_and_concat simplify_stmt body @ test_bindings,
                        annot)]
 
   | Concrete.If (test, body, orelse, annot) ->
@@ -696,26 +685,33 @@ and simplify_expr
       | op::rest ->
         let left_bindings, left_result = simplify_expr left in
         let right_bindings, right_result = simplify_expr (List.hd comparators) in
-        let right_id = gen_unique_name annot in
-        let assign = Simplified.Assign(right_id, right_result, annot) in
-        let bindings = left_bindings @ right_bindings @ [assign] in
-        let comparison =
-          generate_comparison left_result op (Simplified.Name(right_id, annot)) annot
-        in
-        let rest_of_bindings, rest_of_comparison =
+        begin
           match rest with
-          | [] -> [], comparison
+          | [] ->
+            (* Don't generate a temporary variable if this is the last one *)
+            left_bindings @ right_bindings,
+            generate_comparison left_result op right_result annot
           | _ ->
+            let right_id = gen_unique_name annot in
+            let assign = Simplified.Assign(right_id, right_result, annot) in
+            let bindings = left_bindings @ right_bindings @ [assign] in
+            let comparison =
+              generate_comparison left_result op (Simplified.Name(right_id, annot)) annot
+            in
+
             let comparison_id = gen_unique_name annot in
+            let cmp_assign = Simplified.Assign(comparison_id, comparison, annot) in
             let comparison_name = Concrete.Name(comparison_id, Concrete.Load, annot) in
-            simplify_expr @@
-            Concrete.IfExp(comparison_name,
-                           Concrete.Compare(Concrete.Name(right_id, Concrete.Load, annot),
-                                            rest, List.tl comparators, annot),
-                           comparison_name,
-                           annot)
-        in
-        bindings @ rest_of_bindings, rest_of_comparison
+            let rest_of_bindings, rest_of_comparison =
+              simplify_expr @@
+              Concrete.IfExp(comparison_name,
+                             Concrete.Compare(Concrete.Name(right_id, Concrete.Load, annot),
+                                              rest, List.tl comparators, annot),
+                             comparison_name,
+                             annot)
+            in
+            bindings @ [cmp_assign] @ rest_of_bindings, rest_of_comparison
+        end
     end
 
   | Concrete.Call (func, args, _, _, _, annot) ->

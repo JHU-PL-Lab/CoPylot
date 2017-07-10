@@ -109,9 +109,6 @@ Executable "test"
     ppx_deriving.std,
     CoPylot.parser,
     CoPylot.ast_simplification,
-    CoPylot.analysis,
-    CoPylot.pyssembly_parser,
-    CoPylot.pyssembly_interpreter,
     CoPylot.lamia_language,
     CoPylot.lamia_parser
 

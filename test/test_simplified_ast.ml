@@ -88,9 +88,9 @@ let unop_not_test = gen_stmt_test "unop_not_test"
         annot
       )
     )
-;;
+   ;;
 
-let boolop_or_test = gen_stmt_test "boolop_or_test"
+   let boolop_or_test = gen_stmt_test "boolop_or_test"
     "x or False or 0"
     (BoolOp(
         Or,
@@ -102,9 +102,9 @@ let boolop_or_test = gen_stmt_test "boolop_or_test"
         annot
       )
     )
-;;
+   ;;
 
-let boolop_all_test = gen_stmt_test "boolop_all_test"
+   let boolop_all_test = gen_stmt_test "boolop_all_test"
     "a and b and not c or d and not c or not a and not b"
     ( (* Expected order of operations is not, then and, then or *)
       BoolOp(
@@ -145,7 +145,7 @@ let boolop_all_test = gen_stmt_test "boolop_all_test"
         annot
       )
     )
-;; *)
+   ;; *)
 
 let var_assign_test = gen_module_test "var_assign_test"
     "x = 5"
@@ -281,7 +281,7 @@ let assign_iterator obj num =
         Name("$simplified_unique_name_5", annot),
         annot);
     ]
-;; *)
+   ;; *)
 
 let assign_to_index_test = gen_module_test "assign_to_index_test"
     "list[1+2] = 3"
@@ -355,38 +355,49 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
     ]
 ;;
 
-(* let var_aug_assign_test = gen_module_test "var_aug_assign_test"
+let var_aug_assign_test = gen_module_test "var_aug_assign_test"
     "x *= -5"
-    [TryExcept (
-        [Assign ("$simplified_unique_name_4",
+    [
+      TryExcept (
+        [Assign ("$simplified_unique_name_1",
                  Attribute (
                    Name ("x", annot), "__imul__", annot),
-                 annot);
-         Assign ("$simplified_unique_name_1",
-                 Name ("$simplified_unique_name_4", annot), annot)
+                 annot)
         ],
-        [ExceptHandler (
-            Some (Builtin (Builtin_AttributeError, annot)), None,
-            [Assign ("$simplified_unique_name_3",
+        "$simplified_unique_name_2",
+        [
+          If (
+            Binop (
+              Call (
+                Builtin (
+                  Builtin_type, annot),
+                [Name ("$simplified_unique_name_2",
+                       annot)
+                ],
+                annot),
+              Is,
+              Builtin (Builtin_AttributeError, annot),
+              annot),
+            [Assign ("$simplified_unique_name_1",
                      Attribute (
                        Name ("x", annot), "__mul__", annot),
-                     annot);
-             Assign ("$simplified_unique_name_1",
-                     Name ("$simplified_unique_name_3", annot),
                      annot)
+            ],
+            [Raise (
+                Name ("$simplified_unique_name_2", annot),
+                annot)
             ],
             annot)
         ],
         annot);
-     Assign ("$simplified_unique_name_2",
-             Call (
-               Name ("$simplified_unique_name_1", annot),
-               [Num(Int(-5), annot)],
-               annot),
-             annot);
-     Assign ("x", Name ("$simplified_unique_name_2", annot), annot)
+      Assign ("x",
+              Call (
+                Name ("$simplified_unique_name_1", annot),
+                [Num (Int(-5), annot)], annot),
+              annot)
+
     ]
-;; *)
+;;
 
 (* let var_cmp_test = gen_module_test "var_cmp_test"
     "x <= 42"
@@ -401,7 +412,7 @@ let assign_to_attribute_test = gen_module_test "assign_to_attribute_test"
         annot
       )
     ]
-;; *)
+   ;; *)
 
 let expect_error_test
     (name : string)
@@ -595,7 +606,7 @@ let attribute_call_test = gen_stmt_test "attribute_test"
         ],
         annot)
     ]
-;; *)
+   ;; *)
 
 let tuple_test = gen_stmt_test "tuple_test"
     "(1,2,3,4)"
@@ -610,56 +621,41 @@ let tuple_test = gen_stmt_test "tuple_test"
       ))
 ;;
 
-(* let while_test = gen_module_test "while_test"
+let while_test = gen_module_test "while_test"
     "while x < 9001:\n\tx = x+1"
     [
       While(
-        Compare(
-          Name("x", annot),
-          [Lt],
-          [Num(Int(9001), annot)],
-          annot),
+        Call(Attribute(Name("x",annot),
+                       "__lt__",
+                       annot),
+             [Num(Int(9001), annot)],
+             annot),
         [
           Assign(
-            "$simplified_unique_name_0",
+            "x",
             Call(Attribute(Name("x", annot), "__add__", annot),
                  [Num(Int(1), annot)],
                  annot),
-            annot
-          );
-          Assign(
-            "x",
-            Name("$simplified_unique_name_0", annot),
             annot
           )
         ],
         annot
       )
     ]
-;; *)
+;;
 
-(* let for_test = gen_module_test "for_test"
+let for_test = gen_module_test "for_test"
     "for i in list:\n\tf(i)"
     [
-      assign_iterator (Name("list", annot)) 1;
-      Assign(
-        "$simplified_unique_name_0",
-        Name("$simplified_unique_name_1", annot),
-        annot
-      );
+      assign_iterator (Name("list", annot)) 0;
       TryExcept(
         [
           While(
             Bool(true, annot),
             [
               Assign(
-                "$simplified_unique_name_2",
-                Call(Name("$simplified_unique_name_0", annot), [], annot),
-                annot
-              );
-              Assign(
                 "i",
-                Name("$simplified_unique_name_2", annot),
+                Call(Name("$simplified_unique_name_0", annot), [], annot),
                 annot
               );
               Expr(Call(Name("f", annot), [Name("i", annot)], annot), annot);
@@ -667,52 +663,57 @@ let tuple_test = gen_stmt_test "tuple_test"
             annot
           )
         ],
+        "$simplified_unique_name_1",
         [
-          ExceptHandler(
-            Some(Name("StopIteration", annot)),
-            None,
-            [Pass(annot)],
-            annot
-          )
+          If(Binop(
+              Call(Builtin(Builtin_type, annot),
+                   [Name("$simplified_unique_name_1", annot)],
+                   annot),
+              Is,
+              Name("StopIteration", annot),
+              annot),
+             [Pass(annot)],
+             [Raise(Name("$simplified_unique_name_1", annot), annot)],
+             annot)
         ],
         annot
       )
     ]
-;; *)
+;;
 
-(* let break_test = gen_module_test "break_test"
+let break_test = gen_module_test "break_test"
     "while x < 9001:\n\tbreak"
     [
       While(
-        Compare(
-          Name("x", annot),
-          [Lt],
-          [Num(Int(9001), annot)],
-          annot),
+        Call(Attribute(Name("x",annot),
+                       "__lt__",
+                       annot),
+             [Num(Int(9001), annot)],
+             annot),
         [
           Break(annot)
         ],
         annot
       )
     ]
-;; *)
+;;
 
-(* let continue_test = gen_module_test "continue_test"
+let continue_test = gen_module_test "continue_test"
     "while x < 9001:\n\tcontinue"
     [
       While(
-        Compare(
-          Name("x", annot),
-          [Lt],
-          [Num(Int(9001), annot)],
-          annot),
+        Call(Attribute(Name("x",annot),
+                       "__lt__",
+                       annot),
+             [Num(Int(9001), annot)],
+             annot),
         [
           Continue(annot)
         ],
         annot
       )
     ]
-;; *)
+;;
 
 let raise_test = gen_module_test "raise_test"
     "raise ValueError"
@@ -725,51 +726,72 @@ let try_block =
   "try:" ^
   "\n\tx = 5" ^
   "\nexcept ValueError:" ^
-  "\n\tprint 'Error'" ^
+  "\n\tret = 'Error'" ^
   "\nexcept StopIteration as e:" ^
-  "\n\tprint 'Other Error'" ^
+  "\n\tret = 'Other Error'" ^
   "\n"
 ;;
 
-(* let try_test = gen_module_test "try_test"
+let try_test = gen_module_test "try_test"
     try_block
     [
       TryExcept(
         [
           Assign(
-            "$simplified_unique_name_0",
-            Num(Int(5), annot),
-            annot);
-          Assign(
             "x",
-            Name("$simplified_unique_name_0", annot),
+            Num(Int(5), annot),
             annot)
         ],
+        "$simplified_unique_name_0",
         [
-          ExceptHandler(
-            Some(Name("ValueError", annot)),
-            None,
-            [
-              Print(None,
-                    [Str (StringLiteral("Error"), annot)],
-                    true,
-                    annot)
+          If (
+            Binop (
+              Call (
+                Builtin (
+                  Builtin_type, annot),
+                [Name ("$simplified_unique_name_0",
+                       annot)
+                ],
+                annot),
+              Is,
+              Name ("ValueError", annot),
+              annot),
+            [Assign ("ret",
+                     Str ("Error", annot), annot)
             ],
-            annot);
-          ExceptHandler(
-            Some(Name("StopIteration", annot)),
-            Some("e"),
             [
-              Print (None,
-                     [Str(StringLiteral("Other Error"),annot)],
-                     true,
-                     annot)
+              If (
+                Binop (
+                  Call (
+                    Builtin (
+                      Builtin_type, annot),
+                    [Name (
+                        "$simplified_unique_name_0", annot)
+                    ],
+                    annot),
+                  Is,
+                  Name ("StopIteration", annot),
+                  annot),
+                [Assign ("e",
+                         Name (
+                           "$simplified_unique_name_0", annot),
+                         annot);
+                 Assign ("ret",
+                         Str ("Other Error", annot), annot)
+                ],
+                [Raise (
+                    Name (
+                      "$simplified_unique_name_0", annot),
+                    annot)
+                ],
+                annot)
             ],
             annot)
+
         ],
         annot)
     ]
-;; *)
+;;
 
 let bad_exception_handler_test = expect_error_test
     "bad_exception_handler_test"
@@ -790,18 +812,18 @@ let bad_exception_handler_test = expect_error_test
 ;;
 
 (* let triangle_def =
-  "def triangle(n):" ^
-  "\n\tcount = 0" ^
-  "\n\ti=0" ^
-  "\n\twhile count < n:" ^
-  "\n\t\ti += count" ^
-  "\n\t\tcount = count + 1" ^
-  "\n\treturn i" ^
-  "\n"
-;;
+   "def triangle(n):" ^
+   "\n\tcount = 0" ^
+   "\n\ti=0" ^
+   "\n\twhile count < n:" ^
+   "\n\t\ti += count" ^
+   "\n\t\tcount = count + 1" ^
+   "\n\treturn i" ^
+   "\n"
+   ;;
 
-let triangle_ast =
-  Assign(
+   let triangle_ast =
+   Assign(
     "triangle",
     FunctionVal(
       ["triangle$1_n"], (* This test is currently failing: Change this to ["n"] to make it succeed, but this is a bug *)
@@ -881,9 +903,9 @@ let triangle_ast =
       ],
       annot),
     annot)
-;;
+   ;;
 
-let big_test = gen_module_test "big_test"
+   let big_test = gen_module_test "big_test"
     (triangle_def ^ "\n[triangle(1),triangle(7)]")
     [
       triangle_ast;
@@ -908,7 +930,7 @@ let big_test = gen_module_test "big_test"
         ),
            annot)
     ]
-;; *)
+   ;; *)
 
 (* Tests of lists and slicing *)
 let list_str = "[1,2,3,'four','five',2+4]";;
@@ -940,7 +962,7 @@ let list_test = gen_stmt_test "list_test"
         annot
       )
     )
-;; *)
+   ;; *)
 
 let gen_slice_test (name : string) (slice : string) (expected_slice: 'a expr) =
   gen_stmt_test
@@ -1061,15 +1083,15 @@ let tests =
     unop_test;
     unop_not_test;
     (* boolop_and_test;
-    boolop_or_test;
-    boolop_all_test; *)
+       boolop_or_test;
+       boolop_all_test; *)
     var_assign_test;
     var_double_assign_test;
     (* var_assign_from_tuple_test; *)
     assign_to_index_test;
     assign_to_slice_test;
     assign_to_attribute_test;
-    (* var_aug_assign_test; *)
+    var_aug_assign_test;
     (* var_cmp_test; *)
     (* if_test; *)
     funcdef_test;
@@ -1078,12 +1100,12 @@ let tests =
     attribute_test;
     attribute_call_test;
     tuple_test;
-    (* while_test;
+    while_test;
     for_test;
     break_test;
-    continue_test; *)
+    continue_test;
     raise_test;
-    (* try_test; *)
+    try_test;
     bad_exception_handler_test;
     (* big_test; *)
   ]
