@@ -1,7 +1,8 @@
-open Python2_ast_types
-module Concrete = Python2_concrete_ast
-module Simplified = Python2_simplified_ast
-exception Invalid_assignment of string
+open Jhupllib;;
+open Python2_ast_types;;
+module Concrete = Python2_concrete_ast;;
+module Simplified = Python2_simplified_ast;;
+exception Invalid_assignment of string;;
 
 (* FIXME: We need to create a type for builtin methods (in addition to builtin
    functions such as type, bool, slice) such as __getattr__, and use that
@@ -57,7 +58,7 @@ and simplify_stmt
     begin
       match simplify_expr_option value with
       | None -> [Simplified.Return(Simplified.Name("*None", annot), annot)]
-      | Some(v) -> [Simplified.Return(v, annot)]
+      | Some(b, v) -> b @ [Simplified.Return(v, annot)]
     end
 
   | Concrete.Assign (targets, value, annot) ->
@@ -69,11 +70,10 @@ and simplify_stmt
 
        value is the expression we are assigning from. This is only ever
        evaluated once, no matter what we're assigning to. *)
-    let simplified_value = simplify_expr value in
-    let unique_name = gen_unique_name annot in
-    let value_name = Simplified.Name(unique_name, annot) in
-    let value_assignment =
-      Simplified.Assign(unique_name, simplified_value, annot) in
+    let value_bindings, value_result = simplify_expr value in
+    let value_id = gen_unique_name annot in
+    let value_name = Simplified.Name(value_id, annot) in
+
     let simplify_assignment =
       (fun e ->
          match e with
@@ -83,10 +83,12 @@ and simplify_stmt
                               annot)]
 
          | Concrete.Attribute (obj, id, _, _) ->
+           let obj_bindings, obj_result = simplify_expr obj in
+           obj_bindings @
            [Simplified.Expr(
                Simplified.Call(
                  Simplified.Attribute(
-                   simplify_expr obj,
+                   obj_result,
                    "__setattr__",
                    annot),
                  [
@@ -97,10 +99,12 @@ and simplify_stmt
                annot)]
 
          | Concrete.Subscript (lst, slice, _, _) ->
+           let lst_bindings, lst_result = simplify_expr lst in
+           lst_bindings @
            [Simplified.Expr(
                Simplified.Call(
                  Simplified.Attribute(
-                   simplify_expr lst,
+                   lst_result,
                    "__setitem__",
                    annot),
                  [
@@ -261,7 +265,7 @@ and simplify_stmt
            -> raise @@ Invalid_assignment "Can't assign to builtin. How did you even do that?"
 
       ) in
-    [value_assignment] @ (map_and_concat simplify_assignment targets)
+    value_bindings @ (map_and_concat simplify_assignment targets)
 
   | Concrete.AugAssign (target, op, value, annot) ->
     (* a += b "simplifies" to
@@ -289,13 +293,17 @@ and simplify_stmt
           [], target
 
         | Concrete.Attribute (obj, id, ctx, annot) ->
-          [Simplified.Assign (tmp1, simplify_expr obj, annot)],
+          let obj_binds, obj_result = simplify_expr obj in
+          obj_binds @
+          [Simplified.Assign (tmp1, obj_result, annot)],
           Concrete.Attribute (Concrete.Name(tmp1, Concrete.Load, annot), id, ctx, annot)
 
         | Concrete.Subscript (lst, slice, ctx, annot) ->
+          let lst_binds, lst_result = simplify_expr lst in
           let slice_name = gen_unique_name annot in
+          lst_binds @
           [
-            Simplified.Assign (tmp1, simplify_expr lst, annot);
+            Simplified.Assign (tmp1, lst_result, annot);
             Simplified.Assign (slice_name, simplify_slice slice annot, annot);
           ],
           Concrete.Subscript(Concrete.Name(tmp1, Concrete.Load, annot),
@@ -356,12 +364,13 @@ and simplify_stmt
     binds @ simplify_stmt tryexcept @ simplify_stmt final_assign
 
   | Concrete.Print (dest, values, nl, annot) ->
-    [Simplified.Print (
-        simplify_expr_option dest,
-        List.map simplify_expr values,
-        nl,
-        annot
-      )]
+    raise @@ Utils.Not_yet_implemented "Print statements"
+  (* [Simplified.Print (
+      simplify_expr_option dest,
+      List.map simplify_expr values,
+      nl,
+      annot
+     )] *)
 
   | Concrete.For (target, seq, body, _, annot) ->
     (* For loops are always over some iterable. According to the docs,
@@ -446,24 +455,44 @@ and simplify_stmt
         annot
       ) in
     map_and_concat simplify_stmt [bind_next_val; try_except]
+
   | Concrete.While (test, body, _, annot) ->
-    [Simplified.While(simplify_expr test,
-                      map_and_concat simplify_stmt body,
-                      annot)]
+    (* We maintain the invariant that simplified while loops always have a boolean value as their test *)
+    let tmp_name = gen_unique_name annot in
+    let test_bindings, test_result = simplify_expr test in
+    let full_test_bindings =
+      test_bindings @
+      [ Simplified.Assign(tmp_name,
+                          Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
+                                          [test_result],
+                                          annot),
+                          annot);
+      ]
+    in
+    full_test_bindings @
+    [ Simplified.While(Simplified.Name(tmp_name, annot),
+                       (* Re-bind the test variable after each loop *)
+                       map_and_concat simplify_stmt body @ full_test_bindings,
+                       annot)]
 
   | Concrete.If (test, body, orelse, annot) ->
-    [Simplified.If(simplify_expr test,
+    let test_bindings, test_result = simplify_expr test in
+    test_bindings @
+    [Simplified.If(Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
+                                   [test_result],
+                                   annot),
                    map_and_concat simplify_stmt body,
                    map_and_concat simplify_stmt orelse,
                    annot)]
 
   | Concrete.Raise (typ, _, _, annot) ->
-    let simplified_typ =
+    let typ_bindings, typ_result =
       match typ with
       | None -> failwith "Raise must have exactly one argument"
       | Some(e) -> simplify_expr e
     in
-    [Simplified.Raise(simplified_typ, annot)]
+    typ_bindings @
+    [Simplified.Raise(typ_result, annot)]
 
   | Concrete.TryExcept (body, handlers, _, annot) ->
     [Simplified.TryExcept (
@@ -472,7 +501,9 @@ and simplify_stmt
         annot)]
 
   | Concrete.Expr (e, annot) ->
-    [Simplified.Expr(simplify_expr e, annot)]
+    let bindings, result = simplify_expr e in
+    bindings @
+    [Simplified.Expr(result, annot)]
 
   | Concrete.Pass (annot) ->
     [Simplified.Pass (annot)]
@@ -488,36 +519,83 @@ and simplify_stmt
    variable that was bound *)
 and simplify_expr
     (e : 'a Concrete.expr)
-  : 'a Simplified.expr =
+  : 'a Simplified.stmt list * 'a Simplified.expr =
   match e with
-  | Concrete.BoolOp (op, values, annot) ->
-    Simplified.BoolOp (simplify_boolop op,
-                       List.map simplify_expr values,
-                       annot)
+  (* BoolOps are a tricky case because of short-circuiting. We need to
+     make sure that when we evaluate "a and False and b", b is never
+     evaluated, etc.
+
+     We do this by iteratively breaking down the statements like so:
+     "a and b and c and ..." turns into
+
+     "if a then (b and c and ...) else a", except we make sure that
+     a is only evaluated once by storing a in a tmp variable after it's
+     evaluated.
+
+     To avoid duplicate code, we construct a concrete IfExp to represent
+     the above code, then recursively simplify that.
+  *)
+  | Concrete.BoolOp (op, operands, annot) ->
+    begin
+      match operands with
+      | [] -> failwith "No arguments to BoolOp"
+      | hd::[] -> simplify_expr hd
+      | hd::tl ->
+        let test_bindings, test_result = simplify_expr hd in
+        let test_name = gen_unique_name annot in
+        let test_bindings = test_bindings @ [
+            Simplified.Assign(test_name, test_result, annot)
+          ]
+        in
+
+        let if_exp =
+          begin
+            match op with
+            | Concrete.And ->
+              Concrete.IfExp(
+                Concrete.Name(test_name, Concrete.Load, annot),
+                Concrete.BoolOp (op, tl, annot),
+                Concrete.Name(test_name, Concrete.Load, annot),
+                annot)
+            | Concrete.Or ->
+              Concrete.IfExp(
+                Concrete.Name(test_name, Concrete.Load, annot),
+                Concrete.Name(test_name, Concrete.Load, annot),
+                Concrete.BoolOp (op, tl, annot),
+                annot)
+          end
+        in
+        let bindings, result =
+          simplify_expr if_exp
+        in
+        test_bindings @ bindings, result
+
+    end
 
   | Concrete.BinOp (left, op, right, annot) ->
+    let left_bindings, left_result = simplify_expr left in
+    let right_bindings, right_result = simplify_expr right in
+    left_bindings @ right_bindings,
     Simplified.Call(
       Simplified.Attribute(
-        simplify_expr left,
+        left_result,
         simplify_operator op,
         annot),
-      [simplify_expr right],
+      [right_result],
       annot)
 
   | Concrete.UnaryOp (op, operand, annot) ->
+    let op_bindings, op_result = simplify_expr operand in
+    op_bindings,
     begin
       match op with
       | Concrete.Not ->
-        Simplified.IfExp(
-          simplify_expr operand,
-          Simplified.Bool(false, annot),
-          Simplified.Bool(true, annot),
-          annot)
+        Simplified.UnaryOp(Simplified.Not, op_result, annot)
 
       | Concrete.UAdd ->
         Simplified.Call(
           Simplified.Attribute(
-            simplify_expr operand,
+            op_result,
             "__pos__",
             annot),
           [],
@@ -525,7 +603,7 @@ and simplify_expr
 
       | Concrete.USub -> Simplified.Call(
           Simplified.Attribute(
-            simplify_expr operand,
+            op_result,
             "__neg__",
             annot),
           [],
@@ -533,10 +611,37 @@ and simplify_expr
     end
 
   | Concrete.IfExp (test, body, orelse, annot) ->
-    Simplified.IfExp (simplify_expr test,
-                      simplify_expr body,
-                      simplify_expr orelse,
+    (* Python allows expressions like x = 1 if test else 0. Of course,
+       only the relevant branch is executed, so we can't simply evaluate both
+       beforehand. But in order to be on the right-hand-side of an assignment,
+       the expression must be no more complicated than a compound_expr. In
+       particular, the expression can't be an assignment.
+
+       So to evaluate "x = y if test else z", we first create an if _statement_
+       and then use the results of that.
+       if test:
+         # evaluate and bind tmp = y
+       else:
+         # evaluate and bind tmp = z
+       x = tmp *)
+
+    let test_bindings, test_result = simplify_expr test in
+    let body_bindings, body_result = simplify_expr body in
+    let orelse_bindings, orelse_result = simplify_expr orelse in
+    let result_name = gen_unique_name annot in
+    let all_bindings =
+      test_bindings @
+      [
+        Simplified.If(test_result,
+                      body_bindings @
+                      [Simplified.Assign(result_name, body_result, annot)],
+                      orelse_bindings @
+                      [Simplified.Assign(result_name, orelse_result, annot)],
                       annot)
+      ]
+    in
+    all_bindings,
+    Simplified.Name(result_name, annot)
 
   | Concrete.Compare (left, ops, comparators, annot) ->
     Simplified.Compare (simplify_expr left,
@@ -588,7 +693,7 @@ and simplify_expr
 
 and simplify_expr_option
     (o : 'a Concrete.expr option)
-  : 'a Simplified.expr option =
+  : ('a Simplified.stmt list * 'a Simplified.expr) option =
   let simplified_opt = simplify_option simplify_expr o in
   match simplified_opt with
   | None -> None
