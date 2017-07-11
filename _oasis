@@ -89,6 +89,7 @@ Library "lamia_conversion"
   Path: src/lamia_conversion
   Modules:
     Lamia_conversion_ctx,
+    Lamia_conversion_utils,
     Lamia_converter
   BuildDepends:
     batteries,

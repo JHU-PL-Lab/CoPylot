@@ -56,9 +56,12 @@ and directive =
   | Let_unop of value_variable * unary_operator * value_variable
   | Let_binop of value_variable * value_variable * binary_operator * value_variable
   | Return of memory_variable
+  | If_result_value of value_variable
+  | If_result_memory of memory_variable
   | Raise of memory_variable
   | Try_except of block * memory_variable * block
-  | Let_conditional of value_variable * value_variable * block * block
+  | Let_conditional_value of value_variable * value_variable * block * block
+  | Let_conditional_memory of memory_variable * value_variable * block * block
   | While of memory_variable * block
 [@@deriving eq, ord, show]
 

@@ -126,7 +126,9 @@ directive:
   | TRY block EXCEPT memory_variable block
     { Try_except ($2,$4,$5) }
   | LET value_variable EQUAL IF value_variable THEN block ELSE block
-    { Let_conditional($2,$5,$7,$9) }
+    { Let_conditional_value($2,$5,$7,$9) }
+  | LET memory_variable EQUAL IF value_variable THEN block ELSE block
+    { Let_conditional_memory($2,$5,$7,$9) }
   | WHILE memory_variable block
     { While($2,$3) }
 
