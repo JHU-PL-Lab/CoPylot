@@ -17,7 +17,7 @@ let wrap_obj ctx annot
       Let_alloc(value_loc);
       Store(value_loc, x);
       Let_alloc(obj_loc);
-      (* TODO: Assign obj_val1 to an empty bindings *)
+      Let_expression(obj_val1, Empty_binding);
       Let_expression(value_name, String_literal("*value"));
       Let_binding_update(obj_val2, obj_val1, value_name, value_loc);
     ]
