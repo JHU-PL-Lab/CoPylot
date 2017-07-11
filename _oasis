@@ -84,6 +84,20 @@ Library "lamia_language"
     ppx_deriving_yojson,
     CoPylot.ast_simplification
 
+Library "lamia_conversion"
+  FindlibParent: CoPylot
+  Path: src/lamia_conversion
+  Modules:
+    Lamia_conversion_ctx,
+    Lamia_converter
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std,
+    ppx_deriving_yojson,
+    CoPylot.ast_simplification,
+    CoPylot.lamia_language
+
 Library "lamia_parser"
   FindlibParent: CoPylot
   Path: src/lamia_parser

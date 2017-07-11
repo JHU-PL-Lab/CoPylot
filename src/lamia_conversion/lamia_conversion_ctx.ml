@@ -11,7 +11,7 @@ end
 
 module Counter_hashtbl = Hashtbl.Make(Counter);;
 
-type norm_context = {
+type conversion_context = {
   mutable uid_counter: int;
   mutable name_counter: int;
   name_prefix: string;
@@ -20,7 +20,7 @@ type norm_context = {
 }
 ;;
 
-let create_new_normalization_ctx starting_uid starting_name name_prefix =
+let create_new_conversion_ctx starting_uid starting_name name_prefix =
   { uid_counter = starting_uid; name_counter = starting_name;
     name_prefix = name_prefix;
     uid_map = Counter_hashtbl.create 10; name_map = Counter_hashtbl.create 10; }
