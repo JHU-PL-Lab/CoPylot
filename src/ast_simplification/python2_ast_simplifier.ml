@@ -615,7 +615,12 @@ and simplify_expr
     begin
       match op with
       | Concrete.Not ->
-        Simplified.UnaryOp(Simplified.Not, op_result, annot)
+        Simplified.UnaryOp(Simplified.Not,
+                           Simplified.Call(
+                             Simplified.Builtin(Builtin_bool, annot),
+                             [op_result],
+                             annot),
+                           annot)
 
       | Concrete.UAdd ->
         Simplified.Call(
@@ -658,8 +663,8 @@ and simplify_expr
       test_bindings @
       [
         Simplified.If(Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
-                                   [test_result],
-                                   annot),
+                                      [test_result],
+                                      annot),
                       body_bindings @
                       [Simplified.Assign(result_name, body_result, annot)],
                       orelse_bindings @
@@ -885,8 +890,8 @@ and simplify_excepthandlers ctx exn_id handlers annot =
     [
       Simplified.If(
         Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
-                                   [typ_result],
-                                   annot),
+                        [typ_result],
+                        annot),
         name_bind @ map_and_concat (simplify_stmt ctx) body,
         simplify_excepthandlers ctx exn_id rest annot,
         annot
@@ -909,7 +914,10 @@ and generate_comparison lhs op rhs annot =
     Simplified.Binop(lhs, Simplified.Is, rhs, annot)
   | Concrete.IsNot ->
     Simplified.UnaryOp(Simplified.Not,
-                       Simplified.Binop(lhs, Simplified.Is, rhs, annot),
+                       Simplified.Call(
+                         Simplified.Builtin(Builtin_bool, annot),
+                         [Simplified.Binop(lhs, Simplified.Is, rhs, annot)],
+                         annot),
                        annot)
   | Concrete.NotIn -> raise @@ Utils.Not_yet_implemented "NotIn simplification"
   | _ ->

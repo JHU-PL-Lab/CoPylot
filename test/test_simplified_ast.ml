@@ -62,7 +62,11 @@ let unop_test = gen_stmt_test "unop_test_1"
 
 let unop_not_test = gen_stmt_test "unop_not_test"
     "not x"
-    (UnaryOp(Not, Name("x", annot), annot))
+    (UnaryOp(Not,
+             Call(Builtin(Builtin_bool, annot),
+                  [Name("x", annot)],
+                  annot),
+             annot))
 ;;
 
 let boolop_and_test = gen_module_test "boolop_and_test"
