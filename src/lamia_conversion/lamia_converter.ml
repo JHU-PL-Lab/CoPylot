@@ -44,6 +44,56 @@ and convert_stmt
       annotate_directive annot @@ Lamia_ast.Return(lookup_result);
     ]
 
+  | While (test, body, annot) ->
+    let lookup_bindings, lookup_result = lookup ctx annot test in
+    let value_bindings, value_result = get_starvalue ctx annot lookup_result in
+    let all_bindings = lookup_bindings @ value_bindings in
+    all_bindings @
+    [
+      annotate_directive annot @@
+      Lamia_ast.While(value_result,
+                      Block(map_and_concat (convert_stmt ctx) body @
+                            all_bindings));
+    ]
+
+  | If (test, body, orelse, annot) ->
+    let lookup_bindings, lookup_result = lookup ctx annot test in
+    let value_bindings, value_result = get_starvalue ctx annot lookup_result in
+    let test_result = Value_variable(gen_unique_name ctx annot) in
+    let test_bindings =
+      lookup_bindings @ value_bindings @
+      [
+        annotate_directive annot @@
+        Let_get(test_result, value_result);
+      ]
+    in
+
+    let dummy_variable = Value_variable(gen_unique_name ctx annot) in
+
+    let dummy_return =
+      let dummy_retval = Value_variable(gen_unique_name ctx annot) in
+      List.map (annotate_directive annot)
+      [
+        Let_expression(dummy_retval, None_literal);
+        If_result_value(dummy_retval);
+      ]
+    in
+
+    let new_body =
+      map_and_concat (convert_stmt ctx) body @ dummy_return
+    in
+    let new_orelse =
+      map_and_concat (convert_stmt ctx) orelse @ dummy_return
+    in
+
+    test_bindings @
+    [
+      annotate_directive annot @@
+      Let_conditional_value(dummy_variable,
+                            test_result,
+                            Block(new_body),
+                            Block(new_orelse))
+    ]
 
   | _ ->
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert_stmt"

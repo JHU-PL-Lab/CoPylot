@@ -41,11 +41,26 @@ let lookup ctx annot id =
   in
 
   List.map (annotate_directive ctx annot)
-  [
-    Let_get(scopeval, python_scope);
-    Let_expression(varname, String_literal(id));
-    Let_binop(haskey, scopeval, Binop_haskey, varname);
-    Let_conditional_memory(retval, haskey, success_block, fail_block);
-  ],
+    [
+      Let_get(scopeval, python_scope);
+      Let_expression(varname, String_literal(id));
+      Let_binop(haskey, scopeval, Binop_haskey, varname);
+      Let_conditional_memory(retval, haskey, success_block, fail_block);
+    ],
   retval
+;;
+
+let get_starvalue ctx annot y =
+  let obj = Value_variable(gen_unique_name ctx annot) in
+  let valuename = Value_variable(gen_unique_name ctx annot) in
+  let starvalue = Memory_variable(gen_unique_name ctx annot) in
+  let directives =
+    [
+      Let_get(obj, y);
+      Let_expression(valuename, String_literal("*value"));
+      Let_binding_access(starvalue, obj, valuename);
+    ]
+  in
+  List.map (annotate_directive ctx annot) directives,
+  starvalue
 ;;
