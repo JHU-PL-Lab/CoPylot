@@ -43,24 +43,13 @@ let gen_stmt_test (name : string) (prog : string) (expected : 'a expr) =
   gen_module_test name prog @@ [(Expr(expected, annot))]
 ;;
 
-let int_test = gen_stmt_test "int_test"
-    "4"
-    (Num(Int(4), annot))
-;;
-
-let none_test = gen_stmt_test "none_test"
-    "None"
-    (Name("*None", annot))
-;;
-
-let float_test = gen_stmt_test "float_test"
-    "1.7"
-    (Num(Float(1.7), annot))
-;;
-
-let float_zero_test = gen_stmt_test "float_zero_test"
-    "0.0"
-    (Num(Float(0.0), annot))
+let literal_tests =
+  [
+    gen_stmt_test "int_test" "4" (Num(Int(4), annot));
+    gen_stmt_test "none_test" "None" (Name("*None", annot));
+    gen_stmt_test "float_test" "1.7" (Num(Float(1.7), annot));
+    gen_stmt_test "float_zero_test" "0.0" (Num(Float(0.0), annot));
+  ]
 ;;
 
 let unop_test = gen_stmt_test "unop_test_1"
@@ -146,6 +135,16 @@ let unop_not_test = gen_stmt_test "unop_not_test"
       )
     )
    ;; *)
+
+let operator_tests =
+  [
+    unop_test;
+    unop_not_test;
+    (* boolop_and_test;
+       boolop_or_test;
+       boolop_all_test; *)
+  ]
+;;
 
 let var_assign_test = gen_module_test "var_assign_test"
     "x = 5"
@@ -367,17 +366,19 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
         "$simplified_unique_name_2",
         [
           If (
-            Binop (
-              Call (
-                Builtin (
-                  Builtin_type, annot),
-                [Name ("$simplified_unique_name_2",
-                       annot)
-                ],
-                annot),
-              Is,
-              Builtin (Builtin_AttributeError, annot),
-              annot),
+            Call(Builtin(Builtin_bool, annot),
+                 [Binop (
+                     Call (
+                       Builtin (
+                         Builtin_type, annot),
+                       [Name ("$simplified_unique_name_2",
+                              annot)
+                       ],
+                       annot),
+                     Is,
+                     Builtin (Builtin_AttributeError, annot),
+                     annot)],
+                 annot),
             [Assign ("$simplified_unique_name_1",
                      Attribute (
                        Name ("x", annot), "__mul__", annot),
@@ -399,85 +400,31 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
     ]
 ;;
 
-(* let var_cmp_test = gen_module_test "var_cmp_test"
+let assign_tests =
+  [
+    var_assign_test;
+    var_double_assign_test;
+    (* var_assign_from_tuple_test; *)
+    assign_to_index_test;
+    assign_to_slice_test;
+    assign_to_attribute_test;
+    var_aug_assign_test;
+  ]
+;;
+
+let var_cmp_test = gen_module_test "var_cmp_test"
     "x <= 42"
     [
       Expr(
-        Compare(
-          Name("x", annot),
-          [LtE],
-          [Num(Int(42), annot)],
-          annot
-        ),
+        Call(Attribute(Name("x", annot),
+                       "__le__",
+                       annot),
+             [Num(Int(42), annot)],
+             annot
+            ),
         annot
       )
     ]
-   ;; *)
-
-let expect_error_test
-    (name : string)
-    (prog : 'a Concrete.stmt list)
-    (expected : exn) =
-  name>::
-  (fun _ ->
-     assert_raises
-       expected
-       (fun _ ->
-          let ctx = Python2_simplification_ctx.create_new_simplification_ctx 0 "$simp" in
-          (List.concat (List.map (Python2_ast_simplifier.simplify_stmt ctx) prog)))
-  )
-;;
-
-(* This is useful when creating tests for expect_error_test *)
-let dummy_expr = Concrete.Num(Int(0), annot);;
-
-let gen_some_concrete_assignment target =
-  Concrete.Assign(
-    [target],
-    dummy_expr,
-    annot)
-;;
-
-let bad_assign_tests =
-  let module Simplify = Python2_ast_simplifier in
-  [
-    expect_error_test "assign_to_num"
-      [(gen_some_concrete_assignment
-          (Concrete.Num(Int(0), annot)))]
-      (Simplify.Invalid_assignment("can't assign to literal"));
-    expect_error_test "assign_to_str"
-      [(gen_some_concrete_assignment
-          (Concrete.Str("", annot)))]
-      (Simplify.Invalid_assignment("can't assign to literal"));
-    expect_error_test "assign_to_bool"
-      [(gen_some_concrete_assignment
-          (Concrete.Bool(true, annot)))]
-      (Simplify.Invalid_assignment("can't assign to literal"));
-    expect_error_test "assign_to_boolop"
-      [(gen_some_concrete_assignment
-          (Concrete.BoolOp(Concrete.And, [dummy_expr; dummy_expr], annot)))]
-      (Simplify.Invalid_assignment("can't assign to operator"));
-    expect_error_test "assign_to_binop"
-      [(gen_some_concrete_assignment
-          (Concrete.BinOp(dummy_expr, Concrete.Add, dummy_expr, annot)))]
-      (Simplify.Invalid_assignment("can't assign to operator"));
-    expect_error_test "assign_to_unaryop"
-      [(gen_some_concrete_assignment
-          (Concrete.UnaryOp(Concrete.UAdd, dummy_expr, annot)))]
-      (Simplify.Invalid_assignment("can't assign to operator"));
-    expect_error_test "assign_to_ifexp"
-      [(gen_some_concrete_assignment
-          (Concrete.IfExp(dummy_expr, dummy_expr, dummy_expr, annot)))]
-      (Simplify.Invalid_assignment("can't assign to conditional expression"));
-    expect_error_test "assign_to_compare"
-      [(gen_some_concrete_assignment
-          (Concrete.Compare(dummy_expr, [Concrete.Lt], [dummy_expr], annot)))]
-      (Simplify.Invalid_assignment("can't assign to comparison"));
-    expect_error_test "assign_to_call"
-      [(gen_some_concrete_assignment
-          (Concrete.Call(dummy_expr, [], [], None, None, annot)))]
-      (Simplify.Invalid_assignment("can't assign to function call"));
-  ]
 ;;
 
 let funcdef_test = gen_module_test "funcdef_test"
@@ -494,22 +441,6 @@ let funcdef_test = gen_module_test "funcdef_test"
                  annot),
              annot)
     ]
-;;
-
-let bad_funcdef_test = expect_error_test "bad_funcdef_test"
-    [
-      Concrete.FunctionDef(
-        "func",
-        ([Concrete.Num(Int(5), annot)],
-         None,
-         None,
-         []),
-        [Concrete.Pass(annot)],
-        [],
-        annot
-      )
-    ]
-    (Failure("The arguments in a function definition must be identifiers"))
 ;;
 
 let call_test = gen_stmt_test "call_test"
@@ -547,19 +478,23 @@ let attribute_call_test = gen_stmt_test "attribute_test"
 let if_test = gen_module_test "if_test"
     "if x > 2:\n\tx = 3\nelif x < 0: x = x*-1\nelse: pass"
     [If (
-        Call(Attribute(Name ("x", annot),
-                       "__gt__",
-                       annot),
-             [Num(Int 2, annot)],
+        Call(Builtin(Builtin_bool, annot),
+             [Call(Attribute(Name ("x", annot),
+                             "__gt__",
+                             annot),
+                   [Num(Int 2, annot)],
+                   annot)],
              annot),
         [
           Assign ("x", Num(Int 3, annot), annot);
         ],
         [If (
-            Call(Attribute(Name ("x", annot),
-                           "__lt__",
-                           annot),
-                 [Num(Int 0, annot)],
+            Call(Builtin(Builtin_bool, annot),
+                 [Call(Attribute(Name ("x", annot),
+                                 "__lt__",
+                                 annot),
+                       [Num(Int 0, annot)],
+                       annot)],
                  annot),
             [
               Assign ("x",
@@ -595,10 +530,13 @@ let while_test = gen_module_test "while_test"
     "while x < 9001:\n\tx = x+1"
     [
       While(
-        Call(Attribute(Name("x",annot),
-                       "__lt__",
-                       annot),
-             [Num(Int(9001), annot)],
+        Call(Builtin(Builtin_bool, annot),
+             [Call(
+                 Attribute(Name("x",annot),
+                           "__lt__",
+                           annot),
+                 [Num(Int(9001), annot)],
+                 annot)],
              annot),
         [
           Assign(
@@ -621,7 +559,9 @@ let for_test = gen_module_test "for_test"
       TryExcept(
         [
           While(
-            Bool(true, annot),
+            Call(Builtin(Builtin_bool, annot),
+                 [Bool(true, annot)],
+                 annot),
             [
               Assign(
                 "i",
@@ -635,13 +575,15 @@ let for_test = gen_module_test "for_test"
         ],
         "$simplified_unique_name_1",
         [
-          If(Binop(
-              Call(Builtin(Builtin_type, annot),
-                   [Name("$simplified_unique_name_1", annot)],
-                   annot),
-              Is,
-              Name("StopIteration", annot),
-              annot),
+          If(Call(Builtin(Builtin_bool, annot),
+                  [Binop(
+                      Call(Builtin(Builtin_type, annot),
+                           [Name("$simplified_unique_name_1", annot)],
+                           annot),
+                      Is,
+                      Name("StopIteration", annot),
+                      annot)],
+                  annot),
              [Pass(annot)],
              [Raise(Name("$simplified_unique_name_1", annot), annot)],
              annot)
@@ -655,10 +597,12 @@ let break_test = gen_module_test "break_test"
     "while x < 9001:\n\tbreak"
     [
       While(
-        Call(Attribute(Name("x",annot),
-                       "__lt__",
-                       annot),
-             [Num(Int(9001), annot)],
+        Call(Builtin(Builtin_bool, annot),
+             [Call(Attribute(Name("x",annot),
+                             "__lt__",
+                             annot),
+                   [Num(Int(9001), annot)],
+                   annot)],
              annot),
         [
           Break(annot)
@@ -672,10 +616,12 @@ let continue_test = gen_module_test "continue_test"
     "while x < 9001:\n\tcontinue"
     [
       While(
-        Call(Attribute(Name("x",annot),
-                       "__lt__",
-                       annot),
-             [Num(Int(9001), annot)],
+        Call(Builtin(Builtin_bool, annot),
+             [Call(Attribute(Name("x",annot),
+                             "__lt__",
+                             annot),
+                   [Num(Int(9001), annot)],
+                   annot)],
              annot),
         [
           Continue(annot)
@@ -683,6 +629,15 @@ let continue_test = gen_module_test "continue_test"
         annot
       )
     ]
+;;
+
+let loop_tests =
+  [
+    while_test;
+    for_test;
+    break_test;
+    continue_test;
+  ]
 ;;
 
 let raise_test = gen_module_test "raise_test"
@@ -715,33 +670,37 @@ let try_test = gen_module_test "try_test"
         "$simplified_unique_name_0",
         [
           If (
-            Binop (
-              Call (
-                Builtin (
-                  Builtin_type, annot),
-                [Name ("$simplified_unique_name_0",
-                       annot)
-                ],
-                annot),
-              Is,
-              Name ("ValueError", annot),
-              annot),
+            Call(Builtin(Builtin_bool, annot),
+                 [Binop (
+                     Call (
+                       Builtin (
+                         Builtin_type, annot),
+                       [Name ("$simplified_unique_name_0",
+                              annot)
+                       ],
+                       annot),
+                     Is,
+                     Name ("ValueError", annot),
+                     annot)],
+                 annot),
             [Assign ("ret",
                      Str ("Error", annot), annot)
             ],
             [
               If (
-                Binop (
-                  Call (
-                    Builtin (
-                      Builtin_type, annot),
-                    [Name (
-                        "$simplified_unique_name_0", annot)
-                    ],
-                    annot),
-                  Is,
-                  Name ("StopIteration", annot),
-                  annot),
+                Call(Builtin(Builtin_bool, annot),
+                     [Binop (
+                         Call (
+                           Builtin (
+                             Builtin_type, annot),
+                           [Name (
+                               "$simplified_unique_name_0", annot)
+                           ],
+                           annot),
+                         Is,
+                         Name ("StopIteration", annot),
+                         annot)],
+                     annot),
                 [Assign ("e",
                          Name (
                            "$simplified_unique_name_0", annot),
@@ -763,119 +722,96 @@ let try_test = gen_module_test "try_test"
     ]
 ;;
 
-let bad_exception_handler_test = expect_error_test
-    "bad_exception_handler_test"
-    [Concrete.TryExcept(
-        [],
-        [
-          Concrete.ExceptHandler(
-            Some(Concrete.Name("foo", Concrete.Load, annot)),
-            Some(dummy_expr),
-            [],
-            annot
-          )
-        ],
-        [],
-        annot
-      )]
-    (Failure("Second argument to exception handler must be an identifier"))
+let triangle_def =
+  "def triangle(n):" ^
+  "\n\tcount = 0" ^
+  "\n\ti=0" ^
+  "\n\twhile count < n:" ^
+  "\n\t\ti += count" ^
+  "\n\t\tcount = count + 1" ^
+  "\n\treturn i" ^
+  "\n"
 ;;
 
-(* let triangle_def =
-   "def triangle(n):" ^
-   "\n\tcount = 0" ^
-   "\n\ti=0" ^
-   "\n\twhile count < n:" ^
-   "\n\t\ti += count" ^
-   "\n\t\tcount = count + 1" ^
-   "\n\treturn i" ^
-   "\n"
-   ;;
-
-   let triangle_ast =
-   Assign(
+let triangle_ast =
+  Assign(
     "triangle",
     FunctionVal(
       ["triangle$1_n"], (* This test is currently failing: Change this to ["n"] to make it succeed, but this is a bug *)
-      [Assign ("$simplified_unique_name_0",
-               Num (Int 0, annot),
-               annot);
-       Assign ("triangle$1_count",
-               Name ("$simplified_unique_name_0", annot),
-               annot);
-       Assign ("$simplified_unique_name_1",
-               Num (Int 0, annot),
-               annot);
-       Assign ("triangle$1_i",
-               Name ("$simplified_unique_name_1", annot),
-               annot);
-       While (
-         Compare (
-           Name ("triangle$1_count", annot),
-           [Python2_simplified_ast.Lt],
-           [Name ("triangle$1_n", annot)], annot),
-         [TryExcept (
-             [Assign (
-                 "$simplified_unique_name_6",
-                 Attribute (
-                   Name ("triangle$1_i", annot), "__iadd__",
-                   annot),
-                 annot);
-              Assign (
-                "$simplified_unique_name_3",
-                Name (
-                  "$simplified_unique_name_6", annot),
-                annot)
-             ],
-             [ExceptHandler (
-                 Some (Builtin (Builtin_AttributeError, annot)),
-                 None,
-                 [Assign (
-                     "$simplified_unique_name_5",
-                     Attribute (
-                       Name ("triangle$1_i", annot),
-                       "__add__", annot),
-                     annot);
-                  Assign (
-                    "$simplified_unique_name_3",
-                    Name (
-                      "$simplified_unique_name_5", annot),
-                    annot)
-                 ],
-                 annot)
-             ],
-             annot);
-          Assign ("$simplified_unique_name_4",
-                  Call (
-                    Name (
-                      "$simplified_unique_name_3", annot),
-                    [Name ("triangle$1_count", annot)], annot),
-                  annot);
-          Assign ("triangle$1_i",
-                  Name (
-                    "$simplified_unique_name_4", annot),
-                  annot);
-          Assign ("$simplified_unique_name_7",
-                  Call (
-                    Attribute (
-                      Name ("triangle$1_count", annot),
-                      "__add__", annot),
-                    [Num (Int 1, annot)],
+      [
+        Assign ("triangle$1_count",
+                Num (Int 0, annot),
+                annot);
+        Assign ("triangle$1_i",
+                Num (Int 0, annot),
+                annot);
+
+        While (
+          Call(Builtin(Builtin_bool, annot),
+               [Call (Attribute(Name ("triangle$1_count", annot),
+                                "__lt__",
+                                annot),
+                      [Name ("triangle$1_n", annot)],
+                      annot)],
+               annot),
+          [TryExcept (
+              [Assign (
+                  "$simplified_unique_name_1",
+                  Attribute (
+                    Name ("triangle$1_i", annot), "__iadd__",
                     annot),
                   annot);
-          Assign ("triangle$1_count",
-                  Name (
-                    "$simplified_unique_name_7", annot),
+              ],
+              "$simplified_unique_name_2",
+              [
+                If (
+                  Call(Builtin(Builtin_bool, annot),
+                       [Binop (
+                           Call (
+                             Builtin (
+                               Builtin_type, annot),
+                             [Name ("$simplified_unique_name_2",
+                                    annot)
+                             ],
+                             annot),
+                           Is,
+                           Builtin (Builtin_AttributeError, annot),
+                           annot)],
+                       annot),
+                  [Assign ("$simplified_unique_name_1",
+                           Attribute (
+                             Name ("triangle$1_i", annot), "__add__", annot),
+                           annot)
+                  ],
+                  [Raise (
+                      Name ("$simplified_unique_name_2", annot),
+                      annot)
+                  ],
                   annot)
-         ],
-         annot);
-       Return (Name("triangle$1_i", annot), annot);
+              ],
+              annot);
+           Assign ("triangle$1_i",
+                   Call(Name("$simplified_unique_name_1",
+                             annot),
+                        [Name ("triangle$1_count", annot)], annot),
+                   annot);
+           Assign ("triangle$1_count",
+                   Call (
+                     Attribute (
+                       Name ("triangle$1_count", annot),
+                       "__add__", annot),
+                     [Num (Int 1, annot)],
+                     annot),
+                   annot)
+          ],
+          annot);
+        Return (Name("triangle$1_i", annot), annot);
       ],
       annot),
     annot)
-   ;;
+;;
 
-   let big_test = gen_module_test "big_test"
+let big_test = gen_module_test "big_test"
     (triangle_def ^ "\n[triangle(1),triangle(7)]")
     [
       triangle_ast;
@@ -883,16 +819,12 @@ let bad_exception_handler_test = expect_error_test
           [
             Call(
               Name("triangle", annot),
-              [
-                Num(Int(1), annot)
-              ],
+              [Num(Int(1), annot)],
               annot
             );
             Call(
               Name("triangle", annot),
-              [
-                Num(Int(7), annot)
-              ],
+              [Num(Int(7), annot)],
               annot
             );
           ],
@@ -900,7 +832,7 @@ let bad_exception_handler_test = expect_error_test
         ),
            annot)
     ]
-   ;; *)
+;;
 
 (* Tests of lists and slicing *)
 let list_str = "[1,2,3,'four','five',2+4]";;
@@ -923,16 +855,16 @@ let list_test = gen_stmt_test "list_test"
     list_str
     list_expr;;
 
-(* let list_in_test = gen_stmt_test "lst_in_test"
+let list_in_test = gen_stmt_test "lst_in_test"
     ("5 in " ^ list_str)
-    (Compare(
-        Num(Int(5), annot),
-        [In],
-        [list_expr],
-        annot
-      )
+    (Call(Attribute(Num(Int(5), annot),
+                    "__contains__",
+                    annot),
+          [list_expr],
+          annot
+         )
     )
-   ;; *)
+;;
 
 let gen_slice_test (name : string) (slice : string) (expected_slice: 'a expr) =
   gen_stmt_test
@@ -949,7 +881,7 @@ let gen_slice_test (name : string) (slice : string) (expected_slice: 'a expr) =
 let list_tests =
   [
     list_test;
-    (* list_in_test; *)
+    list_in_test;
     (gen_slice_test "slice_test_1" "[0]"
        (Num(Int(0),annot)));
     (gen_slice_test "slice_test2" "[5-2]"
@@ -1041,44 +973,127 @@ let binop_tests =
              annot))
        "__add__");
   ]
-(* Run the tests *)
 
+let expect_error_test
+    (name : string)
+    (prog : 'a Concrete.stmt list)
+    (expected : exn) =
+  name>::
+  (fun _ ->
+     assert_raises
+       expected
+       (fun _ ->
+          let ctx = Python2_simplification_ctx.create_new_simplification_ctx 0 "$simp" in
+          (List.concat (List.map (Python2_ast_simplifier.simplify_stmt ctx) prog)))
+  )
+;;
+
+(* This is useful when creating tests for expect_error_test *)
+let dummy_expr = Concrete.Num(Int(0), annot);;
+
+let gen_some_concrete_assignment target =
+  Concrete.Assign(
+    [target],
+    dummy_expr,
+    annot)
+;;
+
+let bad_funcdef_test = expect_error_test "bad_funcdef_test"
+    [
+      Concrete.FunctionDef(
+        "func",
+        ([Concrete.Num(Int(5), annot)],
+         None,
+         None,
+         []),
+        [Concrete.Pass(annot)],
+        [],
+        annot
+      )
+    ]
+    (Failure("The arguments in a function definition must be identifiers"))
+;;
+
+let bad_exception_handler_test = expect_error_test
+    "bad_exception_handler_test"
+    [Concrete.TryExcept(
+        [],
+        [
+          Concrete.ExceptHandler(
+            Some(Concrete.Name("foo", Concrete.Load, annot)),
+            Some(dummy_expr),
+            [],
+            annot
+          )
+        ],
+        [],
+        annot
+      )]
+    (Failure("Second argument to exception handler must be an identifier"))
+;;
+
+let error_tests =
+  let module Simplify = Python2_ast_simplifier in
+  [
+    expect_error_test "assign_to_num"
+      [(gen_some_concrete_assignment
+          (Concrete.Num(Int(0), annot)))]
+      (Simplify.Invalid_assignment("can't assign to literal"));
+    expect_error_test "assign_to_str"
+      [(gen_some_concrete_assignment
+          (Concrete.Str("", annot)))]
+      (Simplify.Invalid_assignment("can't assign to literal"));
+    expect_error_test "assign_to_bool"
+      [(gen_some_concrete_assignment
+          (Concrete.Bool(true, annot)))]
+      (Simplify.Invalid_assignment("can't assign to literal"));
+    expect_error_test "assign_to_boolop"
+      [(gen_some_concrete_assignment
+          (Concrete.BoolOp(Concrete.And, [dummy_expr; dummy_expr], annot)))]
+      (Simplify.Invalid_assignment("can't assign to operator"));
+    expect_error_test "assign_to_binop"
+      [(gen_some_concrete_assignment
+          (Concrete.BinOp(dummy_expr, Concrete.Add, dummy_expr, annot)))]
+      (Simplify.Invalid_assignment("can't assign to operator"));
+    expect_error_test "assign_to_unaryop"
+      [(gen_some_concrete_assignment
+          (Concrete.UnaryOp(Concrete.UAdd, dummy_expr, annot)))]
+      (Simplify.Invalid_assignment("can't assign to operator"));
+    expect_error_test "assign_to_ifexp"
+      [(gen_some_concrete_assignment
+          (Concrete.IfExp(dummy_expr, dummy_expr, dummy_expr, annot)))]
+      (Simplify.Invalid_assignment("can't assign to conditional expression"));
+    expect_error_test "assign_to_compare"
+      [(gen_some_concrete_assignment
+          (Concrete.Compare(dummy_expr, [Concrete.Lt], [dummy_expr], annot)))]
+      (Simplify.Invalid_assignment("can't assign to comparison"));
+    expect_error_test "assign_to_call"
+      [(gen_some_concrete_assignment
+          (Concrete.Call(dummy_expr, [], [], None, None, annot)))]
+      (Simplify.Invalid_assignment("can't assign to function call"));
+    bad_funcdef_test;
+    bad_exception_handler_test;
+  ]
+;;
+
+(* Run the tests *)
 let tests =
   "Test_simplified_ast">:::
+  literal_tests @
+  operator_tests @
+  binop_tests @
+  list_tests @
+  loop_tests @
   [
-    int_test;
-    none_test;
-    float_test;
-    float_zero_test;
-    unop_test;
-    unop_not_test;
-    (* boolop_and_test;
-       boolop_or_test;
-       boolop_all_test; *)
-    var_assign_test;
-    var_double_assign_test;
-    (* var_assign_from_tuple_test; *)
-    assign_to_index_test;
-    assign_to_slice_test;
-    assign_to_attribute_test;
-    var_aug_assign_test;
-    (* var_cmp_test; *)
+    var_cmp_test;
     if_test;
     funcdef_test;
-    bad_funcdef_test;
     call_test;
     attribute_test;
     attribute_call_test;
     tuple_test;
-    while_test;
-    for_test;
-    break_test;
-    continue_test;
     raise_test;
     try_test;
-    bad_exception_handler_test;
-    (* big_test; *)
-  ]
-  @ binop_tests
-  @ list_tests
-  @ bad_assign_tests
+    big_test;
+  ] @
+  error_tests

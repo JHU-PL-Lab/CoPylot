@@ -7,11 +7,13 @@ type 'a modl =
 and 'a stmt =
     | Assign of identifier (* target *) * 'a expr (* value *) * 'a
   | Return of 'a expr (* value *) * 'a
+  (* We maintain an invariant that the test statement of a while loop is always an actual boolean value. *)
   | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a
+  (* We maintain the same invariant for if statements as for while loops *)
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
-(* Raise is very complicated, with different behaviors based on the
-     number of arguments it recieves. For simplicity we require that
-     it take exactly one argument, which is the value to be raised. *)
+  (* Raise is very complicated, with different behaviors based on the
+       number of arguments it recieves. For simplicity we require that
+       it take exactly one argument, which is the value to be raised. *)
   | Raise of 'a expr (* value *) * 'a
   | TryExcept of 'a stmt list (* body *) * identifier (* exn name *) * 'a stmt list (* handlers *) * 'a
   | Pass of 'a
@@ -21,7 +23,7 @@ and 'a stmt =
 [@@deriving eq, ord, show]
 
 and 'a expr =
-  | UnaryOp of unaryop (* op *) * 'a expr (* value *) * 'a
+    | UnaryOp of unaryop (* op *) * 'a expr (* value *) * 'a
   | Binop of 'a expr (* right *) * binop (* op *) * 'a expr (* right *) * 'a
   | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a
   | Attribute of 'a expr (* object *) * string (* attr *) * 'a

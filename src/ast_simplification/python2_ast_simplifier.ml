@@ -486,7 +486,11 @@ and simplify_stmt ctx
   | Concrete.While (test, body, _, annot) ->
     let test_bindings, test_result = simplify_expr test in
     test_bindings @
-    [ Simplified.While(test_result,
+    (* We maintain an invariant that the test statement of a while loop is
+       always an actual boolean value. Ensure this by calling bool(). *)
+    [ Simplified.While(Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
+                                       [test_result],
+                                       annot),
                        (* Re-bind the test variable after each loop *)
                        map_and_concat simplify_stmt body @ test_bindings,
                        annot)]
@@ -494,7 +498,9 @@ and simplify_stmt ctx
   | Concrete.If (test, body, orelse, annot) ->
     let test_bindings, test_result = simplify_expr test in
     test_bindings @
-    [Simplified.If(test_result,
+    [Simplified.If(Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
+                                   [test_result],
+                                   annot),
                    map_and_concat simplify_stmt body,
                    map_and_concat simplify_stmt orelse,
                    annot)]
@@ -651,7 +657,9 @@ and simplify_expr
     let all_bindings =
       test_bindings @
       [
-        Simplified.If(test_result,
+        Simplified.If(Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
+                                   [test_result],
+                                   annot),
                       body_bindings @
                       [Simplified.Assign(result_name, body_result, annot)],
                       orelse_bindings @
@@ -876,7 +884,9 @@ and simplify_excepthandlers ctx exn_id handlers annot =
     typ_bindings @
     [
       Simplified.If(
-        typ_result,
+        Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
+                                   [typ_result],
+                                   annot),
         name_bind @ map_and_concat (simplify_stmt ctx) body,
         simplify_excepthandlers ctx exn_id rest annot,
         annot
