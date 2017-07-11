@@ -26,6 +26,22 @@ let wrap_obj ctx annot
   obj_loc
 ;;
 
+let wrap_int ctx annot
+    (x : value_variable)
+  : statement list * memory_variable =
+  let obj_bindings, obj_loc = wrap_obj ctx annot x in
+  (* TODO: Bind builtins *)
+  obj_bindings, obj_loc
+;;
+
+let wrap_float ctx annot
+    (x : value_variable)
+  : statement list * memory_variable =
+  let obj_bindings, obj_loc = wrap_obj ctx annot x in
+  (* TODO: Bind builtins *)
+  obj_bindings, obj_loc
+;;
+
 let wrap_bool ctx annot
     (x : value_variable)
   : statement list * memory_variable =
@@ -34,6 +50,34 @@ let wrap_bool ctx annot
   obj_bindings, obj_loc
 ;;
 
-(* TODO *)
-let wrap_list _ _ _ = failwith "";;
-let wrap_tuple _ _ _ = failwith "";;
+let wrap_string ctx annot
+    (x : value_variable)
+  : statement list * memory_variable =
+  let obj_bindings, obj_loc = wrap_obj ctx annot x in
+  (* TODO: Bind builtins *)
+  obj_bindings, obj_loc
+;;
+
+let wrap_list ctx annot
+    (x : value_variable)
+  : statement list * memory_variable =
+  let obj_bindings, obj_loc = wrap_obj ctx annot x in
+  (* TODO: Bind builtins *)
+  obj_bindings, obj_loc
+;;
+
+let wrap_tuple ctx annot
+    (x : value_variable)
+  : statement list * memory_variable =
+  let obj_bindings, obj_loc = wrap_obj ctx annot x in
+  (* TODO: Bind builtins *)
+  obj_bindings, obj_loc
+;;
+
+let wrap_func ctx annot
+    (x : value_variable)
+  : statement list * memory_variable =
+  let obj_bindings, obj_loc = wrap_obj ctx annot x in
+  (* TODO: Bind builtins *)
+  obj_bindings, obj_loc
+;;

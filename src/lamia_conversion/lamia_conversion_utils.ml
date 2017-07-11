@@ -13,6 +13,16 @@ let annotate_directive ctx annot d =
   Statement(get_next_uid ctx annot, d)
 ;;
 
+let store_value ctx annot
+    (v : value_expression) =
+  let value_name = Value_variable(gen_unique_name ctx annot) in
+  [
+    annotate_directive ctx annot @@
+    Let_expression(value_name, v);
+  ],
+  value_name
+;;
+
 let lookup ctx annot id =
   let scopeval = Value_variable(gen_unique_name ctx annot) in
   let varname = Value_variable(gen_unique_name ctx annot) in

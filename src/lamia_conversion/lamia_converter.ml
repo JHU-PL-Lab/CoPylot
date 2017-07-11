@@ -158,31 +158,58 @@ and convert_expr
   | Attribute _ ->
     raise @@ Jhupllib_utils.Not_yet_implemented "Call/Attribute scare me"
 
-  | List(elts, annot) ->
+  | List (elts, annot) ->
     let elt_bindings, elt_results = convert_list (lookup ctx annot) elts in
-    let list_val = Value_variable(gen_unique_name ctx annot) in
-    let all_list_bindings =
-      ignore list_val;
-      elt_bindings @
-      [
-        (* TODO: Store list value in list_val *)
-      ]
+    let store_list, list_val =
+      store_value ctx annot @@
+      List_value elt_results
     in
-    let obj_bindings, obj_result = wrap_list ctx annot elt_results in
-    all_list_bindings @ obj_bindings, obj_result
+    let obj_bindings, obj_result = wrap_list ctx annot list_val in
+    elt_bindings @ store_list @ obj_bindings,
+    obj_result
 
-  | Tuple(elts, annot) ->
+  | Tuple (elts, annot) ->
     let elt_bindings, elt_results = convert_list (lookup ctx annot) elts in
-    let tuple_val = Value_variable(gen_unique_name ctx annot) in
-    let all_list_bindings =
-      ignore tuple_val;
-      elt_bindings @
-      [
-        (* TODO: Store tuple value in tuple_val *)
-      ]
+    let store_tuple, tuple_val =
+      store_value ctx annot @@
+      Tuple_value elt_results
     in
-    let obj_bindings, obj_result = wrap_tuple ctx annot elt_results in
-    all_list_bindings @ obj_bindings, obj_result
+    let obj_bindings, obj_result = wrap_tuple ctx annot tuple_val in
+    elt_bindings @ store_tuple @ obj_bindings,
+    obj_result
 
-  | _ ->
-    raise @@ Jhupllib_utils.Not_yet_implemented "Convert_expr"
+  | Num (num, annot) ->
+    begin
+      match num with
+      | Python2_ast_types.Int n ->
+        let storage, int_val =
+          store_value ctx annot @@ Integer_literal n
+        in
+        let wrapping, obj = wrap_int ctx annot int_val in
+        storage @ wrapping, obj
+      | Python2_ast_types.Float _ ->
+        raise @@ Jhupllib_utils.Not_yet_implemented "wrap_float"
+    end
+
+  | Str (s, annot) ->
+    let storage, int_val =
+      store_value ctx annot @@ String_literal s
+    in
+    let wrapping, obj = wrap_int ctx annot int_val in
+    storage @ wrapping, obj
+
+  | Bool (b, annot) ->
+    let storage, int_val =
+      store_value ctx annot @@ Boolean_literal b
+    in
+    let wrapping, obj = wrap_int ctx annot int_val in
+    storage @ wrapping, obj
+
+  | Builtin _ ->
+    raise @@ Jhupllib_utils.Not_yet_implemented "Convert builtin"
+
+  | FunctionVal _ ->
+    raise @@ Jhupllib_utils.Not_yet_implemented "Convert functionval"
+
+  | Name (id, annot) ->
+    lookup ctx annot id

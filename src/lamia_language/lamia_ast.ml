@@ -26,8 +26,11 @@ type value_expression =
   | Integer_literal of int
   | String_literal of string
   | Boolean_literal of bool
+  | List_value of memory_variable list
+  | Tuple_value of memory_variable list
   | Function_expression of memory_variable list * block
   | None_literal
+  | Empty_binding
 [@@deriving eq, ord, show]
 
 and binary_operator =
