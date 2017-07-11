@@ -544,69 +544,39 @@ let attribute_call_test = gen_stmt_test "attribute_test"
       ))
 ;;
 
-(* let if_test = gen_module_test "if_test"
-    "if x > 2:\n\tx = 3\nelif x < 0: x *= -1\nelse: pass"
+let if_test = gen_module_test "if_test"
+    "if x > 2:\n\tx = 3\nelif x < 0: x = x*-1\nelse: pass"
     [If (
-        Compare (
-          Name ("x", annot), [Python2_simplified_ast.Gt],
-          [Num(Int 2, annot)],
-          annot),
-        [Assign ("$simplified_unique_name_5",
-                 Num(Int 3, annot),
-                 annot);
-         Assign ("x",
-                 Name ("$simplified_unique_name_5", annot), annot)
+        Call(Attribute(Name ("x", annot),
+                       "__gt__",
+                       annot),
+             [Num(Int 2, annot)],
+             annot),
+        [
+          Assign ("x", Num(Int 3, annot), annot);
         ],
         [If (
-            Compare (
-              Name ("x", annot),
-              [Python2_simplified_ast.Lt],
-              [Num (Int 0, annot) ],
-              annot),
-            [TryExcept (
-                [Assign ("$simplified_unique_name_4",
-                         Attribute (
-                           Name ("x", annot), "__imul__", annot),
-                         annot);
-                 Assign ("$simplified_unique_name_1",
-                         Name (
-                           "$simplified_unique_name_4", annot),
-                         annot)
-                ],
-                [ExceptHandler (
-                    (Some (Builtin (Builtin_AttributeError, annot))),
-                    None,
-                    [Assign (
-                        "$simplified_unique_name_3",
+            Call(Attribute(Name ("x", annot),
+                           "__lt__",
+                           annot),
+                 [Num(Int 0, annot)],
+                 annot),
+            [
+              Assign ("x",
+                      Call (
                         Attribute (
                           Name ("x", annot), "__mul__",
                           annot),
-                        annot);
-                     Assign (
-                       "$simplified_unique_name_1",
-                       Name (
-                         "$simplified_unique_name_3", annot),
-                       annot)
-                    ],
-                    annot)
-                ],
-                annot);
-             Assign ("$simplified_unique_name_2",
-                     Call (
-                       Name ("$simplified_unique_name_1",
-                             annot),
-                       [Num(Int (-1), annot)],
-                       annot),
-                     annot);
-             Assign ("x",
-                     Name ("$simplified_unique_name_2", annot),
-                     annot)
+                        [Num(Int (-1), annot)],
+                        annot),
+                      annot)
             ],
-            [Pass annot], annot)
+            [Pass annot],
+            annot)
         ],
         annot)
     ]
-   ;; *)
+;;
 
 let tuple_test = gen_stmt_test "tuple_test"
     "(1,2,3,4)"
@@ -1093,7 +1063,7 @@ let tests =
     assign_to_attribute_test;
     var_aug_assign_test;
     (* var_cmp_test; *)
-    (* if_test; *)
+    if_test;
     funcdef_test;
     bad_funcdef_test;
     call_test;

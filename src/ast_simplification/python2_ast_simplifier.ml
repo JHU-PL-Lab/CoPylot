@@ -494,9 +494,7 @@ and simplify_stmt ctx
   | Concrete.If (test, body, orelse, annot) ->
     let test_bindings, test_result = simplify_expr test in
     test_bindings @
-    [Simplified.If(Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
-                                   [test_result],
-                                   annot),
+    [Simplified.If(test_result,
                    map_and_concat simplify_stmt body,
                    map_and_concat simplify_stmt orelse,
                    annot)]
