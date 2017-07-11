@@ -65,84 +65,98 @@ let unop_not_test = gen_stmt_test "unop_not_test"
     (UnaryOp(Not, Name("x", annot), annot))
 ;;
 
-(* let boolop_and_test = gen_stmt_test "boolop_and_test"
+let boolop_and_test = gen_module_test "boolop_and_test"
     "x and True and -5"
-    (BoolOp(
-        And,
-        [
-          Name("x", annot);
-          Bool(true, annot);
-          Num(Int(-5), annot);
+    [
+      Assign ("$simplified_unique_name_0",
+              Name ("x", annot), annot);
+      If (
+        Call (
+          Builtin (Python2_ast_types.Builtin_bool,
+                   annot),
+          [Name ("$simplified_unique_name_0", annot)],
+          annot),
+        [Assign ("$simplified_unique_name_1",
+                 Bool (true, annot), annot);
+         If (
+           Call (
+             Builtin (
+               Python2_ast_types.Builtin_bool, annot),
+             [Name ("$simplified_unique_name_1",
+                    annot)
+             ],
+             annot),
+           [Assign ("$simplified_unique_name_2",
+                    Num (Int (-5), annot),
+                    annot)
+           ],
+           [Assign ("$simplified_unique_name_2",
+                    Name ("$simplified_unique_name_1",
+                          annot),
+                    annot)
+           ],
+           annot);
+         Assign ("$simplified_unique_name_3",
+                 Name ("$simplified_unique_name_2", annot),
+                 annot)
         ],
-        annot
-      )
-    )
-   ;;
+        [Assign ("$simplified_unique_name_3",
+                 Name ("$simplified_unique_name_0", annot), annot)
+        ],
+        annot);
+      Expr(Name ("$simplified_unique_name_3", annot), annot)
+    ]
+;;
 
-   let boolop_or_test = gen_stmt_test "boolop_or_test"
+let boolop_or_test = gen_module_test "boolop_or_test"
     "x or False or 0"
-    (BoolOp(
-        Or,
-        [
-          Name("x", annot);
-          Bool(false, annot);
-          Num(Int(0), annot);
+    [
+      Assign ("$simplified_unique_name_0",
+              Name ("x", annot), annot);
+      If (
+        Call (
+          Builtin (Python2_ast_types.Builtin_bool,
+                   annot),
+          [Name ("$simplified_unique_name_0", annot)],
+          annot),
+        [Assign ("$simplified_unique_name_3",
+                 Name ("$simplified_unique_name_0", annot), annot)
         ],
-        annot
-      )
-    )
-   ;;
-
-   let boolop_all_test = gen_stmt_test "boolop_all_test"
-    "a and b and not c or d and not c or not a and not b"
-    ( (* Expected order of operations is not, then and, then or *)
-      BoolOp(
-        Or,
-        [
-          BoolOp(And,
-                 [
-                   Name("a", annot);
-                   Name("b", annot);
-                   IfExp(Name("c", annot),
-                         Bool(false, annot),
-                         Bool(true, annot),
-                         annot);
-
-                 ],
-                 annot);
-          BoolOp(And,
-                 [
-                   Name("d", annot);
-                   IfExp(Name("c", annot),
-                         Bool(false, annot),
-                         Bool(true, annot),
-                         annot)                 ],
-                 annot);
-          BoolOp(And,
-                 [
-                   IfExp(Name("a", annot),
-                         Bool(false, annot),
-                         Bool(true, annot),
-                         annot);
-                   IfExp(Name("b", annot),
-                         Bool(false, annot),
-                         Bool(true, annot),
-                         annot);
-                 ],
-                 annot);
+        [Assign ("$simplified_unique_name_1",
+                 Bool (false, annot), annot);
+         If (
+           Call (
+             Builtin (
+               Python2_ast_types.Builtin_bool, annot),
+             [Name ("$simplified_unique_name_1",
+                    annot)
+             ],
+             annot),
+           [Assign ("$simplified_unique_name_2",
+                    Name ("$simplified_unique_name_1",
+                          annot),
+                    annot)
+           ],
+           [Assign ("$simplified_unique_name_2",
+                    Num (Int 0, annot),
+                    annot)
+           ],
+           annot);
+         Assign ("$simplified_unique_name_3",
+                 Name ("$simplified_unique_name_2", annot),
+                 annot)
         ],
-        annot
-      )
-    )
-   ;; *)
+        annot);
+      Expr(Name ("$simplified_unique_name_3", annot), annot)
+    ]
+;;
 
 let operator_tests =
   [
     unop_test;
     unop_not_test;
-    (* boolop_and_test;
-       boolop_or_test;
-       boolop_all_test; *)
+    boolop_and_test;
+    boolop_or_test;
   ]
 ;;
 
