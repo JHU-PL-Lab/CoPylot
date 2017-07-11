@@ -33,3 +33,7 @@ let wrap_bool ctx annot
   (* TODO: Bind builtins *)
   obj_bindings, obj_loc
 ;;
+
+(* TODO *)
+let wrap_list _ _ _ = failwith "";;
+let wrap_tuple _ _ _ = failwith "";;

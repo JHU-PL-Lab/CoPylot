@@ -135,5 +135,54 @@ and convert_expr
     let obj_bindings, obj_result = wrap_bool ctx annot value_result in
     value_bindings @ obj_bindings, obj_result
 
+  | UnaryOp (op, value, annot) ->
+    let value_lookups, value_result = lookup_starvalue ctx annot value in
+    let op_bindings, op_result =
+      match op with
+      | Not ->
+        let boolval = Value_variable(gen_unique_name ctx annot) in
+        let result = Value_variable(gen_unique_name ctx annot) in
+        value_lookups @
+        [
+          annotate_directive annot @@
+          Let_get(boolval, value_result);
+          annotate_directive annot @@
+          Let_unop(result, Unop_not, boolval);
+        ],
+        result
+    in
+    let obj_bindings, obj_result = wrap_bool ctx annot op_result in
+    op_bindings @ obj_bindings, obj_result
+
+  | Call _
+  | Attribute _ ->
+    raise @@ Jhupllib_utils.Not_yet_implemented "Call/Attribute scare me"
+
+  | List(elts, annot) ->
+    let elt_bindings, elt_results = convert_list (lookup ctx annot) elts in
+    let list_val = Value_variable(gen_unique_name ctx annot) in
+    let all_list_bindings =
+      ignore list_val;
+      elt_bindings @
+      [
+        (* TODO: Store list value in list_val *)
+      ]
+    in
+    let obj_bindings, obj_result = wrap_list ctx annot elt_results in
+    all_list_bindings @ obj_bindings, obj_result
+
+  | Tuple(elts, annot) ->
+    let elt_bindings, elt_results = convert_list (lookup ctx annot) elts in
+    let tuple_val = Value_variable(gen_unique_name ctx annot) in
+    let all_list_bindings =
+      ignore tuple_val;
+      elt_bindings @
+      [
+        (* TODO: Store tuple value in tuple_val *)
+      ]
+    in
+    let obj_bindings, obj_result = wrap_tuple ctx annot elt_results in
+    all_list_bindings @ obj_bindings, obj_result
+
   | _ ->
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert_expr"

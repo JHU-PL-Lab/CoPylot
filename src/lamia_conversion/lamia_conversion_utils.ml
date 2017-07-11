@@ -88,3 +88,15 @@ let assign_python_variable ctx annot id y =
   in
   scope_update_stmts
 ;;
+
+let convert_list convert_func lst =
+  let converted_list = List.map convert_func lst in
+  let extract
+      (tup1 : 'a list * 'b )
+      (tup2 : 'a list * 'b list)
+    : 'a list * 'b list =
+    (fst tup1 @ fst tup2, (snd tup1)::(snd tup2)) in
+  let bindings, results =
+    List.fold_right extract converted_list ([], []) in
+  bindings, results
+;;
