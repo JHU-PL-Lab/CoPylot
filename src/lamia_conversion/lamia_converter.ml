@@ -105,8 +105,14 @@ and convert_stmt
                  Block(new_handler))
     ]
 
-  | _ ->
-    raise @@ Jhupllib_utils.Not_yet_implemented "Convert_stmt"
+  | Pass _ ->
+    []
+
+  | Break _ ->
+    raise @@ Jhupllib_utils.Not_yet_implemented "Convert break stmt"
+
+  | Continue _ ->
+    raise @@ Jhupllib_utils.Not_yet_implemented "Convert continue stmt"
 
 and convert_expr
     (ctx : conversion_context)
