@@ -148,25 +148,25 @@ and normalize_expr ctx
 
   | Simplified.Num (n, annot) ->
     gen_normalized_assignment ctx annot @@
-    Normalized.Literal(Normalized.Num(n), annot)
+    Normalized.Num(n, annot)
 
   | Simplified.Str (s, annot) ->
     gen_normalized_assignment ctx annot @@
-    Normalized.Literal(Normalized.Str(s), annot)
+    Normalized.Str(s, annot)
 
   | Simplified.Bool (b, annot) ->
     gen_normalized_assignment ctx annot @@
-    Normalized.Literal(Normalized.Bool(b), annot)
+    Normalized.Bool(b, annot)
 
   | Simplified.Builtin (b, annot) ->
     gen_normalized_assignment ctx annot @@
-    Normalized.Literal(Normalized.Builtin(b), annot)
+    Normalized.Builtin(b, annot)
 
   | Simplified.FunctionVal (args, body, annot) ->
     gen_normalized_assignment ctx annot @@
-    Normalized.Literal(Normalized.FunctionVal(args,
-                                              map_and_concat normalize_stmt body),
-                       annot)
+    Normalized.FunctionVal(args,
+                           map_and_concat normalize_stmt body,
+                           annot)
 
   | Simplified.Attribute (obj, attr, annot) ->
     (* Attribute lookups follow a rather complicated process. We first look for

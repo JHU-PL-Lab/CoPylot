@@ -23,16 +23,12 @@ and 'a expr =
   | Attribute of identifier (* object *) * identifier (* attr *) * 'a
   | List of identifier list (* elts *) * 'a
   | Tuple of identifier list (* elts *) * 'a
-  | Literal of 'a literal * 'a
+  | Num of number * 'a
+  | Str of string * 'a
+  | Bool of bool * 'a
+  | Builtin of builtin * 'a
+  | FunctionVal of identifier list (* args *) * 'a stmt list (* body *) * 'a
   | Name of identifier (* id *) * 'a
-[@@deriving eq, ord, show, to_yojson]
-
-and 'a literal =
-    | Num of number
-  | Str of string
-  | Bool of bool
-  | Builtin of builtin
-  | FunctionVal of identifier list (* args *) * 'a stmt list (* body *)
 [@@deriving eq, ord, show, to_yojson]
 
 and binop = Is

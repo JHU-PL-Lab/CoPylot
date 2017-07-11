@@ -31,50 +31,54 @@ let rec pp_modl fmt = function
 and pp_stmt indent fmt body =
   fprintf fmt "%s" indent; ignore body; (* TODO: Re-implement this! *)
   (* begin
-    match body with
-    | Assign (target,value,_) ->
+     match body with
+     | Assign (target,value,_) ->
       fprintf fmt "%a = %a"
         pp_id target
         (pp_compound_expr indent) value
-    | Return (value,_) ->
+     | Return (value,_) ->
       fprintf fmt "return %a"
         pp_id value
-    (* | Print (_,values,_) ->
+     (* | Print (_,values,_) ->
       fprintf fmt "print %a"
         (pp_list pp_id) values *)
-    (* (pp_option pp_simple_expr) dest *)
-    | Raise (value,_) ->
+     (* (pp_option pp_simple_expr) dest *)
+     | Raise (value,_) ->
       fprintf fmt "raise %a"
         pp_id value
-    | Pass _ ->
+     | Pass _ ->
       fprintf fmt "pass"
-  end; *)
+     end; *)
   fprintf fmt "%s" ";"
 
 and pp_compound_expr indent fmt body =
   ignore indent; ignore fmt; ignore body; (* TODO: Re-implement this! *)
   (* match body with
-  | Binop (left,op,right) ->
-    fprintf fmt "%a %a %a"
+     | Binop (left,op,right) ->
+     fprintf fmt "%a %a %a"
       pp_id left
       pp_binop op
       pp_id right
-  | Call (func,args) ->
-    fprintf fmt "%a(%a)"
+     | Call (func,args) ->
+     fprintf fmt "%a(%a)"
       pp_id func
       (pp_list pp_id) args
-  | Attribute (obj,attr) ->
-    fprintf fmt "%a.%a"
+     | Attribute (obj,attr) ->
+     fprintf fmt "%a.%a"
       pp_id obj
       pp_id attr
-  | List (lst) ->
-    fprintf fmt "[%a]"
+     | List (lst) ->
+     fprintf fmt "[%a]"
       (pp_list pp_id) lst
-  | Tuple (lst) ->
-    fprintf fmt "(%a)"
+     | Tuple (lst) ->
+     fprintf fmt "(%a)"
       (pp_list pp_id) lst
-  | Literal (l) -> (pp_literal indent) fmt l
-  | Name (id)   -> pp_id fmt id *)
+      | Num (n)      -> pp_num fmt n
+      | Str (s)      -> pp_str fmt s
+      | Bool (b)     -> pp_print_bool fmt b
+      | Builtin (bi) -> pp_builtin fmt bi
+      | FunctionVal (args, body) -> pp_functionval indent fmt args body
+     | Name (id)   -> pp_id fmt id *)
 
 and pp_id fmt id =
   if id = "None" || id = "True" || id = "False"
@@ -82,13 +86,6 @@ and pp_id fmt id =
     failwith (id ^ "is not a valid identifier!")
   else
     fprintf fmt "%s" id
-
-and pp_literal indent fmt = function
-  | Num (n)      -> pp_num fmt n
-  | Str (s)      -> pp_str fmt s
-  | Bool (b)     -> pp_print_bool fmt b
-  | Builtin (bi) -> pp_builtin fmt bi
-  | FunctionVal (args, body) -> pp_functionval indent fmt args body
 
 and pp_num fmt = function
   | Int n   -> fprintf fmt "%d" n
