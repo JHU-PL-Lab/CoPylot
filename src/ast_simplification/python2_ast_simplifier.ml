@@ -13,6 +13,29 @@ let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
 ;;
 
+(* Add a "return None" if the function might not explicitly Return
+   otherwise *)
+let add_return stmts annot =
+  let rec needs_return = function
+    (* Returns true iff we can't guarantee that the function will explicitly
+       return. Not super efficient or important: Could just always return true,
+       in which case we'd generate dead code sometimes. Oh well. *)
+    | [] -> true
+    | [Concrete.Return _] -> false
+    (* If both branches of the if end in a return, we're good! *)
+    | Concrete.If(_,body,orelse,_)::rest ->
+      if (needs_return body) || (needs_return orelse) then
+        needs_return rest
+      else
+        false
+    | _::tl -> needs_return tl
+  in
+  if needs_return stmts then
+    stmts @ [Concrete.Return(Some(Concrete.NoneExpr annot), annot)]
+  else
+    stmts
+;;
+
 let simplify_list simp_func lst =
   let simplified_list = List.map simp_func lst in
   let extract
@@ -46,6 +69,7 @@ and simplify_stmt ctx
   match s with
   | Concrete.FunctionDef (func_name, args, body, _, annot)->
     let simplified_args = simplify_arguments args in
+    let body = add_return body annot in
     let simplified_body = map_and_concat simplify_stmt body in
     [Simplified.Assign(func_name,
                        Simplified.FunctionVal(

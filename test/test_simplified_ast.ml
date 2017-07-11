@@ -461,6 +461,39 @@ let funcdef_test = gen_module_test "funcdef_test"
     ]
 ;;
 
+let no_ret_test = gen_module_test "no_ret_test"
+    "def func(arg):\n\tx = 5"
+    [
+      Assign("func",
+             FunctionVal(["func$1_arg"],
+                         [
+                           Assign("func$1_x", Num(Int 5, annot), annot);
+                           Return(Name("*None", annot), annot);
+                         ],
+                         annot),
+             annot);
+    ]
+;;
+
+
+let not_func_test = gen_module_test "not_func_test"
+    "def notfunc(arg):\n\tif arg:\n\t\treturn False\n\telse:\n\t\treturn True"
+    [
+      Assign("notfunc",
+             FunctionVal(["notfunc$1_arg"],
+                         [
+                           If(Call(Builtin(Builtin_bool, annot),
+                                   [Name("notfunc$1_arg", annot)],
+                                   annot),
+                              [Return(Bool(false, annot), annot)],
+                              [Return(Bool(true, annot), annot)],
+                              annot);
+                         ],
+                         annot),
+             annot);
+    ]
+;;
+
 let call_test = gen_stmt_test "call_test"
     "func(1,x,'foo')"
     (Call(
@@ -1169,6 +1202,8 @@ let tests =
     var_cmp_test;
     if_test;
     funcdef_test;
+    no_ret_test;
+    not_func_test;
     call_test;
     attribute_test;
     attribute_call_test;
