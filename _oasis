@@ -90,6 +90,7 @@ Library "lamia_conversion"
   Modules:
     Lamia_conversion_ctx,
     Lamia_conversion_utils,
+    Lamia_object_defs,
     Lamia_converter
   BuildDepends:
     batteries,

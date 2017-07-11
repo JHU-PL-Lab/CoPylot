@@ -65,6 +65,12 @@ let get_starvalue ctx annot y =
   starvalue
 ;;
 
+let lookup_starvalue ctx annot id =
+  let lookup_bindings, lookup_result = lookup ctx annot id in
+  let get_bindings, get_result = get_starvalue ctx annot lookup_result in
+  lookup_bindings @ get_bindings, get_result
+;;
+
 let assign_python_variable ctx annot id y =
   let scope_update_directives =
     let varname = Value_variable(gen_unique_name ctx annot) in

@@ -3,6 +3,7 @@ open Lamia_ast;;
 open Python2_normalized_ast;;
 open Lamia_conversion_ctx;;
 open Lamia_conversion_utils;;
+open Lamia_object_defs;;
 
 let rec convert_module
     (ctx : conversion_context)
@@ -33,23 +34,20 @@ and convert_stmt
     ]
 
   | While (test, body, annot) ->
-    let lookup_bindings, lookup_result = lookup ctx annot test in
-    let value_bindings, value_result = get_starvalue ctx annot lookup_result in
-    let all_bindings = lookup_bindings @ value_bindings in
-    all_bindings @
+    let value_bindings, value_result = lookup_starvalue ctx annot test in
+    value_bindings @
     [
       annotate_directive annot @@
       Lamia_ast.While(value_result,
                       Block(map_and_concat (convert_stmt ctx) body @
-                            all_bindings));
+                            value_bindings));
     ]
 
   | If (test, body, orelse, annot) ->
-    let lookup_bindings, lookup_result = lookup ctx annot test in
-    let value_bindings, value_result = get_starvalue ctx annot lookup_result in
+    let value_bindings, value_result = lookup_starvalue ctx annot test in
     let test_result = Value_variable(gen_unique_name ctx annot) in
     let test_bindings =
-      lookup_bindings @ value_bindings @
+      value_bindings @
       [
         annotate_directive annot @@
         Let_get(test_result, value_result);
@@ -118,4 +116,24 @@ and convert_expr
     (ctx : conversion_context)
     (s : 'a expr)
   : statement list * memory_variable =
-  ignore ctx; ignore s; failwith "NYI: convert_expr"
+  let annotate_directive annot d = annotate_directive ctx annot d in
+  match s with
+  | Binop (left, op, right, annot) ->
+    let left_lookups, left_result = lookup ctx annot left in
+    let right_lookups, right_result = lookup ctx annot right in
+    let value_bindings, value_result =
+      match op with
+      | Is ->
+        let result = Value_variable(gen_unique_name ctx annot) in
+        left_lookups @ right_lookups @
+        [
+          annotate_directive annot @@
+          Let_is(result, left_result, right_result);
+        ],
+        result
+    in
+    let obj_bindings, obj_result = wrap_bool ctx annot value_result in
+    value_bindings @ obj_bindings, obj_result
+
+  | _ ->
+    raise @@ Jhupllib_utils.Not_yet_implemented "Convert_expr"
