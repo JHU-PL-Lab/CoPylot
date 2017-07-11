@@ -7,8 +7,12 @@ type 'a modl =
 and 'a stmt =
     | Assign of identifier (* target *) * 'a expr (* value *) * 'a
   | Return of 'a expr (* value *) * 'a
-  (* We maintain an invariant that the test statement of a while loop is always an actual boolean value. *)
-  | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a
+(* We maintain an invariant that the test statement of a while loop is always
+   an actual boolean value. We also require that the test be an identifer, so
+   that there is no more work to be done during normalization. This lets us
+   ensure that we can append all necessary computation of the test value to the
+   body of the while during simplification. *)
+  | While of identifier (* test *) * 'a stmt list (* body *) * 'a
   (* We maintain the same invariant for if statements as for while loops *)
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
   (* Raise is very complicated, with different behaviors based on the

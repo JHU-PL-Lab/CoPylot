@@ -60,9 +60,7 @@ and normalize_stmt ctx
     value_bindings @ [assign]
 
   | Simplified.While (test, body, annot) ->
-    let test_bindings, test_result = normalize_expr test in
-    test_bindings @
-    [Normalized.While(test_result,
+    [Normalized.While(test,
                       map_and_concat normalize_stmt body,
                       annot)]
 

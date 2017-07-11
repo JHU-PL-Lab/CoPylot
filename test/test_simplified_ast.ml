@@ -547,23 +547,35 @@ let tuple_test = gen_stmt_test "tuple_test"
 let while_test = gen_module_test "while_test"
     "while x < 9001:\n\tx = x+1"
     [
+      Assign("$simplified_unique_name_0",
+             Call(Builtin(Builtin_bool, annot),
+                  [Call(
+                      Attribute(Name("x",annot),
+                                "__lt__",
+                                annot),
+                      [Num(Int(9001), annot)],
+                      annot)],
+                  annot),
+             annot);
+
       While(
-        Call(Builtin(Builtin_bool, annot),
-             [Call(
-                 Attribute(Name("x",annot),
-                           "__lt__",
-                           annot),
-                 [Num(Int(9001), annot)],
-                 annot)],
-             annot),
+        "$simplified_unique_name_0",
         [
-          Assign(
-            "x",
-            Call(Attribute(Name("x", annot), "__add__", annot),
-                 [Num(Int(1), annot)],
-                 annot),
-            annot
-          )
+          Assign("x",
+                 Call(Attribute(Name("x", annot), "__add__", annot),
+                      [Num(Int(1), annot)],
+                      annot),
+                 annot);
+          Assign("$simplified_unique_name_0",
+                 Call(Builtin(Builtin_bool, annot),
+                      [Call(
+                          Attribute(Name("x",annot),
+                                    "__lt__",
+                                    annot),
+                          [Num(Int(9001), annot)],
+                          annot)],
+                      annot),
+                 annot);
         ],
         annot
       )
@@ -576,10 +588,13 @@ let for_test = gen_module_test "for_test"
       assign_iterator (Name("list", annot)) 0;
       TryExcept(
         [
+          Assign("$simplified_unique_name_2",
+                 Call(Builtin(Builtin_bool, annot),
+                      [Bool(true, annot)],
+                      annot),
+                 annot);
           While(
-            Call(Builtin(Builtin_bool, annot),
-                 [Bool(true, annot)],
-                 annot),
+            "$simplified_unique_name_2",
             [
               Assign(
                 "i",
@@ -587,9 +602,13 @@ let for_test = gen_module_test "for_test"
                 annot
               );
               Expr(Call(Name("f", annot), [Name("i", annot)], annot), annot);
+              Assign("$simplified_unique_name_2",
+                     Call(Builtin(Builtin_bool, annot),
+                          [Bool(true, annot)],
+                          annot),
+                     annot);
             ],
-            annot
-          )
+            annot)
         ],
         "$simplified_unique_name_1",
         [
@@ -614,16 +633,31 @@ let for_test = gen_module_test "for_test"
 let break_test = gen_module_test "break_test"
     "while x < 9001:\n\tbreak"
     [
+      Assign("$simplified_unique_name_0",
+             Call(Builtin(Builtin_bool, annot),
+                  [Call(
+                      Attribute(Name("x",annot),
+                                "__lt__",
+                                annot),
+                      [Num(Int(9001), annot)],
+                      annot)],
+                  annot),
+             annot);
+
       While(
-        Call(Builtin(Builtin_bool, annot),
-             [Call(Attribute(Name("x",annot),
-                             "__lt__",
-                             annot),
-                   [Num(Int(9001), annot)],
-                   annot)],
-             annot),
+        "$simplified_unique_name_0",
         [
-          Break(annot)
+          Break(annot);
+          Assign("$simplified_unique_name_0",
+                 Call(Builtin(Builtin_bool, annot),
+                      [Call(
+                          Attribute(Name("x",annot),
+                                    "__lt__",
+                                    annot),
+                          [Num(Int(9001), annot)],
+                          annot)],
+                      annot),
+                 annot);
         ],
         annot
       )
@@ -633,16 +667,31 @@ let break_test = gen_module_test "break_test"
 let continue_test = gen_module_test "continue_test"
     "while x < 9001:\n\tcontinue"
     [
+      Assign("$simplified_unique_name_0",
+             Call(Builtin(Builtin_bool, annot),
+                  [Call(
+                      Attribute(Name("x",annot),
+                                "__lt__",
+                                annot),
+                      [Num(Int(9001), annot)],
+                      annot)],
+                  annot),
+             annot);
+
       While(
-        Call(Builtin(Builtin_bool, annot),
-             [Call(Attribute(Name("x",annot),
-                             "__lt__",
-                             annot),
-                   [Num(Int(9001), annot)],
-                   annot)],
-             annot),
+        "$simplified_unique_name_0",
         [
-          Continue(annot)
+          Continue(annot);
+          Assign("$simplified_unique_name_0",
+                 Call(Builtin(Builtin_bool, annot),
+                      [Call(
+                          Attribute(Name("x",annot),
+                                    "__lt__",
+                                    annot),
+                          [Num(Int(9001), annot)],
+                          annot)],
+                      annot),
+                 annot);
         ],
         annot
       )
@@ -764,23 +813,27 @@ let triangle_ast =
                 Num (Int 0, annot),
                 annot);
 
-        While (
-          Call(Builtin(Builtin_bool, annot),
-               [Call (Attribute(Name ("triangle$1_count", annot),
-                                "__lt__",
-                                annot),
-                      [Name ("triangle$1_n", annot)],
-                      annot)],
-               annot),
+        Assign("$simplified_unique_name_0",
+               Call(Builtin(Builtin_bool, annot),
+                    [Call (Attribute(Name ("triangle$1_count", annot),
+                                     "__lt__",
+                                     annot),
+                           [Name ("triangle$1_n", annot)],
+                           annot)],
+                    annot),
+               annot);
+
+        While(
+          "$simplified_unique_name_0",
           [TryExcept (
               [Assign (
-                  "$simplified_unique_name_1",
+                  "$simplified_unique_name_2",
                   Attribute (
                     Name ("triangle$1_i", annot), "__iadd__",
                     annot),
                   annot);
               ],
-              "$simplified_unique_name_2",
+              "$simplified_unique_name_3",
               [
                 If (
                   Call(Builtin(Builtin_bool, annot),
@@ -788,7 +841,7 @@ let triangle_ast =
                            Call (
                              Builtin (
                                Builtin_type, annot),
-                             [Name ("$simplified_unique_name_2",
+                             [Name ("$simplified_unique_name_3",
                                     annot)
                              ],
                              annot),
@@ -796,20 +849,20 @@ let triangle_ast =
                            Builtin (Builtin_AttributeError, annot),
                            annot)],
                        annot),
-                  [Assign ("$simplified_unique_name_1",
+                  [Assign ("$simplified_unique_name_2",
                            Attribute (
                              Name ("triangle$1_i", annot), "__add__", annot),
                            annot)
                   ],
                   [Raise (
-                      Name ("$simplified_unique_name_2", annot),
+                      Name ("$simplified_unique_name_3", annot),
                       annot)
                   ],
                   annot)
               ],
               annot);
            Assign ("triangle$1_i",
-                   Call(Name("$simplified_unique_name_1",
+                   Call(Name("$simplified_unique_name_2",
                              annot),
                         [Name ("triangle$1_count", annot)], annot),
                    annot);
@@ -820,7 +873,16 @@ let triangle_ast =
                        "__add__", annot),
                      [Num (Int 1, annot)],
                      annot),
-                   annot)
+                   annot);
+           Assign("$simplified_unique_name_0",
+                  Call(Builtin(Builtin_bool, annot),
+                       [Call (Attribute(Name ("triangle$1_count", annot),
+                                        "__lt__",
+                                        annot),
+                              [Name ("triangle$1_n", annot)],
+                              annot)],
+                       annot),
+                  annot);
           ],
           annot);
         Return (Name("triangle$1_i", annot), annot);
@@ -833,7 +895,8 @@ let big_test = gen_module_test "big_test"
     (triangle_def ^ "\n[triangle(1),triangle(7)]")
     [
       triangle_ast;
-      Expr(List(
+      Expr(
+        List(
           [
             Call(
               Name("triangle", annot),
@@ -848,7 +911,7 @@ let big_test = gen_module_test "big_test"
           ],
           annot
         ),
-           annot)
+        annot)
     ]
 ;;
 

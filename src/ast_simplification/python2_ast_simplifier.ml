@@ -485,14 +485,24 @@ and simplify_stmt ctx
 
   | Concrete.While (test, body, _, annot) ->
     let test_bindings, test_result = simplify_expr test in
-    test_bindings @
+    let test_name = gen_unique_name annot in
+    let full_test_bindings =
+      test_bindings @
+      [
+        Simplified.Assign(test_name,
+                          Simplified.Call(
+                            Simplified.Builtin(Builtin_bool, annot),
+                            [test_result],
+                            annot),
+                          annot)
+      ]
+    in
+    full_test_bindings @
     (* We maintain an invariant that the test statement of a while loop is
        always an actual boolean value. Ensure this by calling bool(). *)
-    [ Simplified.While(Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
-                                       [test_result],
-                                       annot),
+    [ Simplified.While(test_name,
                        (* Re-bind the test variable after each loop *)
-                       map_and_concat simplify_stmt body @ test_bindings,
+                       map_and_concat simplify_stmt body @ full_test_bindings,
                        annot)]
 
   | Concrete.If (test, body, orelse, annot) ->
