@@ -21,27 +21,15 @@ and convert_stmt
   match s with
   | Assign (id, value, annot) ->
     let value_bindings, value_result = convert_expr ctx value in
-    let scope_update_directives =
-      let varname = Value_variable(gen_unique_name ctx annot) in
-      let old_scopeval = Value_variable(gen_unique_name ctx annot) in
-      let new_scopeval = Value_variable(gen_unique_name ctx annot) in
-      [
-        Let_expression(varname, String_literal id);
-        Let_get(old_scopeval, python_scope);
-        Let_binding_update(new_scopeval, old_scopeval, varname, value_result);
-        Store(python_scope, new_scopeval);
-      ]
-    in
-    let scope_update_stmts =
-      List.map (annotate_directive annot) scope_update_directives
-    in
-    value_bindings @ scope_update_stmts
+    value_bindings @
+    assign_python_variable ctx annot id value_result
 
   | Return (x, annot) ->
     let lookup_bindings, lookup_result = lookup ctx annot x in
     lookup_bindings @
     [
-      annotate_directive annot @@ Lamia_ast.Return(lookup_result);
+      annotate_directive annot @@
+      Lamia_ast.Return(lookup_result);
     ]
 
   | While (test, body, annot) ->
@@ -73,10 +61,10 @@ and convert_stmt
     let dummy_return =
       let dummy_retval = Value_variable(gen_unique_name ctx annot) in
       List.map (annotate_directive annot)
-      [
-        Let_expression(dummy_retval, None_literal);
-        If_result_value(dummy_retval);
-      ]
+        [
+          Let_expression(dummy_retval, None_literal);
+          If_result_value(dummy_retval);
+        ]
     in
 
     let new_body =
@@ -93,6 +81,28 @@ and convert_stmt
                             test_result,
                             Block(new_body),
                             Block(new_orelse))
+    ]
+
+  | Raise (x, annot) ->
+    let lookup_bindings, lookup_result = lookup ctx annot x in
+    lookup_bindings @
+    [
+      annotate_directive annot @@
+      Lamia_ast.Raise(lookup_result);
+    ]
+
+  | TryExcept (body, exn_name, handler, annot) ->
+    let exn_memloc = Memory_variable(gen_unique_name ctx annot) in
+    let new_body = map_and_concat (convert_stmt ctx) body in
+    let new_handler =
+      assign_python_variable ctx annot exn_name exn_memloc @
+      map_and_concat (convert_stmt ctx) handler
+    in
+    [
+      annotate_directive annot @@
+      Try_except(Block(new_body),
+                 exn_memloc,
+                 Block(new_handler))
     ]
 
   | _ ->

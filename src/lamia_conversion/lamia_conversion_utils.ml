@@ -64,3 +64,21 @@ let get_starvalue ctx annot y =
   List.map (annotate_directive ctx annot) directives,
   starvalue
 ;;
+
+let assign_python_variable ctx annot id y =
+  let scope_update_directives =
+    let varname = Value_variable(gen_unique_name ctx annot) in
+    let old_scopeval = Value_variable(gen_unique_name ctx annot) in
+    let new_scopeval = Value_variable(gen_unique_name ctx annot) in
+    [
+      Let_expression(varname, String_literal id);
+      Let_get(old_scopeval, python_scope);
+      Let_binding_update(new_scopeval, old_scopeval, varname, y);
+      Store(python_scope, new_scopeval);
+    ]
+  in
+  let scope_update_stmts =
+    List.map (annotate_directive ctx annot) scope_update_directives
+  in
+  scope_update_stmts
+;;
