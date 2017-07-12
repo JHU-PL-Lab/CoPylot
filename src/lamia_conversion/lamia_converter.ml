@@ -160,8 +160,29 @@ and convert_expr
     let obj_bindings, obj_result = wrap_bool ctx annot op_result in
     op_bindings @ obj_bindings, obj_result
 
-  | Call _ ->
-    raise @@ Jhupllib_utils.Not_yet_implemented "Convert Call"
+  | Call (func, args, annot) ->
+    (* TODO: Call *get_call instead of doing a direct lookup *)
+    let lookup_bindings, lookup_result =
+      lookup_and_get_attr ctx annot "*value" func
+    in
+    let arg_bindings, arg_results = convert_list (lookup ctx annot) args in
+    let store_args, arg_list =
+      store_value ctx annot @@
+      List_value arg_results
+    in
+    let funcval = Value_variable(gen_unique_name ctx annot) in
+    let retval = Memory_variable(gen_unique_name ctx annot) in
+    let call_directives =
+      [
+        Let_get(funcval, lookup_result);
+        Let_call_function(retval, funcval, [arg_list]);
+      ]
+    in
+    let all_bindings =
+      lookup_bindings @ arg_bindings @ store_args @
+      List.map (annotate_directive annot) call_directives
+    in
+    all_bindings, retval
 
   | Attribute (obj, attr, annot) ->
     (* TODO: When we add inheritance, lamia get_attr will no longer be

@@ -3,7 +3,11 @@ open Lamia_ast;;
 open Lamia_conversion_ctx;;
 
 (* Name of our local python scope variable *)
+(* TODO: Define these in preamble  *)
 let python_scope = Memory_variable("scope");;
+(* At top level, throws an exception *)
+let get_from_scope = Memory_variable("get_from_scope");;
+let get_from_parent_scope = Memory_variable("get_from_parent_scope");;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
@@ -24,9 +28,8 @@ let store_value ctx annot
 ;;
 
 (* Get the memloc with key id from the binding at binding_loc. If no such
-   memloc exists, run the directives in alloc_exn, then throw the
-   exception at exn_loc. *)
-let get_from_binding ctx annot id binding_loc alloc_exn exn_loc =
+   memloc exists, run the directives in on_failure. *)
+let get_from_binding ctx annot id binding_loc on_failure =
   let bindingval = Value_variable(gen_unique_name ctx annot) in
   let varname = Value_variable(gen_unique_name ctx annot) in
   let haskey = Value_variable(gen_unique_name ctx annot) in
@@ -39,11 +42,7 @@ let get_from_binding ctx annot id binding_loc alloc_exn exn_loc =
       If_result_memory(ret_memloc);
     ]
   in
-  let fail =
-    alloc_exn @
-    [
-      Raise exn_loc;
-    ]
+  let fail = on_failure
   in
   let success_block =
     Block (List.map (annotate_directive ctx annot) success)
@@ -65,21 +64,23 @@ let get_from_binding ctx annot id binding_loc alloc_exn exn_loc =
 let lookup ctx annot id =
   let exn_loc = Memory_variable(gen_unique_name ctx annot) in
   let alloc_exn =
+    ignore exn_loc;
     [
       (* TODO: Alloc NameError *)
     ]
   in
-  get_from_binding ctx annot id python_scope alloc_exn exn_loc
+  get_from_binding ctx annot id python_scope alloc_exn
 ;;
 
 let get_attr ctx annot id bindings_loc =
   let exn_loc = Memory_variable(gen_unique_name ctx annot) in
   let alloc_exn =
+    ignore exn_loc;
     [
-      (* TODO: Alloc AttributeError *)
+      (* TODO: Alloc & throw AttributeError *)
     ]
   in
-  get_from_binding ctx annot id bindings_loc alloc_exn exn_loc
+  get_from_binding ctx annot id bindings_loc alloc_exn
 ;;
 
 let lookup_and_get_attr ctx annot varname attr =

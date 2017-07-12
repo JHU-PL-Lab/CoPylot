@@ -54,10 +54,10 @@ let auto_uid_test = make_statement_test "auto_uid_test"
 
 let function_definition_test =
   make_value_expression_test "function_definition_test"
-    "def (&a,&b) { let c = &a is &b }"
+    "def (a,b) { let c = &a is &b }"
     (Function_expression(
-        [ Memory_variable("&a");
-          Memory_variable("&b");
+        [ Value_variable("a");
+          Value_variable("b");
         ],
         Block([ Statement(-1,
                           Let_is(Value_variable("c"),

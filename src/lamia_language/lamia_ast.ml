@@ -28,7 +28,7 @@ type value_expression =
   | Boolean_literal of bool
   | List_value of memory_variable list
   | Tuple_value of memory_variable list
-  | Function_expression of memory_variable list * block
+  | Function_expression of value_variable list * block
   | None_literal
   | Empty_binding
 [@@deriving eq, ord, show]
@@ -52,7 +52,7 @@ and directive =
   | Let_alias_memory of memory_variable * memory_variable
   | Let_binding_update of value_variable * value_variable * value_variable * memory_variable
   | Let_binding_access of memory_variable * value_variable * value_variable
-  | Let_call_function of value_variable * value_variable * memory_variable list
+  | Let_call_function of memory_variable * value_variable * value_variable list
   | Store of memory_variable * value_variable
   | Let_get of value_variable * memory_variable
   | Let_is of value_variable * memory_variable * memory_variable

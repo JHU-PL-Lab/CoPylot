@@ -106,8 +106,8 @@ directive:
   | LET memory_variable EQUAL
       value_variable OPEN_BRACE value_variable CLOSE_BRACE
     { Let_binding_access($2,$4,$6) }
-  | LET value_variable EQUAL value_variable
-      OPEN_PAREN memory_variable_list CLOSE_PAREN
+  | LET memory_variable EQUAL value_variable
+      OPEN_PAREN value_variable_list CLOSE_PAREN
     { Let_call_function($2,$4,$6) }
   | STORE memory_variable value_variable
     { Store($2,$3) }
@@ -142,8 +142,8 @@ memory_variable:
   | MEMIDENT
     { Memory_variable($1) }
 
-memory_variable_list:
-  | separated_list_trailing(COMMA, memory_variable)
+value_variable_list:
+  | separated_list_trailing(COMMA, value_variable)
     { $1 }
 
 value_expression:
@@ -153,7 +153,7 @@ value_expression:
     { String_literal($1) }
   | BOOL
     { Boolean_literal($1) }
-  | DEF OPEN_PAREN memory_variable_list CLOSE_PAREN block
+  | DEF OPEN_PAREN value_variable_list CLOSE_PAREN block
     { Function_expression($3,$5) }
   | NONE
     { None_literal }
