@@ -44,8 +44,6 @@
 %token HASKEY
 %token INTPLUS
 %token INTMINUS
-%token AND
-%token OR
 
 /* other */
 %token EOF
@@ -169,10 +167,6 @@ binary_operator:
     { Binop_intplus }
   | INTMINUS
     { Binop_intminus }
-  | AND
-    { Binop_and }
-  | OR
-    { Binop_or }
   | HASKEY
     { Binop_haskey }
 

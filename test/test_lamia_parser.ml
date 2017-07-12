@@ -68,22 +68,12 @@ let function_definition_test =
       ))
 ;;
 
-let binop_and_test =
-  make_statement_test "binop_and_test"
-    "let x = y and z"
-    (Statement(-1,
-               Let_binop(Value_variable("x"),
-                         Value_variable("y"),
-                         Binop_and,
-                         Value_variable("z"))))
-;;
-
 let tests =
   "test_lamia_parser" >:::
-  [ int_test;
+  [
+    int_test;
     assign_value_test;
     alias_memory_test;
     auto_uid_test;
-    binop_and_test;
   ]
 ;;

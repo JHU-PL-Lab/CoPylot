@@ -36,8 +36,6 @@ type value_expression =
 and binary_operator =
     | Binop_intplus
   | Binop_intminus
-  | Binop_and
-  | Binop_or
   | Binop_haskey
 [@@deriving eq, ord, show]
 

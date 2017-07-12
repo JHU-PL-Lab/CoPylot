@@ -52,8 +52,6 @@ rule token = parse
 
   | "int+" { INTPLUS }
   | "int-" { INTMINUS }
-  | "and" { AND }
-  | "or" { OR }
 
   | identifier as x { IDENT(x) }
   | memory_identifier as y { MEMIDENT(y) }
