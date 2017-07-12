@@ -23,8 +23,11 @@ let store_value ctx annot
   value_name
 ;;
 
-let lookup ctx annot id =
-  let scopeval = Value_variable(gen_unique_name ctx annot) in
+(* Get the memloc with key id from the binding at binding_loc. If no such
+   memloc exists, run the directives in alloc_exn, then throw the
+   exception at exn_loc. *)
+let get_from_binding ctx annot id binding_loc alloc_exn exn_loc =
+  let bindingval = Value_variable(gen_unique_name ctx annot) in
   let varname = Value_variable(gen_unique_name ctx annot) in
   let haskey = Value_variable(gen_unique_name ctx annot) in
   let retval = Memory_variable(gen_unique_name ctx annot) in
@@ -32,15 +35,14 @@ let lookup ctx annot id =
   let success =
     let ret_memloc = Memory_variable(gen_unique_name ctx annot) in
     [
-      Let_binding_access(ret_memloc, scopeval, varname);
+      Let_binding_access(ret_memloc, bindingval, varname);
       If_result_memory(ret_memloc);
     ]
   in
   let fail =
-    let error_memloc = Memory_variable(gen_unique_name ctx annot) in
+    alloc_exn @
     [
-      (* TODO: Alloc NameError *)
-      Raise error_memloc;
+      Raise exn_loc;
     ]
   in
   let success_block =
@@ -52,33 +54,38 @@ let lookup ctx annot id =
 
   List.map (annotate_directive ctx annot)
     [
-      Let_get(scopeval, python_scope);
+      Let_get(bindingval, binding_loc);
       Let_expression(varname, String_literal(id));
-      Let_binop(haskey, scopeval, Binop_haskey, varname);
+      Let_binop(haskey, bindingval, Binop_haskey, varname);
       Let_conditional_memory(retval, haskey, success_block, fail_block);
     ],
   retval
 ;;
 
-let get_starvalue ctx annot y =
-  let obj = Value_variable(gen_unique_name ctx annot) in
-  let valuename = Value_variable(gen_unique_name ctx annot) in
-  let starvalue = Memory_variable(gen_unique_name ctx annot) in
-  let directives =
+let lookup ctx annot id =
+  let exn_loc = Memory_variable(gen_unique_name ctx annot) in
+  let alloc_exn =
     [
-      Let_get(obj, y);
-      Let_expression(valuename, String_literal("*value"));
-      Let_binding_access(starvalue, obj, valuename);
+      (* TODO: Alloc NameError *)
     ]
   in
-  List.map (annotate_directive ctx annot) directives,
-  starvalue
+  get_from_binding ctx annot id python_scope alloc_exn exn_loc
 ;;
 
-let lookup_starvalue ctx annot id =
-  let lookup_bindings, lookup_result = lookup ctx annot id in
-  let get_bindings, get_result = get_starvalue ctx annot lookup_result in
-  lookup_bindings @ get_bindings, get_result
+let get_attr ctx annot id bindings_loc =
+  let exn_loc = Memory_variable(gen_unique_name ctx annot) in
+  let alloc_exn =
+    [
+      (* TODO: Alloc AttributeError *)
+    ]
+  in
+  get_from_binding ctx annot id bindings_loc alloc_exn exn_loc
+;;
+
+let lookup_and_get_attr ctx annot varname attr =
+  let lookup_bindings, lookup_result = lookup ctx annot varname in
+  let attr_bindings, attr_result = get_attr ctx annot attr lookup_result in
+  lookup_bindings @ attr_bindings, attr_result
 ;;
 
 let assign_python_variable ctx annot id y =

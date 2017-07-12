@@ -34,7 +34,9 @@ and convert_stmt
     ]
 
   | While (test, body, annot) ->
-    let value_bindings, value_result = lookup_starvalue ctx annot test in
+    let value_bindings, value_result =
+      lookup_and_get_attr ctx annot "*value" test
+    in
     value_bindings @
     [
       annotate_directive annot @@
@@ -44,7 +46,9 @@ and convert_stmt
     ]
 
   | If (test, body, orelse, annot) ->
-    let value_bindings, value_result = lookup_starvalue ctx annot test in
+    let value_bindings, value_result =
+      lookup_and_get_attr ctx annot "*value" test
+    in
     let test_result = Value_variable(gen_unique_name ctx annot) in
     let test_bindings =
       value_bindings @
@@ -136,7 +140,9 @@ and convert_expr
     value_bindings @ obj_bindings, obj_result
 
   | UnaryOp (op, value, annot) ->
-    let value_lookups, value_result = lookup_starvalue ctx annot value in
+    let value_lookups, value_result =
+      lookup_and_get_attr ctx annot "*value" value
+    in
     let op_bindings, op_result =
       match op with
       | Not ->
@@ -154,9 +160,15 @@ and convert_expr
     let obj_bindings, obj_result = wrap_bool ctx annot op_result in
     op_bindings @ obj_bindings, obj_result
 
-  | Call _
-  | Attribute _ ->
-    raise @@ Jhupllib_utils.Not_yet_implemented "Call/Attribute scare me"
+  | Call _ ->
+    raise @@ Jhupllib_utils.Not_yet_implemented "Convert Call"
+
+  | Attribute (obj, attr, annot) ->
+    (* TODO: When we add inheritance, lamia get_attr will no longer be
+       the same the python . operator. At that point lookup_and_get_attr
+       won't work; we'll need to lookup, then do some complicated stuff
+       to use the __getattr__ function and follow the inheritance chain *)
+    lookup_and_get_attr ctx annot attr obj
 
   | List (elts, annot) ->
     let elt_bindings, elt_results = convert_list (lookup ctx annot) elts in
