@@ -3,4 +3,4 @@ Add global contains which is added to lists and tuples
 Update lamia functions to take x's instead of y's
 Lamia functions take scope as first arg
 And/or don't exist in lamia
-
+Add lists to spec

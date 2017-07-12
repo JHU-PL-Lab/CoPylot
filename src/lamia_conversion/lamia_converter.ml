@@ -241,8 +241,88 @@ and convert_expr
   | Builtin _ ->
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert builtin"
 
-  | FunctionVal _ ->
-    raise @@ Jhupllib_utils.Not_yet_implemented "Convert functionval"
+  | FunctionVal (args, body, annot) ->
+    let get_from_scope_def =
+      let target = Value_variable(gen_unique_name ctx annot) in
+      let lookup_in_parent =
+        let parent_retval = Memory_variable(gen_unique_name ctx annot) in
+        [
+          Let_call_function(parent_retval, get_from_parent_scope, [target]);
+          If_result_memory(parent_retval);
+        ]
+      in
+      let local_lookup, local_result =
+        get_from_binding ctx annot target python_scope lookup_in_parent
+      in
+      Function_expression(
+        [target],
+        Block(
+          local_lookup @
+          [
+            annotate_directive annot @@
+            If_result_memory(local_result);
+          ]
+        )
+      )
+    in
+
+    let gen_arg_binding (list_val, scopename, index, prev) argname =
+      let new_scopename = Value_variable(gen_unique_name ctx annot) in
+      let index_value = Value_variable(gen_unique_name ctx annot) in
+      let arg_memloc = Memory_variable(gen_unique_name ctx annot) in
+      let argname_value = Value_variable(gen_unique_name ctx annot) in
+      let directives =
+        [
+          Let_expression(argname_value, String_literal argname);
+          Let_expression(index_value, Integer_literal index);
+          Let_list_access(arg_memloc, list_val, index_value);
+          Let_binding_update(new_scopename, scopename, argname_value, arg_memloc);
+        ]
+      in
+      (list_val, new_scopename, index + 1, prev @ directives)
+    in
+
+    let lamia_argname = Value_variable(gen_unique_name ctx annot) in
+    let empty_scope = Value_variable(gen_unique_name ctx annot) in
+    let _, bound_scope, _, arg_bindings =
+      List.fold_left gen_arg_binding
+        (lamia_argname, empty_scope, 0, [])
+        args
+    in
+
+    let func_preamble =
+      List.map (annotate_directive annot) @@
+      [
+        Let_alias_memory(parent_scope, python_scope);
+        Let_alias_value(get_from_parent_scope, get_from_scope);
+        Let_alloc(python_scope);
+        Let_expression(get_from_scope, get_from_scope_def);
+        Let_expression(empty_scope, Empty_binding);
+      ] @
+      arg_bindings @
+      [
+        Store(python_scope, bound_scope);
+      ]
+    in
+
+    let converted_body =
+      func_preamble @ map_and_concat (convert_stmt ctx) body
+    in
+    let lamia_funcval =
+      Function_expression([lamia_argname], Block converted_body)
+    in
+
+    let funcval_name = Value_variable(gen_unique_name ctx annot) in
+    let funcval_loc = Memory_variable(gen_unique_name ctx annot) in
+    let actual_bindings =
+      List.map (annotate_directive annot) @@
+      [
+        Let_expression(funcval_name, lamia_funcval);
+        Let_alloc(funcval_loc);
+        Store(funcval_loc, funcval_name);
+      ]
+    in
+    actual_bindings, funcval_loc
 
   | Name (id, annot) ->
     lookup ctx annot id

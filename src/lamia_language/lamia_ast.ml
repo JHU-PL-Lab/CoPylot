@@ -52,6 +52,7 @@ and directive =
   | Let_alias_memory of memory_variable * memory_variable
   | Let_binding_update of value_variable * value_variable * value_variable * memory_variable
   | Let_binding_access of memory_variable * value_variable * value_variable
+  | Let_list_access of memory_variable * value_variable * value_variable
   | Let_call_function of memory_variable * value_variable * value_variable list
   | Store of memory_variable * value_variable
   | Let_get of value_variable * memory_variable

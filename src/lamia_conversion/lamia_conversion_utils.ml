@@ -5,9 +5,10 @@ open Lamia_conversion_ctx;;
 (* Name of our local python scope variable *)
 (* TODO: Define these in preamble  *)
 let python_scope = Memory_variable("scope");;
+let parent_scope = Memory_variable("parent_scope");;
 (* At top level, throws an exception *)
-let get_from_scope = Memory_variable("get_from_scope");;
-let get_from_parent_scope = Memory_variable("get_from_parent_scope");;
+let get_from_scope = Value_variable("get_from_scope");;
+let get_from_parent_scope = Value_variable("get_from_parent_scope");;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
@@ -29,16 +30,15 @@ let store_value ctx annot
 
 (* Get the memloc with key id from the binding at binding_loc. If no such
    memloc exists, run the directives in on_failure. *)
-let get_from_binding ctx annot id binding_loc on_failure =
+let get_from_binding ctx annot target binding_loc on_failure =
   let bindingval = Value_variable(gen_unique_name ctx annot) in
-  let varname = Value_variable(gen_unique_name ctx annot) in
   let haskey = Value_variable(gen_unique_name ctx annot) in
   let retval = Memory_variable(gen_unique_name ctx annot) in
 
   let success =
     let ret_memloc = Memory_variable(gen_unique_name ctx annot) in
     [
-      Let_binding_access(ret_memloc, bindingval, varname);
+      Let_binding_access(ret_memloc, bindingval, target);
       If_result_memory(ret_memloc);
     ]
   in
@@ -54,25 +54,17 @@ let get_from_binding ctx annot id binding_loc on_failure =
   List.map (annotate_directive ctx annot)
     [
       Let_get(bindingval, binding_loc);
-      Let_expression(varname, String_literal(id));
-      Let_binop(haskey, bindingval, Binop_haskey, varname);
+      Let_binop(haskey, bindingval, Binop_haskey, target);
       Let_conditional_memory(retval, haskey, success_block, fail_block);
     ],
   retval
 ;;
 
-let lookup ctx annot id =
-  let exn_loc = Memory_variable(gen_unique_name ctx annot) in
-  let alloc_exn =
-    ignore exn_loc;
-    [
-      (* TODO: Alloc NameError *)
-    ]
-  in
-  get_from_binding ctx annot id python_scope alloc_exn
+let lookup ctx annot (id : string) =
+  ignore ctx; ignore annot; ignore id; failwith ""
 ;;
 
-let get_attr ctx annot id bindings_loc =
+let get_attr ctx annot target bindings_loc =
   let exn_loc = Memory_variable(gen_unique_name ctx annot) in
   let alloc_exn =
     ignore exn_loc;
@@ -80,13 +72,19 @@ let get_attr ctx annot id bindings_loc =
       (* TODO: Alloc & throw AttributeError *)
     ]
   in
-  get_from_binding ctx annot id bindings_loc alloc_exn
+  get_from_binding ctx annot target bindings_loc alloc_exn
 ;;
 
 let lookup_and_get_attr ctx annot varname attr =
   let lookup_bindings, lookup_result = lookup ctx annot varname in
-  let attr_bindings, attr_result = get_attr ctx annot attr lookup_result in
-  lookup_bindings @ attr_bindings, attr_result
+  let target_bindings, target_result =
+    store_value ctx annot @@ String_literal(attr)
+  in
+  let attr_bindings, attr_result =
+    get_attr ctx annot target_result lookup_result
+  in
+  lookup_bindings @ target_bindings @ attr_bindings,
+  attr_result
 ;;
 
 let assign_python_variable ctx annot id y =
