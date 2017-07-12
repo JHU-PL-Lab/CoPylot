@@ -2,8 +2,9 @@ open Batteries;;
 open Lamia_ast;;
 open Python2_normalized_ast;;
 open Lamia_conversion_ctx;;
+open Lamia_conversion_builtin_names;;
 open Lamia_conversion_utils;;
-open Lamia_object_defs;;
+open Lamia_conversion_object_defs;;
 
 let rec convert_module
     (ctx : conversion_context)

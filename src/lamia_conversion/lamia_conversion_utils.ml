@@ -1,14 +1,7 @@
 open Batteries;;
 open Lamia_ast;;
+open Lamia_conversion_builtin_names;;
 open Lamia_conversion_ctx;;
-
-(* Name of our local python scope variable *)
-(* TODO: Define these in preamble  *)
-let python_scope = Memory_variable("scope");;
-let parent_scope = Memory_variable("parent_scope");;
-(* At top level, throws an exception *)
-let get_from_scope = Value_variable("get_from_scope");;
-let get_from_parent_scope = Value_variable("get_from_parent_scope");;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
