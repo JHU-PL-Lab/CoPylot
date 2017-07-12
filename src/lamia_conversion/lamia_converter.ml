@@ -246,15 +246,15 @@ and convert_expr
   | FunctionVal (args, body, annot) ->
     let gen_arg_binding (list_val, scopename, index, prev) argname =
       let new_scopename = Value_variable(gen_unique_name ctx annot) in
-      let index_value = Value_variable(gen_unique_name ctx annot) in
-      let arg_memloc = Memory_variable(gen_unique_name ctx annot) in
       let argname_value = Value_variable(gen_unique_name ctx annot) in
+      let list_access, list_result =
+        extract_nth_list_elt ctx annot list_val index
+      in
       let directives =
+        list_access @
         [
           Let_expression(argname_value, String_literal argname);
-          Let_expression(index_value, Integer_literal index);
-          Let_list_access(arg_memloc, list_val, index_value);
-          Let_binding_update(new_scopename, scopename, argname_value, arg_memloc);
+          Let_binding_update(new_scopename, scopename, argname_value, list_result);
         ]
       in
       (list_val, new_scopename, index + 1, prev @ directives)

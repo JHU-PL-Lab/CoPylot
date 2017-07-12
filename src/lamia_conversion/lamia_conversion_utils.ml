@@ -21,17 +21,25 @@ let store_value ctx annot
   value_name
 ;;
 
+let get_value ctx annot value_loc =
+  let value_result = Value_variable(gen_unique_name ctx annot) in
+  [
+    annotate_directive ctx annot @@
+    Let_get(value_result, value_loc);
+  ],
+  value_result
+;;
+
 (* Get the memloc with key id from the binding at binding_loc. If no such
    memloc exists, run the directives in on_failure. *)
-let get_from_binding ctx annot target binding_loc on_failure =
-  let bindingval = Value_variable(gen_unique_name ctx annot) in
+let get_from_binding ctx annot target binding_val on_failure =
   let haskey = Value_variable(gen_unique_name ctx annot) in
   let retval = Memory_variable(gen_unique_name ctx annot) in
 
   let success =
     let ret_memloc = Memory_variable(gen_unique_name ctx annot) in
     [
-      Let_binding_access(ret_memloc, bindingval, target);
+      Let_binding_access(ret_memloc, binding_val, target);
       If_result_memory(ret_memloc);
     ]
   in
@@ -46,8 +54,7 @@ let get_from_binding ctx annot target binding_loc on_failure =
 
   List.map (annotate_directive ctx annot)
     [
-      Let_get(bindingval, binding_loc);
-      Let_binop(haskey, bindingval, Binop_haskey, target);
+      Let_binop(haskey, binding_val, Binop_haskey, target);
       Let_conditional_memory(retval, haskey, success_block, fail_block);
     ],
   retval
@@ -57,7 +64,10 @@ let lookup ctx annot (id : string) =
   ignore ctx; ignore annot; ignore id; failwith ""
 ;;
 
-let get_attr ctx annot target bindings_loc =
+let get_attr ctx annot target bindings =
+  let target_bindings, target_result =
+    store_value ctx annot @@ String_literal(target)
+  in
   let exn_loc = Memory_variable(gen_unique_name ctx annot) in
   let alloc_exn =
     ignore exn_loc;
@@ -65,18 +75,26 @@ let get_attr ctx annot target bindings_loc =
       (* TODO: Alloc & throw AttributeError *)
     ]
   in
-  get_from_binding ctx annot target bindings_loc alloc_exn
+  let extraction, extraction_result =
+    get_from_binding ctx annot target_result bindings alloc_exn
+  in
+  target_bindings @ extraction,
+  extraction_result
 ;;
 
 let lookup_and_get_attr ctx annot varname attr =
   let lookup_bindings, lookup_result = lookup ctx annot varname in
-  let target_bindings, target_result =
-    store_value ctx annot @@ String_literal(attr)
+  let obj_val = Value_variable(gen_unique_name ctx annot) in
+  let extract_obj_val =
+    [
+      annotate_directive ctx annot @@
+      Let_get(obj_val, lookup_result)
+    ]
   in
   let attr_bindings, attr_result =
-    get_attr ctx annot target_result lookup_result
+    get_attr ctx annot attr obj_val
   in
-  lookup_bindings @ target_bindings @ attr_bindings,
+  lookup_bindings @ extract_obj_val @ attr_bindings,
   attr_result
 ;;
 
@@ -108,4 +126,30 @@ let convert_list convert_func lst =
   let bindings, results =
     List.fold_right extract converted_list ([], []) in
   bindings, results
+;;
+
+let extract_nth_list_elt ctx annot listname n =
+  let index = Value_variable(gen_unique_name ctx annot) in
+  let value = Memory_variable(gen_unique_name ctx annot) in
+  let directives =
+    [
+      Let_expression(index, Integer_literal n);
+      Let_list_access(value, listname, index);
+    ]
+  in
+  directives, value
+;;
+
+let extract_arg_to_value ctx annot arglist n =
+  let list_extract, arg_loc = extract_nth_list_elt ctx annot arglist n in
+  let get_obj, arg_obj = get_value ctx annot arg_loc in
+  let extract_val_loc, val_loc = get_attr ctx annot "*value" arg_obj in
+  let get_val, arg_val = get_value ctx annot val_loc in
+  let all_extractions =
+    List.map (annotate_directive ctx annot) list_extract @
+    get_obj @
+    extract_val_loc @
+    get_val
+  in
+  all_extractions, arg_val
 ;;

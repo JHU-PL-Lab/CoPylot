@@ -1,6 +1,7 @@
 (* open Batteries;; *)
 open Lamia_ast;;
 open Lamia_conversion_builtin_names;;
+open Lamia_conversion_object_defs;;
 open Lamia_conversion_utils;;
 open Lamia_conversion_ctx;;
 
@@ -28,13 +29,21 @@ let get_from_scope_def ctx =
       If_result_memory(parent_retval);
     ]
   in
+  let scope_val = Value_variable(gen_unique_name ctx annot) in
+  let get_scope_val =
+    [
+      annotate_directive ctx annot @@
+      Let_get(scope_val, python_scope)
+    ]
+  in
   let local_lookup, local_result =
-    get_from_binding ctx annot target python_scope lookup_in_parent
+    get_from_binding ctx annot target scope_val lookup_in_parent
   in
   Function_expression(
     [target],
     Block(
       local_lookup @
+      get_scope_val @
       [
         annotate_directive ctx annot @@
         If_result_memory(local_result);
@@ -57,17 +66,46 @@ let get_from_parent_scope_def ctx =
   ]
 ;;
 
-(* let int_add_def ctx =
-  let func_name = Value_variable(gen_unique_name ctx annot) in
+let int_add_def ctx =
   let arglist = Value_variable(gen_unique_name ctx annot) in
+
+  let func_body =
+    let arg0_extract, arg0_val = extract_arg_to_value ctx annot arglist 0 in
+    let arg1_extract, arg1_val = extract_arg_to_value ctx annot arglist 1 in
+    let sum = Value_variable(gen_unique_name ctx annot) in
+
+    let perform_sum =
+      arg0_extract @ arg1_extract @
+      List.map (annotate_directive ctx annot)
+      [
+        (* TODO: Typechecking *)
+        Let_binop(sum, arg0_val, Binop_intplus, arg1_val);
+      ]
+    in
+    let obj_bindings, obj_result = wrap_int ctx annot sum in
+    let full_body =
+      perform_sum @
+      obj_bindings @
+      [
+        annotate_directive ctx annot @@
+        Return(obj_result);
+      ]
+    in
+    full_body
+  in
+
+  let func_name = Value_variable(gen_unique_name ctx annot) in
   let func_val =
     Function_expression(
       [arglist],
-      Block
+      Block func_body
     )
   in
-  []
+  [
+    Let_expression(func_name, func_val);
+    Store(int_add, func_name);
+  ]
+;;
 
-;; *)
 (* TODO: Define function values *)
 (* TODO: Store in global memlocs *)
