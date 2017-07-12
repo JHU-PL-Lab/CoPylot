@@ -61,7 +61,16 @@ let get_from_binding ctx annot target binding_val on_failure =
 ;;
 
 let lookup ctx annot (id : string) =
-  ignore ctx; ignore annot; ignore id; failwith ""
+  let target_bindings, target_result =
+    store_value ctx annot @@ String_literal(id)
+  in
+  let retval = Memory_variable(gen_unique_name ctx annot) in
+  target_bindings @
+  [
+    annotate_directive ctx annot @@
+    Let_call_function(retval, get_from_scope, [target_result]);
+  ],
+  retval
 ;;
 
 let get_attr ctx annot target bindings =
