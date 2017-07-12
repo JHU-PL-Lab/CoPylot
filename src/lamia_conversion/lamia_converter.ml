@@ -3,6 +3,7 @@ open Lamia_ast;;
 open Python2_normalized_ast;;
 open Lamia_conversion_ctx;;
 open Lamia_conversion_builtin_names;;
+open Lamia_conversion_preamble;;
 open Lamia_conversion_utils;;
 open Lamia_conversion_object_defs;;
 
@@ -243,30 +244,6 @@ and convert_expr
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert builtin"
 
   | FunctionVal (args, body, annot) ->
-    let get_from_scope_def =
-      let target = Value_variable(gen_unique_name ctx annot) in
-      let lookup_in_parent =
-        let parent_retval = Memory_variable(gen_unique_name ctx annot) in
-        [
-          Let_call_function(parent_retval, get_from_parent_scope, [target]);
-          If_result_memory(parent_retval);
-        ]
-      in
-      let local_lookup, local_result =
-        get_from_binding ctx annot target python_scope lookup_in_parent
-      in
-      Function_expression(
-        [target],
-        Block(
-          local_lookup @
-          [
-            annotate_directive annot @@
-            If_result_memory(local_result);
-          ]
-        )
-      )
-    in
-
     let gen_arg_binding (list_val, scopename, index, prev) argname =
       let new_scopename = Value_variable(gen_unique_name ctx annot) in
       let index_value = Value_variable(gen_unique_name ctx annot) in
@@ -294,10 +271,9 @@ and convert_expr
     let func_preamble =
       List.map (annotate_directive annot) @@
       [
-        Let_alias_memory(parent_scope, python_scope);
         Let_alias_value(get_from_parent_scope, get_from_scope);
         Let_alloc(python_scope);
-        Let_expression(get_from_scope, get_from_scope_def);
+        Let_expression(get_from_scope, get_from_scope_def ctx);
         Let_expression(empty_scope, Empty_binding);
       ] @
       arg_bindings @
