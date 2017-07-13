@@ -53,6 +53,7 @@ let wrap_obj ctx annot
 ;;
 
 let fill_int ctx annot obj obj_loc =
+  ignore obj_loc;
   (* FIXME: This needs to be a method, not a function *)
   let add, add_obj = add_binding ctx annot obj "__add__" int_add in
   (* TODO: More of this *)
@@ -60,32 +61,32 @@ let fill_int ctx annot obj obj_loc =
   all_bindings, add_obj
 ;;
 
-let fill_float ctx annot obj obj_loc =
+let fill_float _ _ obj _ =
   (* TODO: Implement this *)
   [], obj
 ;;
 
-let fill_bool ctx annot obj obj_loc =
+let fill_bool _ _ obj _ =
   (* TODO: Implement this *)
   [], obj
 ;;
 
-let fill_string ctx annot obj obj_loc =
+let fill_string _ _ obj _ =
   (* TODO: Implement this *)
   [], obj
 ;;
 
-let fill_list ctx annot obj obj_loc =
+let fill_list _ _ obj _ =
   (* TODO: Implement this *)
   [], obj
 ;;
 
-let fill_tuple ctx annot obj obj_loc =
+let fill_tuple _ _ obj _ =
   (* TODO: Implement this *)
   [], obj
 ;;
 
-let fill_func ctx annot obj obj_loc =
+let fill_func _ _ obj _ =
   (* TODO: Implement this *)
   [], obj
 ;;
