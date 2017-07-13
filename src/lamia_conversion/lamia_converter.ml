@@ -143,7 +143,7 @@ and convert_expr
     let%bind value_result =
       match op with
       | Is ->
-        let%bind result = fresh_value_var in
+        let%bind result = fresh_value_var () in
         let%bind _ = emit
             [
               Let_is(result, left_result, right_result);
@@ -224,7 +224,7 @@ and convert_expr
     return obj_result
 
   | Bool (b, _) ->
-    let%bind value = store_value @@ Boolean_literal s in
+    let%bind value = store_value @@ Boolean_literal b in
     let%bind obj_result = wrap_bool value in
     return obj_result
 
@@ -290,7 +290,7 @@ and convert_expr
           Store(funcval_loc, funcval_name);
         ]
     in
-    funcval_loc
+    return funcval_loc
 
   | Name (id, _) ->
     lookup id
