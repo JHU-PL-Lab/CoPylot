@@ -232,62 +232,65 @@ and convert_expr
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert builtin"
 
   | FunctionVal (args, body, _) ->
-    let gen_arg_binding (list_val, scopename, index, prev) argname =
-      let new_scopename = Value_variable(gen_unique_name ctx annot) in
-      let argname_value = Value_variable(gen_unique_name ctx annot) in
-      let list_access, list_result =
-        extract_nth_list_elt ctx annot list_val index
+    let%bind lamia_argname = fresh_value_var () in
+    let%bind _, converted_body = listen @@
+      let gen_arg_binding m argname =
+        let%bind list_val, scopename, index = m in
+        let%bind new_scopename = fresh_value_var () in
+        let%bind argname_value = fresh_value_var () in
+        let%bind list_result = extract_nth_list_elt list_val index in
+        let%bind _ =
+          emit
+            [
+              Let_expression(argname_value, String_literal argname);
+              Let_binding_update(new_scopename, scopename, argname_value, list_result);
+            ]
+        in
+        return (list_val, new_scopename, index + 1)
       in
-      let directives =
-        list_access @
-        [
-          Let_expression(argname_value, String_literal argname);
-          Let_binding_update(new_scopename, scopename, argname_value, list_result);
-        ]
+
+      let%bind empty_scope = fresh_value_var () in
+      (* TODO: Figure out how builtin defs will work *)
+      let%bind get_from_scope_val = get_from_scope_def () in
+      let%bind _ =
+        emit
+          [
+            Let_alias_value(get_from_parent_scope, get_from_scope);
+            Let_alloc(python_scope);
+            Let_expression(get_from_scope, get_from_scope_val);
+            Let_expression(empty_scope, Empty_binding);
+          ]
       in
-      (list_val, new_scopename, index + 1, prev @ directives)
+
+      let%bind _, final_scope, _ =
+        List.fold_left gen_arg_binding
+          (return (lamia_argname, empty_scope, 0))
+          args
+      in
+
+      let%bind _ = emit
+          [
+            Store(python_scope, final_scope);
+          ]
+      in
+
+      convert_stmt_list body
     in
 
-    let lamia_argname = Value_variable(gen_unique_name ctx annot) in
-    let empty_scope = Value_variable(gen_unique_name ctx annot) in
-    let _, bound_scope, _, arg_bindings =
-      List.fold_left gen_arg_binding
-        (lamia_argname, empty_scope, 0, [])
-        args
-    in
-
-    let func_preamble =
-      List.map (annotate_directive annot) @@
-      [
-        Let_alias_value(get_from_parent_scope, get_from_scope);
-        Let_alloc(python_scope);
-        Let_expression(get_from_scope, get_from_scope_def ctx);
-        Let_expression(empty_scope, Empty_binding);
-      ] @
-      arg_bindings @
-      [
-        Store(python_scope, bound_scope);
-      ]
-    in
-
-    let converted_body =
-      func_preamble @ map_and_concat (convert_stmt ctx) body
-    in
     let lamia_funcval =
       Function_expression([lamia_argname], Block converted_body)
     in
 
-    let funcval_name = Value_variable(gen_unique_name ctx annot) in
-    let funcval_loc = Memory_variable(gen_unique_name ctx annot) in
-    let actual_bindings =
-      List.map (annotate_directive annot) @@
-      [
-        Let_expression(funcval_name, lamia_funcval);
-        Let_alloc(funcval_loc);
-        Store(funcval_loc, funcval_name);
-      ]
+    let%bind funcval_name = fresh_value_var () in
+    let%bind funcval_loc = fresh_memory_var () in
+    let%bind _ = emit
+        [
+          Let_expression(funcval_name, lamia_funcval);
+          Let_alloc(funcval_loc);
+          Store(funcval_loc, funcval_name);
+        ]
     in
-    actual_bindings, funcval_loc
+    funcval_loc
 
   | Name (id, _) ->
     lookup id
