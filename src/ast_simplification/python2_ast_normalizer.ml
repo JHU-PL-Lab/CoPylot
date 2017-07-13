@@ -11,12 +11,19 @@ let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
 ;;
 
+let annotate_stmt annot s = {annot = annot; body = s};;
+let annotate_expr annot e = {annot = annot; body = e};;
+
 (* Given a uid and an annotated_expr, assigns that expr to a new, unique name.
    Returns the assignment statement (in a list) and the name used *)
 let gen_normalized_assignment ctx annot
-    (e : 'a Normalized.expr) =
+    (e : Normalized.expr) =
   let name = gen_unique_name ctx annot in
-  [Normalized.Assign(name, e, annot)], name
+  [
+    annotate_stmt annot @@
+    Normalized.Assign(name, annotate_expr annot e)
+  ],
+  name
 ;;
 
 (* Most normalize fuctions return a list of statements and the name of the
@@ -34,63 +41,66 @@ let normalize_list normalize_func lst =
   bindings, results
 ;;
 
-let rec normalize_modl (ctx : simp_context) m : 'a Normalized.modl =
+let rec normalize_modl (ctx : simp_context) m : Normalized.modl =
   match m with
-  | Simplified.Module (body, annot) ->
+  | Simplified.Module (body, _) ->
     let normalized_prog = map_and_concat (normalize_stmt ctx) body in
-    Normalized.Module(normalized_prog, annot)
+    Normalized.Module(normalized_prog)
 
 and normalize_stmt ctx
     (s : 'a Simplified.stmt)
-  : 'a Normalized.stmt list =
+  : Normalized.annotated_stmt list =
   let normalize_stmt = normalize_stmt ctx in
   let normalize_expr = normalize_expr ctx in
   match s with
   | Simplified.Return (value, annot) ->
     let bindings, result = normalize_expr value in
     bindings @
-    [ Normalized.Return(result, annot)]
+    [ annotate_stmt annot @@ Normalized.Return(result)]
 
 
   | Simplified.Assign (target, value, annot) ->
     let value_bindings, value_result = normalize_expr value in
     let assign =
-      Normalized.Assign(target, Normalized.Name(value_result, annot), annot)
+      annotate_stmt annot @@
+      Normalized.Assign(target,
+                        annotate_expr annot @@
+                        Normalized.Name(value_result))
     in
     value_bindings @ [assign]
 
   | Simplified.While (test, body, annot) ->
-    [Normalized.While(test,
-                      map_and_concat normalize_stmt body,
-                      annot)]
+    [annotate_stmt annot @@
+     Normalized.While(test,
+                      map_and_concat normalize_stmt body)]
 
   | Simplified.If (test, body, orelse, annot) ->
     let test_bindings, test_result = normalize_expr test in
     test_bindings @
-    [Normalized.If (test_result,
+    [annotate_stmt annot @@
+     Normalized.If (test_result,
                     map_and_concat normalize_stmt body,
-                    map_and_concat normalize_stmt orelse,
-                    annot)]
+                    map_and_concat normalize_stmt orelse)]
 
   | Simplified.Raise (value, annot) ->
     let value_binding, value_result = normalize_expr value in
     value_binding @
-    [ Normalized.Raise(value_result, annot)]
+    [ annotate_stmt annot @@ Normalized.Raise(value_result)]
 
   | Simplified.TryExcept (body, exn_name, handler, annot) ->
-    [Normalized.TryExcept (map_and_concat normalize_stmt body,
+    [annotate_stmt annot @@
+     Normalized.TryExcept (map_and_concat normalize_stmt body,
                            exn_name,
-                           map_and_concat normalize_stmt handler,
-                           annot)]
+                           map_and_concat normalize_stmt handler)]
 
   | Simplified.Pass annot ->
-    [ Normalized.Pass annot]
+    [ annotate_stmt annot @@ Normalized.Pass]
 
   | Simplified.Break annot ->
-    [ Normalized.Break annot ]
+    [ annotate_stmt annot @@ Normalized.Break ]
 
   | Simplified.Continue annot ->
-    [ Normalized.Continue annot ]
+    [ annotate_stmt annot @@ Normalized.Continue ]
 
   | Simplified.Expr (e, _) ->
     let bindings, _ =
@@ -100,7 +110,7 @@ and normalize_stmt ctx
          exprs, normalize_expr will do this for us *)
       | Simplified.Name (id, annot) ->
         gen_normalized_assignment ctx annot @@
-        Normalized.Name(id, annot)
+        Normalized.Name(id)
       | _ ->
         normalize_expr e
     in
@@ -111,7 +121,7 @@ and normalize_stmt ctx
    variable that was bound *)
 and normalize_expr ctx
     (e : 'a Simplified.expr)
-  : 'a Normalized.stmt list * identifier =
+  : Normalized.annotated_stmt list * identifier =
   let normalize_stmt = normalize_stmt ctx in
   let normalize_expr = normalize_expr ctx in
   match e with
@@ -119,7 +129,7 @@ and normalize_expr ctx
     let value_bindings, value_result = normalize_expr value in
     let bindings, result =
       gen_normalized_assignment ctx annot @@
-      Normalized.UnaryOp(normalize_unaryop op, value_result, annot)
+      Normalized.UnaryOp(normalize_unaryop op, value_result)
     in
     value_bindings @ bindings, result
 
@@ -128,7 +138,7 @@ and normalize_expr ctx
     let right_bindings, right_result = normalize_expr right in
     let bindings, result =
       gen_normalized_assignment ctx annot @@
-      Normalized.Binop(left_result, normalize_binop op, right_result, annot)
+      Normalized.Binop(left_result, normalize_binop op, right_result)
     in
     left_bindings @ right_bindings @ bindings, result
 
@@ -141,32 +151,31 @@ and normalize_expr ctx
     let arg_bindings, arg_names = normalize_list normalize_expr args in
     let assignment, name =
       gen_normalized_assignment ctx annot @@
-      Normalized.Call(func_name, arg_names, annot)
+      Normalized.Call(func_name, arg_names)
     in
     let bindings = func_bindings @ arg_bindings @ assignment in
     bindings, name
 
   | Simplified.Num (n, annot) ->
     gen_normalized_assignment ctx annot @@
-    Normalized.Num(n, annot)
+    Normalized.Num(n)
 
   | Simplified.Str (s, annot) ->
     gen_normalized_assignment ctx annot @@
-    Normalized.Str(s, annot)
+    Normalized.Str(s)
 
   | Simplified.Bool (b, annot) ->
     gen_normalized_assignment ctx annot @@
-    Normalized.Bool(b, annot)
+    Normalized.Bool(b)
 
   | Simplified.Builtin (b, annot) ->
     gen_normalized_assignment ctx annot @@
-    Normalized.Builtin(b, annot)
+    Normalized.Builtin(b)
 
   | Simplified.FunctionVal (args, body, annot) ->
     gen_normalized_assignment ctx annot @@
     Normalized.FunctionVal(args,
-                           map_and_concat normalize_stmt body,
-                           annot)
+                           map_and_concat normalize_stmt body)
 
   | Simplified.Attribute (obj, attr, annot) ->
     (* Attribute lookups follow a rather complicated process. We first look for
@@ -192,7 +201,7 @@ and normalize_expr ctx
     (*
     TODO: This happens when converting to lamia
     let obj_bindings, obj_result = normalize_expr obj in
-    let obj_name = Simplified.Name(obj_result, annot) in
+    let obj_name = Simplified.Name(obj_result) in
     let getattribute_name = gen_unique_name ctx annot in
     let getattr_name = gen_unique_name ctx annot in
     let exn_name = gen_unique_name ctx annot in
@@ -201,14 +210,14 @@ and normalize_expr ctx
       Simplified.TryExcept(
         [
           Simplified.Assign(getattr_name,
-                            Simplified.SimpleAttribute(obj_name, "__getattr__", annot),
+                            Simplified.SimpleAttribute(obj_name, "__getattr__"),
                             annot);
         ],
         [
           Simplified.ExceptHandler(
-            Some(Simplified.Builtin(Builtin_AttributeError, annot)),
+            Some(Simplified.Builtin(Builtin_AttributeError)),
             None,
-            [ Simplified.Raise(Simplified.Name(exn_name, annot), annot) ],
+            [ Simplified.Raise(Simplified.Name(exn_name)) ],
             annot);
         ],
         annot)
@@ -218,24 +227,24 @@ and normalize_expr ctx
       Simplified.TryExcept(
         [
           Simplified.Assign(getattribute_name,
-                            Simplified.SimpleAttribute(obj_name, "__getattribute__", annot),
+                            Simplified.SimpleAttribute(obj_name, "__getattribute__"),
                             annot);
           Simplified.Assign(result_name,
-                            Simplified.Call(Simplified.Name(getattribute_name, annot),
-                                            [Simplified.Str(StringLiteral(attr), annot)],
+                            Simplified.Call(Simplified.Name(getattribute_name),
+                                            [Simplified.Str(StringLiteral(attr))],
                                             annot),
                             annot);
         ],
         [
           Simplified.ExceptHandler(
-            Some(Simplified.Builtin(Builtin_AttributeError, annot)),
+            Some(Simplified.Builtin(Builtin_AttributeError)),
             Some(exn_name),
             [
               getattr_try;
               Simplified.Assign(result_name,
                                 Simplified.Call(
-                                  Simplified.Name(getattr_name, annot),
-                                  [Simplified.Str(StringLiteral(attr), annot)],
+                                  Simplified.Name(getattr_name),
+                                  [Simplified.Str(StringLiteral(attr))],
                                   annot),
                                 annot);
             ],
@@ -248,7 +257,7 @@ and normalize_expr ctx
     let obj_bindings, obj_result = normalize_expr obj in
     let bindings, result =
       gen_normalized_assignment ctx annot @@
-      Normalized.Attribute(obj_result, attr, annot)
+      Normalized.Attribute(obj_result, attr)
     in
     obj_bindings @ bindings, result
 
@@ -259,14 +268,14 @@ and normalize_expr ctx
     let bindings, results = normalize_list normalize_expr elts in
     let assignment, name =
       gen_normalized_assignment ctx annot @@
-      Normalized.List(results, annot) in
+      Normalized.List(results) in
     bindings @ assignment, name
 
   | Simplified.Tuple (elts, annot) ->
     let bindings, results = normalize_list normalize_expr elts in
     let assignment, name =
       gen_normalized_assignment ctx annot @@
-      Normalized.Tuple(results, annot) in
+      Normalized.Tuple(results) in
     bindings @ assignment, name
 
 and normalize_binop o =

@@ -32,7 +32,7 @@ let parse_to_normalized
     (prog: string)
     (starting_name: int)
     (short_names: bool)
-  : 'a Python2_normalized_ast.modl =
+  : Python2_normalized_ast.modl =
   let module Normalize = Python2_ast_normalizer in
   let prefix = if short_names then "$norm" else "$normalized_unique_name_" in
   let simplified = parse_to_simplified prog 0 short_names in

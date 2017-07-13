@@ -24,7 +24,7 @@ and pp_list pp fmt lst =
 ;;
 
 let rec pp_modl fmt = function
-  | Module (body, _) ->
+  | Module (body) ->
     pp_lines (pp_stmt "  ") fmt body
 
 (* The statements should have line number. *)

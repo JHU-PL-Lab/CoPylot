@@ -8,13 +8,17 @@ type identifier = string
 
 type 'a annotation =
   {
-    uid: uid;
-    exception_target: uid option;
-    multi: bool;
+    annot: Python2_ast.Pos.t;
     body: 'a;
   }
-[@@deriving eq, ord, show, to_yojson, to_yojson]
+  (* [@@deriving eq, ord, show, to_yojson] *)
 ;;
+(* TODO: add definitions to Pos sig so we don't have to do this manually.
+   For now we just ignore the annot and operate on the body only. *)
+let pp_annotation pp_a fmt a = pp_a fmt a.body;;
+let equal_annotation eq_a a1 a2 = eq_a a1.body a2.body;;
+let compare_annotation cmp_a a1 a2 = cmp_a a1.body a2.body;;
+let annotation_to_yojson a_to_yojson a = a_to_yojson a.body;;
 
 type number =
   | Int of int

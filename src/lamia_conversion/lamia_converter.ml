@@ -1,6 +1,7 @@
 open Batteries;;
 open Lamia_ast;;
 open Python2_normalized_ast;;
+open Python2_ast_types;;
 open Lamia_conversion_monad;;
 open Lamia_conversion_builtin_names;;
 open Lamia_conversion_preamble;;
@@ -11,37 +12,35 @@ open Conversion_monad;;
 
 let rec convert_module
     (ctx : Python2_simplification_ctx.simp_context)
-    (m : 'a modl)
+    (m : modl)
   : annot block =
-  let Module(stmts, _) = m in
+  let Module(stmts) = m in
   let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
   let _, lamia_prog = run ctx annot @@ convert_stmt_list stmts in
   Block(lamia_prog)
 
-and convert_stmt_list (stmts :'a stmt list) : unit m =
+and convert_stmt_list (stmts : annotated_stmt list) : unit m =
   (* TODO: Prepend preamble, scope setup, etc *)
   let accumulate m s = bind m (fun () -> convert_stmt s) in
   List.fold_left accumulate empty stmts
 
 and convert_stmt
-    (s : 'a stmt)
+    (s : annotated_stmt)
   : unit m =
-  (* TODO: Grab annot once at the top *)
-  let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
-  local_annot annot @@
-  match s with
-  | Assign (id, value, _) ->
+  local_annot s.annot @@
+  match s.body with
+  | Assign (id, value) ->
     let%bind value_result = convert_expr value in
     assign_python_variable id value_result
 
-  | Return (x, _) ->
+  | Return (x) ->
     let%bind lookup_result = lookup x in
     emit
       [
         Lamia_ast.Return(lookup_result);
       ]
 
-  | While (test, body, _) ->
+  | While (test, body) ->
     let%bind value_result, value_stmts =
       listen @@ lookup_and_get_attr "*value" test
     in
@@ -63,7 +62,7 @@ and convert_stmt
                       Block(while_body));
     ]
 
-  | If (test, body, orelse, _) ->
+  | If (test, body, orelse) ->
     let%bind value_result = lookup_and_get_attr "*value" test in
 
     let dummy_return =
@@ -98,14 +97,14 @@ and convert_stmt
                             Block(new_orelse));
     ]
 
-  | Raise (x, _) ->
+  | Raise (x) ->
     let%bind lookup_result = lookup x in
     emit
       [
         Lamia_ast.Raise(lookup_result);
       ]
 
-  | TryExcept (body, exn_name, handler, _) ->
+  | TryExcept (body, exn_name, handler) ->
     let%bind exn_memloc = fresh_memory_var () in
     let%bind _, new_body = listen @@ convert_stmt_list body in
     let%bind _, new_handler =
@@ -120,23 +119,21 @@ and convert_stmt
                    Block(new_handler))
       ]
 
-  | Pass _ ->
+  | Pass ->
     empty
 
-  | Break _ ->
+  | Break ->
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert break stmt"
 
-  | Continue _ ->
+  | Continue ->
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert continue stmt"
 
 and convert_expr
-    (s : 'a expr)
+    (e : annotated_expr)
   : memory_variable m =
-
-  let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
-  local_annot annot @@
-  match s with
-  | Binop (left, op, right, _) ->
+  local_annot e.annot @@
+  match e.body with
+  | Binop (left, op, right) ->
     let%bind left_result = lookup left in
     let%bind right_result = lookup right in
     let%bind value_result =
@@ -153,7 +150,7 @@ and convert_expr
     let%bind obj_result = wrap_bool value_result in
     return obj_result
 
-  | UnaryOp (op, value, _) ->
+  | UnaryOp (op, value) ->
     let%bind value_result = lookup_and_get_attr "*value" value in
     let%bind op_result =
       match op with
@@ -171,7 +168,7 @@ and convert_expr
     let%bind obj_result = wrap_bool op_result in
     return obj_result
 
-  | Call (func, args, _) ->
+  | Call (func, args) ->
     (* TODO: Call *get_call instead of doing a direct lookup *)
     let%bind lookup_result = lookup_and_get_attr "*value" func in
     let%bind arg_results = convert_list lookup args in
@@ -186,26 +183,26 @@ and convert_expr
     in
     return retval
 
-  | Attribute (obj, attr, _) ->
+  | Attribute (obj, attr) ->
     (* TODO: When we add inheritance, lamia get_attr will no longer be
        the same the python . operator. At that point lookup_and_get_attr
        won't work; we'll need to lookup, then do some complicated stuff
        to use the __getattr__ function and follow the inheritance chain *)
     lookup_and_get_attr attr obj
 
-  | List (elts, _) ->
+  | List (elts) ->
     let%bind elt_results = convert_list lookup elts in
     let%bind list_val = store_value @@ List_value elt_results in
     let%bind obj_result = wrap_list list_val in
     return obj_result
 
-  | Tuple (elts, _) ->
+  | Tuple (elts) ->
     let%bind elt_results = convert_list lookup elts in
     let%bind tuple_val = store_value @@ List_value elt_results in
     let%bind obj_result = wrap_tuple tuple_val in
     return obj_result
 
-  | Num (num, _) ->
+  | Num (num) ->
     begin
       match num with
       | Python2_ast_types.Int n ->
@@ -217,12 +214,12 @@ and convert_expr
         raise @@ Jhupllib_utils.Not_yet_implemented "wrap_float"
     end
 
-  | Str (s, _) ->
+  | Str (s) ->
     let%bind value = store_value @@ String_literal s in
     let%bind obj_result = wrap_string value in
     return obj_result
 
-  | Bool (b, _) ->
+  | Bool (b) ->
     let%bind value = store_value @@ Boolean_literal b in
     let%bind obj_result = wrap_bool value in
     return obj_result
@@ -230,7 +227,7 @@ and convert_expr
   | Builtin _ ->
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert builtin"
 
-  | FunctionVal (args, body, _) ->
+  | FunctionVal (args, body) ->
     let%bind lamia_argname = fresh_value_var () in
     let%bind _, converted_body = listen @@
       let gen_arg_binding m argname =
@@ -291,5 +288,5 @@ and convert_expr
     in
     return funcval_loc
 
-  | Name (id, _) ->
+  | Name (id) ->
     lookup id
