@@ -22,13 +22,13 @@ type memory_variable =
 [@@deriving eq, ord, show]
 ;;
 
-type value_expression =
+type 'a value_expression =
   | Integer_literal of int
   | String_literal of string
   | Boolean_literal of bool
   | List_value of memory_variable list
   | Tuple_value of memory_variable list
-  | Function_expression of value_variable list * block
+  | Function_expression of value_variable list * 'a block
   | None_literal
   | Empty_binding
 [@@deriving eq, ord, show]
@@ -43,8 +43,8 @@ and unary_operator =
     | Unop_not
 [@@deriving eq, ord, show]
 
-and directive =
-    | Let_expression of value_variable * value_expression
+and 'a directive =
+    | Let_expression of value_variable * 'a value_expression
   | Let_alloc of memory_variable
   | Let_alias_value of value_variable * value_variable
   | Let_alias_memory of memory_variable * memory_variable
@@ -61,17 +61,17 @@ and directive =
   | If_result_value of value_variable
   | If_result_memory of memory_variable
   | Raise of memory_variable
-  | Try_except of block * memory_variable * block
-  | Let_conditional_value of value_variable * value_variable * block * block
-  | Let_conditional_memory of memory_variable * value_variable * block * block
-  | While of memory_variable * block
+  | Try_except of 'a block * memory_variable * 'a block
+  | Let_conditional_value of value_variable * value_variable * 'a block * 'a block
+  | Let_conditional_memory of memory_variable * value_variable * 'a block * 'a block
+  | While of memory_variable * 'a block
 [@@deriving eq, ord, show]
 
-and statement =
-    | Statement of uid * directive
+and 'a statement =
+    | Statement of 'a * 'a directive
 [@@deriving eq, ord, show]
 
-and block =
-    | Block of statement list
+and 'a block =
+    | Block of 'a statement list
 [@@deriving eq, ord, show]
 ;;

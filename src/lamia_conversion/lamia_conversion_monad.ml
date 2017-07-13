@@ -1,6 +1,8 @@
 open Batteries;;
 open Lamia_ast;;
-open Lamia_conversion_ctx;;
+open Python2_simplification_ctx;;
+
+type annot = Python2_ast.Pos.t;;
 
 module Conversion_monad :
 sig
@@ -8,14 +10,19 @@ sig
 
   val return: 'a -> 'a t
   val bind: 'a t -> ('a -> 'b t) -> 'b t
-  val emit: directive list -> unit t
-  val run: conversion_context -> Python2_ast.Pos.t -> 'a t -> 'a * statement list
+  val emit: annot directive list -> unit t
+  val listen: 'a t -> ('a * annot statement list) t
 
-  val local_annot: Python2_ast.Pos.t -> 'a t -> 'a t
+  val run: simp_context -> annot -> 'a t -> 'a * annot statement list
+
+  val local_annot: annot -> 'a t -> 'a t
   val fresh_name: unit -> string t
+
+  val empty: unit t
 end =
 struct
-  type 'a t = conversion_context -> Python2_ast.Pos.t -> 'a * statement list;;
+  (* TODO: Change to not use a list for performance reasons *)
+  type 'a t = simp_context -> annot -> 'a * annot statement list;;
 
   let return x = fun _ _ -> (x, []);;
 
@@ -26,15 +33,16 @@ struct
       b, stmts @ new_stmts
   ;;
 
-  let run ctx annot m = m ctx annot;;
-
-  let annotate_directive ctx annot d =
-    Statement(get_next_uid ctx annot, d)
+  let listen x =
+    fun ctx annot ->
+      x ctx annot, []
   ;;
 
+  let run ctx annot m = m ctx annot;;
+
   let emit directives =
-    fun ctx annot ->
-      let stmts = List.map (annotate_directive ctx annot) directives in
+    fun _ annot ->
+      let stmts = List.map (fun d -> Statement(annot, d)) directives in
       (), stmts
   ;;
 
@@ -47,4 +55,8 @@ struct
     fun ctx annot ->
       gen_unique_name ctx annot, []
   ;;
+
+  let empty = return ();;
 end
+
+type 'a m = 'a Conversion_monad.t;;
