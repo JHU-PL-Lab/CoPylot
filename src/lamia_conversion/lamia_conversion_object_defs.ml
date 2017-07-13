@@ -1,7 +1,6 @@
 (* open Batteries;; *)
 open Lamia_ast;;
 open Lamia_conversion_builtin_names;;
-open Lamia_conversion_utils;;
 open Lamia_conversion_monad;;
 open Conversion_monad;;
 

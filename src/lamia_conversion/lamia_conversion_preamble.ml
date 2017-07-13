@@ -48,15 +48,25 @@ let get_from_scope_def =
 
 let get_from_parent_scope_def =
   let%bind target_name = fresh_value_var () in
+  let%bind _, throw_exn =
+    listen @@
+    let%bind exn_val =
+      (* FIXME: The error message should by dynamically constructed to
+         hold the name we were looking up *)
+      store_value @@ String_literal("name is not defined")
+    in
+    let%bind exn_obj = wrap_name_error exn_val in
+    emit
+      [
+        Raise(exn_obj);
+      ]
+  in
   emit
     [
       Let_expression(get_from_parent_scope,
                      Function_expression(
                        [target_name],
-                       Block
-                         [
-                           (* TODO: allocate and throw a NameError *)
-                         ]));
+                       Block(throw_exn)));
     ]
 ;;
 
@@ -89,6 +99,3 @@ let int_add_def =
       Store(int_add, func_name);
     ]
 ;;
-
-(* TODO: Define function values *)
-(* TODO: Store in global memlocs *)

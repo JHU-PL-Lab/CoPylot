@@ -60,3 +60,17 @@ struct
 end
 
 type 'a m = 'a Conversion_monad.t;;
+
+(* Useful functions to make use of this *)
+open Lamia_ast;;
+open Conversion_monad;;
+
+let fresh_value_var () : value_variable m =
+  let%bind name = fresh_name () in
+  return @@ Value_variable(name)
+;;
+
+let fresh_memory_var () : memory_variable m =
+  let%bind name = fresh_name () in
+  return @@ Memory_variable(name)
+;;

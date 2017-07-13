@@ -246,7 +246,6 @@ and convert_expr
       in
 
       let%bind empty_scope = fresh_value_var () in
-      (* TODO: Figure out how builtin defs will work *)
       let%bind get_from_scope_val = get_from_scope_def in
       let%bind _ =
         emit

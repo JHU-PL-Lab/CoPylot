@@ -4,7 +4,6 @@ open Lamia_ast;;
    be in scope. Some (like the python scope) may be shadowed at some points,
    but will always exist *)
 
-(* TODO: Define these in preamble  *)
 (* Name of our local python scope variable *)
 let python_scope = Memory_variable("scope");;
 (* Function to lookup a variable in the current scope, searching parent

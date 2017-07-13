@@ -3,20 +3,7 @@ open Lamia_ast;;
 open Lamia_conversion_monad;;
 open Conversion_monad;;
 open Lamia_conversion_builtin_names;;
-
-(* let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
-   List.concat (List.map func lst)
-   ;; *)
-
-let fresh_value_var () : value_variable m =
-  let%bind name = fresh_name () in
-  return @@ Value_variable(name)
-;;
-
-let fresh_memory_var () : memory_variable m =
-  let%bind name = fresh_name () in
-  return @@ Memory_variable(name)
-;;
+open Lamia_conversion_object_defs;;
 
 let store_value
     (v : annot value_expression) =
@@ -80,15 +67,19 @@ let lookup (id : string) =
 
 let get_attr target bindings =
   let%bind target_result = store_value @@ String_literal(target) in
-  let%bind exn_loc = fresh_memory_var () in
-  let alloc_exn =
-    ignore exn_loc;
+  let throw_exn =
+    (* FIXME: The error string should by dynamically constructed to
+       hold the class of the object *)
+    let%bind exn_val =
+      store_value @@ String_literal("Object has no attribute " ^ target)
+    in
+    let%bind exn_obj = wrap_attribute_error exn_val in
     emit
       [
-        (* TODO: Alloc & throw AttributeError *)
+        Raise(exn_obj);
       ]
   in
-  get_from_binding target_result bindings alloc_exn
+  get_from_binding target_result bindings throw_exn
 ;;
 
 let lookup_and_get_attr varname attr =
