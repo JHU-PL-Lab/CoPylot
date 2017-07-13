@@ -1,116 +1,128 @@
 open Batteries;;
 open Lamia_ast;;
 open Python2_normalized_ast;;
-open Lamia_conversion_ctx;;
+open Lamia_conversion_monad;;
 open Lamia_conversion_builtin_names;;
 open Lamia_conversion_preamble;;
 open Lamia_conversion_utils;;
 open Lamia_conversion_object_defs;;
 
+open Conversion_monad;;
+
 let rec convert_module
-    (ctx : conversion_context)
+    (ctx : Python2_simplification_ctx.simp_context)
     (m : 'a modl)
-  : block =
+  : annot block =
   let Module(stmts, _) = m in
-  (* TODO: Preamble, scope setup, etc *)
-  Block(map_and_concat (convert_stmt ctx) stmts)
+  let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
+  let _, lamia_prog = run ctx annot @@ convert_stmt_list stmts in
+  Block(lamia_prog)
+
+and convert_stmt_list (stmts :'a stmt list) : unit m =
+  (* TODO: Prepend preamble, scope setup, etc *)
+  let accumulate m s = bind m (fun () -> convert_stmt s) in
+  List.fold_left accumulate empty stmts
 
 and convert_stmt
-    (ctx : conversion_context)
     (s : 'a stmt)
-  : statement list =
-  (* let convert_stmt = convert_stmt ctx in *)
-  let annotate_directive annot d = annotate_directive ctx annot d in
+  : unit m =
+  (* TODO: Grab annot once at the top *)
+  let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
+  local_annot annot @@
   match s with
-  | Assign (id, value, annot) ->
-    let value_bindings, value_result = convert_expr ctx value in
-    value_bindings @
-    assign_python_variable ctx annot id value_result
+  | Assign (id, value, _) ->
+    let%bind value_result = convert_expr value in
+    let%bind var_result = assign_python_variable id value_result in
+    empty
 
-  | Return (x, annot) ->
-    let lookup_bindings, lookup_result = lookup ctx annot x in
-    lookup_bindings @
-    [
-      annotate_directive annot @@
-      Lamia_ast.Return(lookup_result);
-    ]
-
-  | While (test, body, annot) ->
-    let value_bindings, value_result =
-      lookup_and_get_attr ctx annot "*value" test
-    in
-    value_bindings @
-    [
-      annotate_directive annot @@
-      Lamia_ast.While(value_result,
-                      Block(map_and_concat (convert_stmt ctx) body @
-                            value_bindings));
-    ]
-
-  | If (test, body, orelse, annot) ->
-    let value_bindings, value_result =
-      lookup_and_get_attr ctx annot "*value" test
-    in
-    let test_result = Value_variable(gen_unique_name ctx annot) in
-    let test_bindings =
-      value_bindings @
+  | Return (x, _) ->
+    let%bind lookup_result = lookup x in
+    emit
       [
-        annotate_directive annot @@
-        Let_get(test_result, value_result);
+        Lamia_ast.Return(lookup_result);
       ]
-    in
 
-    let dummy_variable = Value_variable(gen_unique_name ctx annot) in
+  | While (test, body, _) ->
+    let%bind value_result, value_stmts =
+      listen @@ lookup_and_get_attr "*value" test
+    in
+    (* Work to figure out if test is True or False. Needs to be
+       appended to the while loop body as well *)
+    let value_bindings =
+      (* Turn value_bindings back into directives *)
+      List.map (fun s -> let Statement(_, d) = s in d) value_stmts
+    in
+    let%bind _, while_body =
+      listen @@
+      let%bind _ = convert_stmt_list body in
+      emit value_bindings
+    in
+    emit @@
+    value_bindings @
+    [
+      Lamia_ast.While(value_result,
+                      Block(while_body));
+    ]
+
+  | If (test, body, orelse, _) ->
+    let%bind value_result = lookup_and_get_attr "*value" test in
 
     let dummy_return =
-      let dummy_retval = Value_variable(gen_unique_name ctx annot) in
-      List.map (annotate_directive annot)
+      let%bind dummy_retval = fresh_value_var () in
+      emit
         [
           Let_expression(dummy_retval, None_literal);
           If_result_value(dummy_retval);
         ]
     in
 
-    let new_body =
-      map_and_concat (convert_stmt ctx) body @ dummy_return
+    let%bind _, new_body =
+      listen @@
+      let%bind _ = convert_stmt_list body in
+      dummy_return
     in
-    let new_orelse =
-      map_and_concat (convert_stmt ctx) orelse @ dummy_return
+    let%bind _, new_orelse =
+      listen @@
+      let%bind _ = convert_stmt_list orelse in
+      dummy_return
     in
 
-    test_bindings @
+    let%bind test_result = fresh_value_var () in
+    let%bind dummy_variable = fresh_value_var () in
+
+    emit @@
     [
-      annotate_directive annot @@
+      Let_get(test_result, value_result);
       Let_conditional_value(dummy_variable,
                             test_result,
                             Block(new_body),
-                            Block(new_orelse))
+                            Block(new_orelse));
     ]
 
-  | Raise (x, annot) ->
-    let lookup_bindings, lookup_result = lookup ctx annot x in
-    lookup_bindings @
-    [
-      annotate_directive annot @@
-      Lamia_ast.Raise(lookup_result);
-    ]
+  | Raise (x, _) ->
+    let%bind lookup_result = lookup x in
+    emit
+      [
+        Lamia_ast.Raise(lookup_result);
+      ]
 
-  | TryExcept (body, exn_name, handler, annot) ->
-    let exn_memloc = Memory_variable(gen_unique_name ctx annot) in
-    let new_body = map_and_concat (convert_stmt ctx) body in
-    let new_handler =
-      assign_python_variable ctx annot exn_name exn_memloc @
-      map_and_concat (convert_stmt ctx) handler
+  | TryExcept (body, exn_name, handler, _) ->
+    let%bind exn_memloc = fresh_memory_var () in
+    let%bind _, new_body = listen @@ convert_stmt_list body in
+    let%bind _, new_handler =
+      listen @@
+      let%bind _ = assign_python_variable exn_name exn_memloc in
+      convert_stmt_list handler
     in
-    [
-      annotate_directive annot @@
-      Try_except(Block(new_body),
-                 exn_memloc,
-                 Block(new_handler))
-    ]
+    emit
+      [
+        Try_except(Block(new_body),
+                   exn_memloc,
+                   Block(new_handler))
+      ]
 
   | Pass _ ->
-    []
+    empty
 
   | Break _ ->
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert break stmt"
@@ -119,131 +131,107 @@ and convert_stmt
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert continue stmt"
 
 and convert_expr
-    (ctx : conversion_context)
     (s : 'a expr)
-  : statement list * memory_variable =
-  let annotate_directive annot d = annotate_directive ctx annot d in
+  : memory_variable m =
+
+  let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
+  local_annot annot @@
   match s with
-  | Binop (left, op, right, annot) ->
-    let left_lookups, left_result = lookup ctx annot left in
-    let right_lookups, right_result = lookup ctx annot right in
-    let value_bindings, value_result =
+  | Binop (left, op, right, _) ->
+    let%bind left_result = lookup left in
+    let%bind right_result = lookup right in
+    let%bind value_result =
       match op with
       | Is ->
-        let result = Value_variable(gen_unique_name ctx annot) in
-        left_lookups @ right_lookups @
-        [
-          annotate_directive annot @@
-          Let_is(result, left_result, right_result);
-        ],
-        result
+        let%bind result = fresh_value_var in
+        let%bind _ = emit
+            [
+              Let_is(result, left_result, right_result);
+            ]
+        in
+        return result
     in
-    let obj_bindings, obj_result = wrap_bool ctx annot value_result in
-    value_bindings @ obj_bindings, obj_result
+    let%bind obj_result = wrap_bool value_result in
+    return obj_result
 
-  | UnaryOp (op, value, annot) ->
-    let value_lookups, value_result =
-      lookup_and_get_attr ctx annot "*value" value
-    in
-    let op_bindings, op_result =
+  | UnaryOp (op, value, _) ->
+    let%bind value_result = lookup_and_get_attr "*value" value in
+    let%bind op_result =
       match op with
       | Not ->
-        let boolval = Value_variable(gen_unique_name ctx annot) in
-        let result = Value_variable(gen_unique_name ctx annot) in
-        value_lookups @
-        [
-          annotate_directive annot @@
-          Let_get(boolval, value_result);
-          annotate_directive annot @@
-          Let_unop(result, Unop_not, boolval);
-        ],
-        result
+        let%bind boolval = fresh_value_var () in
+        let%bind result = fresh_value_var () in
+        let%bind _ =  emit
+            [
+              Let_get(boolval, value_result);
+              Let_unop(result, Unop_not, boolval);
+            ]
+        in
+        return result
     in
-    let obj_bindings, obj_result = wrap_bool ctx annot op_result in
-    op_bindings @ obj_bindings, obj_result
+    let%bind obj_result = wrap_bool value_result in
+    return obj_result
 
-  | Call (func, args, annot) ->
+  | Call (func, args, _) ->
     (* TODO: Call *get_call instead of doing a direct lookup *)
-    let lookup_bindings, lookup_result =
-      lookup_and_get_attr ctx annot "*value" func
+    let%bind lookup_result = lookup_and_get_attr "*value" func in
+    let%bind arg_results = convert_list lookup args in
+    let%bind arg_list = store_value @@ List_value arg_results in
+    let%bind funcval = fresh_value_var () in
+    let%bind retval = fresh_memory_var () in
+    let%bind _ = emit
+        [
+          Let_get(funcval, lookup_result);
+          Let_call_function(retval, funcval, [arg_list]);
+        ]
     in
-    let arg_bindings, arg_results = convert_list (lookup ctx annot) args in
-    let store_args, arg_list =
-      store_value ctx annot @@
-      List_value arg_results
-    in
-    let funcval = Value_variable(gen_unique_name ctx annot) in
-    let retval = Memory_variable(gen_unique_name ctx annot) in
-    let call_directives =
-      [
-        Let_get(funcval, lookup_result);
-        Let_call_function(retval, funcval, [arg_list]);
-      ]
-    in
-    let all_bindings =
-      lookup_bindings @ arg_bindings @ store_args @
-      List.map (annotate_directive annot) call_directives
-    in
-    all_bindings, retval
+    return retval
 
-  | Attribute (obj, attr, annot) ->
+  | Attribute (obj, attr, _) ->
     (* TODO: When we add inheritance, lamia get_attr will no longer be
        the same the python . operator. At that point lookup_and_get_attr
        won't work; we'll need to lookup, then do some complicated stuff
        to use the __getattr__ function and follow the inheritance chain *)
-    lookup_and_get_attr ctx annot attr obj
+    lookup_and_get_attr attr obj
 
-  | List (elts, annot) ->
-    let elt_bindings, elt_results = convert_list (lookup ctx annot) elts in
-    let store_list, list_val =
-      store_value ctx annot @@
-      List_value elt_results
-    in
-    let obj_bindings, obj_result = wrap_list ctx annot list_val in
-    elt_bindings @ store_list @ obj_bindings,
-    obj_result
+  | List (elts, _) ->
+    let%bind elt_results = convert_list lookup elts in
+    let%bind list_val = store_value @@ List_value elt_results in
+    let%bind obj_result = wrap_list list_val in
+    return obj_result
 
-  | Tuple (elts, annot) ->
-    let elt_bindings, elt_results = convert_list (lookup ctx annot) elts in
-    let store_tuple, tuple_val =
-      store_value ctx annot @@
-      Tuple_value elt_results
-    in
-    let obj_bindings, obj_result = wrap_tuple ctx annot tuple_val in
-    elt_bindings @ store_tuple @ obj_bindings,
-    obj_result
+  | Tuple (elts, _) ->
+    let%bind elt_results = convert_list lookup elts in
+    let%bind tuple_val = store_value @@ List_value elt_results in
+    let%bind obj_result = wrap_tuple tuple_val in
+    return obj_result
 
-  | Num (num, annot) ->
+  | Num (num, _) ->
     begin
       match num with
       | Python2_ast_types.Int n ->
-        let storage, int_val =
-          store_value ctx annot @@ Integer_literal n
-        in
-        let wrapping, obj = wrap_int ctx annot int_val in
-        storage @ wrapping, obj
+        let%bind value = store_value @@ Integer_literal n in
+        let%bind obj_result = wrap_int value in
+        return obj_result
+
       | Python2_ast_types.Float _ ->
         raise @@ Jhupllib_utils.Not_yet_implemented "wrap_float"
     end
 
-  | Str (s, annot) ->
-    let storage, int_val =
-      store_value ctx annot @@ String_literal s
-    in
-    let wrapping, obj = wrap_int ctx annot int_val in
-    storage @ wrapping, obj
+  | Str (s, _) ->
+    let%bind value = store_value @@ String_literal s in
+    let%bind obj_result = wrap_string value in
+    return obj_result
 
-  | Bool (b, annot) ->
-    let storage, int_val =
-      store_value ctx annot @@ Boolean_literal b
-    in
-    let wrapping, obj = wrap_int ctx annot int_val in
-    storage @ wrapping, obj
+  | Bool (b, _) ->
+    let%bind value = store_value @@ Boolean_literal s in
+    let%bind obj_result = wrap_bool value in
+    return obj_result
 
   | Builtin _ ->
     raise @@ Jhupllib_utils.Not_yet_implemented "Convert builtin"
 
-  | FunctionVal (args, body, annot) ->
+  | FunctionVal (args, body, _) ->
     let gen_arg_binding (list_val, scopename, index, prev) argname =
       let new_scopename = Value_variable(gen_unique_name ctx annot) in
       let argname_value = Value_variable(gen_unique_name ctx annot) in
@@ -301,5 +289,5 @@ and convert_expr
     in
     actual_bindings, funcval_loc
 
-  | Name (id, annot) ->
-    lookup ctx annot id
+  | Name (id, _) ->
+    lookup id

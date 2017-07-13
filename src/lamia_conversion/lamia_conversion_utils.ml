@@ -1,5 +1,7 @@
 open Batteries;;
 open Lamia_ast;;
+open Lamia_conversion_monad;;
+open Conversion_monad;;
 open Lamia_conversion_builtin_names;;
 open Lamia_conversion_ctx;;
 
@@ -7,12 +9,18 @@ let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
 ;;
 
-let annotate_directive ctx annot d =
-  Statement(get_next_uid ctx annot, d)
+let fresh_value_var () : value_variable m =
+  let%bind name = fresh_name () in
+  return @@ Value_variable(name)
+;;
+
+let fresh_memory_var () : memory_variable m =
+  let%bind name = fresh_name () in
+  return @@ Memory_variable(name)
 ;;
 
 let store_value ctx annot
-    (v : value_expression) =
+    (v : annot value_expression) =
   let value_name = Value_variable(gen_unique_name ctx annot) in
   [
     annotate_directive ctx annot @@
@@ -125,16 +133,16 @@ let assign_python_variable ctx annot id y =
   scope_update_stmts
 ;;
 
-let convert_list convert_func lst =
-  let converted_list = List.map convert_func lst in
-  let extract
-      (tup1 : 'a list * 'b )
-      (tup2 : 'a list * 'b list)
-    : 'a list * 'b list =
-    (fst tup1 @ fst tup2, (snd tup1)::(snd tup2)) in
-  let bindings, results =
-    List.fold_right extract converted_list ([], []) in
-  bindings, results
+let convert_list
+    (convert_func : 'a -> 'b m)
+    (lst :'a list)
+  : 'b list m =
+  let accumulate m elt =
+    let%bind new_result = convert_func elt in
+    let%bind old_results = m in
+    return @@ new_result::old_results
+  in
+  List.fold_right accumulate lst (return [])
 ;;
 
 let extract_nth_list_elt ctx annot listname n =

@@ -27,6 +27,7 @@ type 'a value_expression =
   | String_literal of string
   | Boolean_literal of bool
   | List_value of memory_variable list
+  (* TODO: Remove Tuple_value *)
   | Tuple_value of memory_variable list
   | Function_expression of value_variable list * 'a block
   | None_literal
