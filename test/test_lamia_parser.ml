@@ -6,29 +6,29 @@ open Lamia_ast;;
 open Lamia_parser;;
 
 let make_value_expression_test
-    (name : string) (code : string) (expected : value_expression) =
+    (name : string) (code : string) (expected : uid value_expression) =
   name >::
   fun _ ->
     let actual = parse_value_expression_from_string code in
-    assert_equal ~printer:(Pp_utils.pp_to_string pp_value_expression)
+    assert_equal ~printer:(Pp_utils.pp_to_string (pp_value_expression pp_uid))
       expected actual
 ;;
 
 let make_statement_test
-    (name : string) (code : string) (expected : statement) =
+    (name : string) (code : string) (expected : uid statement) =
   name >::
   fun _ ->
     let actual = parse_statement_from_string code in
-    assert_equal ~printer:(Pp_utils.pp_to_string pp_statement)
+    assert_equal ~printer:(Pp_utils.pp_to_string (pp_statement pp_uid))
       expected actual
 ;;
 
 let make_block_test
-    (name : string) (code : string) (expected : block) =
+    (name : string) (code : string) (expected : uid block) =
   name >::
   fun _ ->
     let actual = parse_from_string code in
-    assert_equal ~printer:(Pp_utils.pp_to_string pp_block)
+    assert_equal ~printer:(Pp_utils.pp_to_string (pp_block pp_uid))
       expected actual
 ;;
 
