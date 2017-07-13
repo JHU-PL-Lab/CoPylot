@@ -32,8 +32,7 @@ and convert_stmt
   match s with
   | Assign (id, value, _) ->
     let%bind value_result = convert_expr value in
-    let%bind var_result = assign_python_variable id value_result in
-    empty
+    assign_python_variable id value_result
 
   | Return (x, _) ->
     let%bind lookup_result = lookup x in
@@ -169,7 +168,7 @@ and convert_expr
         in
         return result
     in
-    let%bind obj_result = wrap_bool value_result in
+    let%bind obj_result = wrap_bool op_result in
     return obj_result
 
   | Call (func, args, _) ->
@@ -251,7 +250,7 @@ and convert_expr
 
       let%bind empty_scope = fresh_value_var () in
       (* TODO: Figure out how builtin defs will work *)
-      let%bind get_from_scope_val = get_from_scope_def () in
+      let%bind get_from_scope_val = get_from_scope_def in
       let%bind _ =
         emit
           [
