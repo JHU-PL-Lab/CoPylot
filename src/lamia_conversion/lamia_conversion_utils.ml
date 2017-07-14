@@ -65,8 +65,12 @@ let lookup (id : string) =
   return retval
 ;;
 
-let get_attr target bindings =
+let get_attr_error target bindings on_failure =
   let%bind target_result = store_value @@ String_literal(target) in
+  get_from_binding target_result bindings on_failure
+;;
+
+let get_attr target bindings =
   let throw_exn =
     (* FIXME: The error string should by dynamically constructed to
        hold the class of the object *)
@@ -79,7 +83,7 @@ let get_attr target bindings =
         Raise(exn_obj);
       ]
   in
-  get_from_binding target_result bindings throw_exn
+  get_attr_error target bindings throw_exn
 ;;
 
 let lookup_and_get_attr varname attr =
@@ -136,4 +140,74 @@ let extract_arg_to_value arglist n =
   let%bind val_loc = get_attr "*value" arg_obj in
   let%bind arg_val = get_value val_loc in
   return arg_val
+;;
+
+(* Given an object, get a function we can call (or throw an exception)
+   pseudocode: while target.*value is not a function, target = target.__call__
+*)
+let get_call target =
+  (* Store target in a new, temporary variable *)
+  let%bind tmp_loc = fresh_memory_var () in
+  let%bind _ =
+    emit
+      [
+        Let_alias_memory(tmp_loc, target);
+      ]
+  in
+  (* Get its *value field *)
+  (* TODO: Catch attribute error and continue *)
+  let%bind test_loc = fresh_memory_var () in
+  let%bind tmp_bindings = get_value tmp_loc in
+  let%bind _, compute_test =
+    listen @@
+    let%bind tmp_value =
+      let%bind tmp_value_loc = get_attr "*value" tmp_bindings in
+      get_value tmp_value_loc
+    in
+    let%bind test_name = fresh_value_var () in
+    let%bind test_name_inverted = fresh_value_var () in
+    emit
+      [
+        Let_unop(test_name, Unop_is_function, tmp_value);
+        Let_unop(test_name_inverted, Unop_not, test_name);
+        Store(test_loc, test_name);
+      ]
+  in
+
+  (* Body of the while loop: assign tmp to tmp.__call__ *)
+  let%bind _, while_body =
+    listen @@
+    let throw_exn =
+      (* FIXME: The error string should by dynamically constructed to
+         hold the class of the object *)
+      let%bind exn_val =
+        store_value @@ String_literal("Object is not callable")
+      in
+      let%bind exn_obj = wrap_type_error exn_val in
+      emit
+        [
+          Raise(exn_obj);
+        ]
+    in
+    let%bind new_tmp = get_attr_error "__call__" tmp_bindings throw_exn in
+    emit
+      [
+        Let_alias_memory(tmp_loc, new_tmp);
+      ]
+  in
+
+  (* Put everything together *)
+  let compute_test_directives =
+    List.map (fun s -> let Statement(_, d) = s in d) compute_test
+  in
+  let%bind retval = fresh_value_var () in
+  let%bind _ =
+    emit @@
+    compute_test_directives @
+    [
+      While(test_loc, Block(while_body @ compute_test));
+      Let_get(retval, tmp_loc);
+    ]
+  in
+  return retval
 ;;

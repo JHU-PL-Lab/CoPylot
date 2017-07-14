@@ -169,16 +169,14 @@ and convert_expr
     return obj_result
 
   | Call (func, args) ->
-    (* TODO: Call *get_call instead of doing a direct lookup *)
-    let%bind lookup_result = lookup_and_get_attr "*value" func in
+    let%bind lookup_result = lookup func in
     let%bind arg_results = convert_list lookup args in
+    let%bind callable = get_call lookup_result in
     let%bind arg_list = store_value @@ List_value arg_results in
-    let%bind funcval = fresh_value_var () in
     let%bind retval = fresh_memory_var () in
     let%bind _ = emit
         [
-          Let_get(funcval, lookup_result);
-          Let_call_function(retval, funcval, [arg_list]);
+          Let_call_function(retval, callable, [arg_list]);
         ]
     in
     return retval
