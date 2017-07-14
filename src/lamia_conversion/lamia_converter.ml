@@ -188,7 +188,16 @@ and convert_expr
        the same the python . operator. At that point lookup_and_get_attr
        won't work; we'll need to lookup, then do some complicated stuff
        to use the __getattr__ function and follow the inheritance chain *)
-    let%bind attr_result = lookup_and_get_attr attr obj in
+    let%bind obj_loc = lookup obj in
+    let%bind attr_result =
+      let%bind obj_val = fresh_value_var () in
+      let%bind _ = emit
+          [
+            Let_get(obj_val, obj_loc)
+          ]
+      in
+      get_attr attr obj_val
+    in
     (* Because we don't have classes yet, we can't store an actual method object
        during object creation (since we'd have to put methods on that, and on
        its methods, etc). So we have to wrap methods on projection.
@@ -205,7 +214,7 @@ and convert_expr
     let%bind _ =
       let%bind _, on_success =
         listen @@
-        let%bind wrapped_method = wrap_method attr_val in
+        let%bind wrapped_method = wrap_method attr_val obj_loc in
         emit
           [
             If_result_memory wrapped_method;

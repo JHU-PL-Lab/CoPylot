@@ -84,13 +84,14 @@ let fill_tuple obj =
 
 let fill_func obj =
   (* TODO: Implement this *)
-  (* Importantly, make sure to implement __get__ *)
   return obj
 ;;
 
-let fill_method obj =
+(* Methods will have as their *value a function value, which will call their
+   __func__ attribute with __self__ as the first argument *)
+let fill_method obj_loc obj =
+  ignore obj_loc; (* TODO: This should be bound to __self__ *)
   (* TODO: Implement this *)
-  (* Importantly, make sure to implement __call__ right*)
   return obj
 ;;
 
@@ -119,10 +120,38 @@ let wrap_bool x = wrap_obj fill_bool x;;
 let wrap_string x = wrap_obj fill_string x;;
 let wrap_list x = wrap_obj fill_list x;;
 let wrap_tuple x = wrap_obj fill_tuple x;;
-let wrap_method x = wrap_obj fill_method x;;
 let wrap_func x = wrap_obj fill_func x;;
 (* We're going to pretend that exceptions are just regular objects, whose
    *value field is a string *)
 let wrap_name_error = wrap_obj fill_name_error;;
 let wrap_attribute_error = wrap_obj fill_attribute_error;;
 let wrap_type_error = wrap_obj fill_type_error;;
+
+
+(* Wrapping methods is significantly more complicated than other wraps. *)
+let wrap_method func self =
+  (* A lamia function value which curries in self automatically *)
+  let%bind curried_func =
+    let%bind new_func_name = fresh_value_var () in
+    let%bind arglist = fresh_value_var () in
+    let%bind _, new_func_body =
+      listen @@
+      let%bind self_list = fresh_value_var () in
+      let%bind curried_args = fresh_value_var () in
+      let%bind retval = fresh_memory_var () in
+      emit
+        [
+          Let_expression(self_list, List_value [self]);
+          Let_binop(curried_args, self_list, Binop_listconcat, arglist);
+          Let_call_function(retval, func, [curried_args]);
+        ]
+    in
+    let%bind _ = emit
+        [
+          Let_expression(new_func_name,
+                         Function_expression([arglist], Block new_func_body));
+        ]
+    in
+    return new_func_name
+  in
+  wrap_obj (fill_method self) curried_func;;

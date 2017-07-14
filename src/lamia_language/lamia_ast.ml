@@ -36,6 +36,7 @@ and binary_operator =
     | Binop_intplus
   | Binop_intminus
   | Binop_haskey
+  | Binop_listconcat
 [@@deriving eq, ord, show]
 
 and unary_operator =

@@ -11,7 +11,7 @@ open Lamia_conversion_utils;;
 
 let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
 
-let scope_def =
+let define_scope =
   let%bind empty_name = fresh_value_var () in
   emit
     [
@@ -46,7 +46,7 @@ let get_from_scope_def =
   return @@ Function_expression([target], Block(func_body))
 ;;
 
-let get_from_parent_scope_def =
+let define_get_from_parent_scope =
   let%bind target_name = fresh_value_var () in
   let%bind _, throw_exn =
     listen @@
@@ -70,7 +70,10 @@ let get_from_parent_scope_def =
     ]
 ;;
 
-let int_add_def =
+(*TODO: All the builtin functions need arglist size verification and
+  typechecking *)
+
+let define_int_add =
   let%bind arglist = fresh_value_var () in
 
   let%bind _, func_body =
@@ -80,7 +83,6 @@ let int_add_def =
     let%bind sum = fresh_value_var () in
     let%bind _ = emit
         [
-          (* TODO: Typechecking *)
           Let_binop(sum, arg0_val, Binop_intplus, arg1_val);
         ]
     in
