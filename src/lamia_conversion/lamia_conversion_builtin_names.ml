@@ -15,3 +15,5 @@ let get_from_parent_scope = Value_variable("get_from_parent_scope");;
 
 (* Builtin python functions *)
 let int_add = Memory_variable("builtin_int_add");;
+
+let method_call = Memory_variable("builtin_method_call");;

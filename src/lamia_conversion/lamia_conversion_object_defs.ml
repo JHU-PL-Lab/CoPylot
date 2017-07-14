@@ -28,7 +28,7 @@ let wrap_obj
   let%bind obj_loc = fresh_memory_var () in
   let%bind value_name = fresh_value_var () in
   let%bind empty_obj = fresh_value_var () in
-  let%bind obj_val2 = fresh_value_var () in
+  let%bind obj_with_value = fresh_value_var () in
 
   let%bind _ = emit
       [
@@ -37,10 +37,10 @@ let wrap_obj
         Let_alloc(obj_loc);
         Let_expression(empty_obj, Empty_binding);
         Let_expression(value_name, String_literal("*value"));
-        Let_binding_update(obj_val2, empty_obj, value_name, value_loc);
+        Let_binding_update(obj_with_value, empty_obj, value_name, value_loc);
       ]
   in
-  let%bind filled_obj = fill_func obj_val2 obj_loc in
+  let%bind filled_obj = fill_func obj_with_value in
   let%bind _ = emit
       [
         Store(obj_loc, filled_obj);
@@ -49,55 +49,62 @@ let wrap_obj
   return obj_loc
 ;;
 
-let fill_int obj obj_loc =
-  ignore obj_loc;
-  (* FIXME: This needs to be a method, not a function *)
+let fill_int obj =
+  (* This should be a method, but because we don't have classes we store it
+     as a function value directly *)
   let%bind obj = add_binding obj "__add__" int_add in
   (* TODO: More of this *)
   return obj
 ;;
 
-let fill_float obj _ =
+let fill_float obj =
   (* TODO: Implement this *)
   return obj
 ;;
 
-let fill_bool obj _ =
+let fill_bool obj =
   (* TODO: Implement this *)
   return obj
 ;;
 
-let fill_string obj _ =
+let fill_string obj =
   (* TODO: Implement this *)
   return obj
 ;;
 
-let fill_list obj _ =
+let fill_list obj =
   (* TODO: Implement this *)
   return obj
 ;;
 
-let fill_tuple obj _ =
+let fill_tuple obj =
   (* TODO: Implement this *)
   return obj
 ;;
 
-let fill_func obj _ =
+let fill_func obj =
+  (* TODO: Implement this *)
+  (* Importantly, make sure to implement __get__ *)
+  return obj
+;;
+
+let fill_method obj =
+  (* TODO: Implement this *)
+  (* Importantly, make sure to implement __call__ right*)
+  return obj
+;;
+
+let fill_name_error obj =
   (* TODO: Implement this *)
   return obj
 ;;
 
-let fill_name_error obj _ =
+let fill_attribute_error obj =
   (* TODO: Implement this *)
   return obj
 ;;
 
-let fill_attribute_error obj _ =
-  (* TODO: Implement this *)
-  return obj
-;;
-
-let fill_type_error obj _ =
+let fill_type_error obj =
   (* TODO: Implement this *)
   return obj
 ;;
@@ -112,6 +119,7 @@ let wrap_bool x = wrap_obj fill_bool x;;
 let wrap_string x = wrap_obj fill_string x;;
 let wrap_list x = wrap_obj fill_list x;;
 let wrap_tuple x = wrap_obj fill_tuple x;;
+let wrap_method x = wrap_obj fill_method x;;
 let wrap_func x = wrap_obj fill_func x;;
 (* We're going to pretend that exceptions are just regular objects, whose
    *value field is a string *)

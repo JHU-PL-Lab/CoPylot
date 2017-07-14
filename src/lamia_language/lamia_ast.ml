@@ -40,6 +40,7 @@ and binary_operator =
 
 and unary_operator =
     | Unop_not
+  | Unop_is_function
 [@@deriving eq, ord, show]
 
 and 'a directive =
