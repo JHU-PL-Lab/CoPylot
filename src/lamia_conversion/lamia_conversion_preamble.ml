@@ -101,3 +101,38 @@ let define_int_add =
       Store(int_add, func_name);
     ]
 ;;
+
+let define_method_call =
+  let%bind arglist = fresh_value_var () in
+
+  let%bind _, func_body =
+    listen @@
+    let%bind method_val = extract_arg_to_value arglist 0 in
+    let%bind method_func = get_attr "*value" method_val in
+    let%bind method_func_val = get_value method_func in
+
+    let%bind start_index = fresh_value_var () in
+    let%bind end_index = fresh_value_var () in
+    let%bind truncated_args = fresh_value_var () in
+    let%bind retval = fresh_memory_var () in
+    emit
+      [
+        (* Remove the first element from the arglist, since it's the "self"
+           for __call__, not for the function __call__ invokes *)
+        Let_expression(start_index, Integer_literal 1);
+        Let_expression(end_index, None_literal);
+        Let_list_slice(truncated_args, arglist, start_index, end_index);
+        (* Call the function *)
+        Let_call_function(retval, method_func_val, [truncated_args]);
+        Return(retval);
+      ]
+  in
+
+  let%bind func_name = fresh_value_var () in
+  let func_val = Function_expression([arglist], Block(func_body)) in
+  emit
+    [
+      Let_expression(func_name, func_val);
+      Store(int_add, func_name);
+    ]
+;;
