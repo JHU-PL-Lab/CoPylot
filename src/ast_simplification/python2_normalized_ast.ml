@@ -1,6 +1,4 @@
-open Python2_ast_types
-
-type annot = Python2_ast.Pos.t;;
+open Python2_ast_types;;
 
 type annotated_stmt = stmt annotation
 [@@deriving eq, ord, show, to_yojson]
