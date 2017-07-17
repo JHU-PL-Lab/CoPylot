@@ -1,4 +1,4 @@
 Change dunder names to call foo.__class__.whatever instead of foo.whatever
 Add global contains which is added to lists and tuples
 
-Implement Exceptions
+Figure out & implement builtins

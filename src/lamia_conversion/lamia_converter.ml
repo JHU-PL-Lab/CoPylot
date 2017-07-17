@@ -269,8 +269,15 @@ and convert_expr
     let%bind obj_result = wrap_bool value in
     return obj_result
 
-  | Builtin _ ->
-    raise @@ Jhupllib_utils.Not_yet_implemented "Convert builtin"
+  | Builtin (b) ->
+    begin
+      match b with
+      | Builtin_slice          -> return builtin_slice
+      | Builtin_bool           -> return builtin_bool
+      | Builtin_AttributeError -> return builtin_AttributeError
+      | Builtin_ValueError     -> return builtin_TypeError
+      | Builtin_TypeError      -> return builtin_ValueError
+    end
 
   | FunctionVal (args, body) ->
     let%bind lamia_argname = fresh_value_var () in

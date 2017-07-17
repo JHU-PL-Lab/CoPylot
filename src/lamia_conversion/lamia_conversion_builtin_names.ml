@@ -13,7 +13,16 @@ let get_from_scope = Value_variable("get_from_scope");;
    get_from_scope *)
 let get_from_parent_scope = Value_variable("get_from_parent_scope");;
 
-(* Builtin python functions *)
+(* Builtin global python functions *)
+(* Technically these are constructor calls *)
+let builtin_type = Memory_variable("builtin_type");;
+let builtin_bool = Memory_variable("builtin_bool");;
+let builtin_slice = Memory_variable("builtin_slice");;
+let builtin_ValueError = Memory_variable("builtin_ValueError");;
+let builtin_AttributeError = Memory_variable("builtin_AttributeError");;
+let builtin_TypeError = Memory_variable("builtin_TypeError");;
+
+(* Builtin python methods *)
 let int_add = Memory_variable("builtin_int_add");;
 
 let method_call = Memory_variable("builtin_method_call");;

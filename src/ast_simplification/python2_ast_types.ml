@@ -13,7 +13,7 @@ type 'a annotation =
   }
   (* [@@deriving eq, ord, show, to_yojson] *)
 ;;
-(* TODO: add definitions to Pos sig so we don't have to do this manually.
+(* TODO: add definitions to Pos sig so @@deriving does this for us.
    For now we just ignore the annot and operate on the body only. *)
 let pp_annotation pp_a fmt a = pp_a fmt a.body;;
 let equal_annotation eq_a a1 a2 = eq_a a1.body a2.body;;
@@ -29,8 +29,8 @@ type number =
 type builtin =
   | Builtin_bool
   | Builtin_slice
-  | Builtin_type
-  | Builtin_method_wrapper_type
+  (* | Builtin_type *)
+  (* | Builtin_method *)
   | Builtin_ValueError
   | Builtin_AttributeError
   | Builtin_TypeError

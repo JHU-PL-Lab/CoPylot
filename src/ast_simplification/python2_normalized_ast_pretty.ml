@@ -100,8 +100,8 @@ and pp_binop fmt = function
 and pp_builtin fmt = function
   | Builtin_slice -> fprintf fmt "*slice"
   | Builtin_bool  -> fprintf fmt "*bool"
-  | Builtin_type  -> fprintf fmt "*type"
-  | Builtin_method_wrapper_type -> fprintf fmt "*method_wrapper_type"
+  (* | Builtin_type  -> fprintf fmt "*type" *)
+  (* | Builtin_method -> fprintf fmt "*method_type" *)
   | Builtin_AttributeError -> fprintf fmt "*AttributeError"
   | Builtin_ValueError -> fprintf fmt "*ValueError"
   | Builtin_TypeError -> fprintf fmt "*TypeError"

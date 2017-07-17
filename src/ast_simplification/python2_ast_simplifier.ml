@@ -903,12 +903,14 @@ and simplify_excepthandlers ctx exn_id handlers annot =
       | Some(t) ->
         simplify_expr ctx @@
         Concrete.Compare(
-          Concrete.Call(Concrete.Builtin(Builtin_type, annot),
-                        [Concrete.Name(exn_id, Concrete.Load, annot)],
-                        [],
-                        None,
-                        None,
-                        annot),
+          (* We use exn.__class__ instead of type(exn) to avoid having to think
+             about the type function. They behave the same since exceptions are
+             always new_style. *)
+          Concrete.Attribute(
+            Concrete.Name(exn_id, Concrete.Load, annot),
+            "__class__",
+            Concrete.Load,
+            annot),
           [Concrete.Is],
           [t],
           annot)

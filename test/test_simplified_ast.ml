@@ -386,13 +386,9 @@ let var_aug_assign_test = gen_module_test "var_aug_assign_test"
           If (
             Call(Builtin(Builtin_bool, annot),
                  [Binop (
-                     Call (
-                       Builtin (
-                         Builtin_type, annot),
-                       [Name ("$simplified_unique_name_2",
-                              annot)
-                       ],
-                       annot),
+                     Attribute(Name ("$simplified_unique_name_2", annot),
+                               "__class__",
+                               annot),
                      Is,
                      Builtin (Builtin_AttributeError, annot),
                      annot)],
@@ -647,9 +643,9 @@ let for_test = gen_module_test "for_test"
         [
           If(Call(Builtin(Builtin_bool, annot),
                   [Binop(
-                      Call(Builtin(Builtin_type, annot),
-                           [Name("$simplified_unique_name_1", annot)],
-                           annot),
+                      Attribute(Name ("$simplified_unique_name_1", annot),
+                                "__class__",
+                                annot),
                       Is,
                       Name("StopIteration", annot),
                       annot)],
@@ -772,13 +768,9 @@ let try_test = gen_module_test "try_test"
           If (
             Call(Builtin(Builtin_bool, annot),
                  [Binop (
-                     Call (
-                       Builtin (
-                         Builtin_type, annot),
-                       [Name ("$simplified_unique_name_0",
-                              annot)
-                       ],
-                       annot),
+                     Attribute(Name ("$simplified_unique_name_0", annot),
+                               "__class__",
+                               annot),
                      Is,
                      Name ("ValueError", annot),
                      annot)],
@@ -790,13 +782,9 @@ let try_test = gen_module_test "try_test"
               If (
                 Call(Builtin(Builtin_bool, annot),
                      [Binop (
-                         Call (
-                           Builtin (
-                             Builtin_type, annot),
-                           [Name (
-                               "$simplified_unique_name_0", annot)
-                           ],
-                           annot),
+                         Attribute(Name ("$simplified_unique_name_0", annot),
+                                   "__class__",
+                                   annot),
                          Is,
                          Name ("StopIteration", annot),
                          annot)],
@@ -871,13 +859,9 @@ let triangle_ast =
                 If (
                   Call(Builtin(Builtin_bool, annot),
                        [Binop (
-                           Call (
-                             Builtin (
-                               Builtin_type, annot),
-                             [Name ("$simplified_unique_name_3",
-                                    annot)
-                             ],
-                             annot),
+                           Attribute(Name ("$simplified_unique_name_3", annot),
+                                     "__class__",
+                                     annot),
                            Is,
                            Builtin (Builtin_AttributeError, annot),
                            annot)],
