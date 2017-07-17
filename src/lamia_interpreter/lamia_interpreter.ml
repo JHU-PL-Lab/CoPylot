@@ -234,6 +234,10 @@ let rec eval_step_directive (d : directive)
           return @@ Boolean_value true
         | Lamia_ast.Unop_is_function, _ ->
           return @@ Boolean_value false
+        | Lamia_ast.Unop_is_int, Integer_value _ ->
+          return @@ Boolean_value true
+        | Lamia_ast.Unop_is_int, _ ->
+          return @@ Boolean_value false
       end
     in
     let%bind () = set_value x v in
@@ -273,6 +277,9 @@ let rec eval_step_directive (d : directive)
             assert_list v2 "Invalid second argument to list concatenation:"
           in
           return @@ Lamia_evaluation_grammar.List_value(m1 @ m2)
+        | Lamia_ast.Binop_equals ->
+          let is_equal = equal_value v1 v2 in
+          return @@ Lamia_evaluation_grammar.Boolean_value(is_equal)
       end
     in
     let%bind () = set_value x0 v0 in
