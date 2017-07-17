@@ -4,6 +4,7 @@ open Python2_normalized_ast;;
 open Python2_ast_types;;
 open Lamia_conversion_monad;;
 open Lamia_conversion_builtin_names;;
+open Lamia_conversion_builtin_defs;;
 open Lamia_conversion_preamble;;
 open Lamia_conversion_utils;;
 open Lamia_conversion_object_defs;;
@@ -16,8 +17,9 @@ let rec convert_module
   : annot block =
   let Module(stmts) = m in
   let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
+  let _, lamia_preamble = run ctx annot preamble in
   let _, lamia_prog = run ctx annot @@ convert_stmt_list stmts in
-  Block(lamia_prog)
+  Block(lamia_preamble @ lamia_prog)
 
 and convert_stmt_list (stmts : annotated_stmt list) : unit m =
   (* TODO: Prepend preamble, scope setup, etc *)
@@ -273,8 +275,8 @@ and convert_expr
       | Builtin_slice          -> return builtin_slice
       | Builtin_bool           -> return builtin_bool
       | Builtin_AttributeError -> return builtin_AttributeError
-      | Builtin_ValueError     -> return builtin_TypeError
-      | Builtin_TypeError      -> return builtin_ValueError
+      | Builtin_ValueError     -> return builtin_ValueError
+      | Builtin_TypeError      -> return builtin_TypeError
       | Builtin_StopIteration  -> return builtin_StopIteration
     end
 

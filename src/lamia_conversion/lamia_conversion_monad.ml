@@ -12,6 +12,7 @@ sig
   val bind: 'a t -> ('a -> 'b t) -> 'b t
   val emit: annot directive list -> unit t
   val listen: 'a t -> ('a * annot statement list) t
+  val sequence: ('a t) list -> ('a list) t
 
   val run: simp_context -> annot -> 'a t -> 'a * annot statement list
 
@@ -36,6 +37,18 @@ struct
   let listen x =
     fun ctx annot ->
       x ctx annot, []
+  ;;
+
+  let sequence lst =
+    let rec execute lst =
+      match lst with
+      | [] -> return []
+      | hd::tl ->
+        let%bind hd_result = hd in
+        let%bind tl_result = execute tl in
+        return @@ hd_result::tl_result
+    in
+    execute lst
   ;;
 
   let run ctx annot m = m ctx annot;;
