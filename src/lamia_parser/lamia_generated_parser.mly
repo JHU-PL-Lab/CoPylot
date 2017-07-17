@@ -83,7 +83,7 @@ block:
     { Block($2) }
 
 statement_list:
-  | list(terminated(statement,SEMICOLON))
+  | separated_list_trailing(SEMICOLON,statement)
     { $1 }
 
 statement:
@@ -179,5 +179,15 @@ binary_operator:
 
 %inline
 separated_list_trailing(sep,item):
-  | separated_list(sep,item) sep?
+  |
+    { [] }
+  | separated_list_trailing_nonempty(sep,item)
     { $1 }
+
+separated_list_trailing_nonempty(sep,item):
+  | item sep
+    { [$1] }
+  | item
+    { [$1] }
+  | item sep separated_list_trailing_nonempty(sep,item)
+    { $1::$3 }
