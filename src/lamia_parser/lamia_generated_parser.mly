@@ -11,6 +11,7 @@
 %token <string> STRING
 
 /* symbols */
+%token DOUBLE_SEMICOLON
 %token SEMICOLON
 %token COLON
 %token EQUAL
@@ -60,23 +61,29 @@
 
 %%
 file_input:
-  | statement_list EOF
+  | statement_list input_terminator
     { reset_uid (); Block($1) }
 
 statement_input:
-  | statement SEMICOLON? EOF
+  | statement SEMICOLON? input_terminator
     { reset_uid (); $1 }
 
 value_expression_input:
-  | value_expression EOF
+  | value_expression input_terminator
     { reset_uid (); $1 }
+
+%inline
+input_terminator:
+  | EOF
+  | DOUBLE_SEMICOLON
+    { () }
 
 block:
   | OPEN_BRACE statement_list CLOSE_BRACE
     { Block($2) }
 
 statement_list:
-  | list(terminated(statement,SEMICOLON))
+  | separated_list_trailing(SEMICOLON,statement)
     { $1 }
 
 statement:
@@ -172,5 +179,15 @@ binary_operator:
 
 %inline
 separated_list_trailing(sep,item):
-  | separated_list(sep,item) sep?
+  |
+    { [] }
+  | separated_list_trailing_nonempty(sep,item)
     { $1 }
+
+separated_list_trailing_nonempty(sep,item):
+  | item sep
+    { [$1] }
+  | item
+    { [$1] }
+  | item sep separated_list_trailing_nonempty(sep,item)
+    { $1::$3 }

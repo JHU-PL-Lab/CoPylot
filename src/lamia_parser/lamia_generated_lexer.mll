@@ -18,6 +18,8 @@ let string_literal = '"' stringpart* '"'
 rule token = parse
   | [' ' '\n' '\t'] { token lexbuf }
 
+  | ";;" { DOUBLE_SEMICOLON }
+
   | ';' { SEMICOLON }
   | ':' { COLON }
   | '=' { EQUAL }
