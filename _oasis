@@ -122,6 +122,7 @@ Library "lamia_interpreter"
     Lamia_evaluation_ast,
     Lamia_evaluation_ast_converter,
     Lamia_evaluation_grammar,
+    Lamia_freshener,
     Lamia_heap,
     Lamia_heap_monad,
     Lamia_interpreter

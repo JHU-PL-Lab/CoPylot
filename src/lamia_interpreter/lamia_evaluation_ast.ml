@@ -1,19 +1,5 @@
 open Batteries;;
 
-type uid = Lamia_ast.uid;;
-let equal_uid = Lamia_ast.equal_uid;;
-let compare_uid = Lamia_ast.compare_uid;;
-let pp_uid = Lamia_ast.pp_uid;;
-let show_uid = Lamia_ast.show_uid;;
-module Uid =
-struct
-  type t = Lamia_ast.uid;;
-  let equal = equal_uid;;
-  let compare = compare_uid;;
-  let pp = pp_uid;;
-  let show = show_uid;;
-end;;
-
 type identifier = Lamia_ast.identifier;;
 let equal_identifier = Lamia_ast.equal_identifier;;
 let compare_identifier = Lamia_ast.compare_identifier;;
