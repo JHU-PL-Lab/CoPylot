@@ -37,11 +37,13 @@ and binary_operator =
   | Binop_intminus
   | Binop_haskey
   | Binop_listconcat
+  | Binop_equals
 [@@deriving eq, ord, show]
 
 and unary_operator =
     | Unop_not
   | Unop_is_function
+  | Unop_is_int
 [@@deriving eq, ord, show]
 
 and 'a directive =

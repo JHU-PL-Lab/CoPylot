@@ -66,11 +66,9 @@ and convert_stmt
     let%bind value_result = lookup_and_get_attr "*value" test in
 
     let dummy_return =
-      let%bind dummy_retval = fresh_value_var () in
       emit
         [
-          Let_expression(dummy_retval, None_literal);
-          If_result_value(dummy_retval);
+          If_result_value(builtin_none);
         ]
     in
 

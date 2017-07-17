@@ -127,7 +127,6 @@ let wrap_name_error = wrap_obj fill_name_error;;
 let wrap_attribute_error = wrap_obj fill_attribute_error;;
 let wrap_type_error = wrap_obj fill_type_error;;
 
-
 (* Wrapping methods is significantly more complicated than other wraps. *)
 let wrap_method func self =
   (* A lamia function value which curries in self automatically *)

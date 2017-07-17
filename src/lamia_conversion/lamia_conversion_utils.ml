@@ -157,13 +157,13 @@ let get_call target =
   (* Get its *value field *)
   (* TODO: Catch attribute error and continue *)
   let%bind test_loc = fresh_memory_var () in
-  let%bind tmp_bindings = get_value tmp_loc in
+  let%bind tmp_bindings = fresh_value_var () in
+  let%bind tmp_value = fresh_value_var () in
   let%bind _, compute_test =
     listen @@
-    let%bind tmp_value =
-      let%bind tmp_value_loc = get_attr "*value" tmp_bindings in
-      get_value tmp_value_loc
-    in
+    let%bind _ = emit [Let_get(tmp_bindings, tmp_loc)] in
+    let%bind tmp_value_loc = get_attr "*value" tmp_bindings in
+    let%bind _ = emit [Let_get(tmp_value, tmp_value_loc)] in
     let%bind test_name = fresh_value_var () in
     let%bind test_name_inverted = fresh_value_var () in
     emit
@@ -200,14 +200,12 @@ let get_call target =
   let compute_test_directives =
     List.map (fun s -> let Statement(_, d) = s in d) compute_test
   in
-  let%bind retval = fresh_value_var () in
   let%bind _ =
     emit @@
     compute_test_directives @
     [
       While(test_loc, Block(while_body @ compute_test));
-      Let_get(retval, tmp_loc);
     ]
   in
-  return retval
+  return tmp_value
 ;;
