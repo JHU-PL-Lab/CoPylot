@@ -22,6 +22,8 @@ let parse_and_run lexbuf =
 let main () =
   let buf = Lexing.from_channel stdin in
   let rec loop () =
+    print_endline "Lamia toploop";
+    print_endline "-------------";
     parse_and_run buf;
     loop ()
   in

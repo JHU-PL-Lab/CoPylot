@@ -133,11 +133,10 @@ Library "lamia_interpreter"
     ppx_deriving_yojson,
     CoPylot.lamia_language
 
-Library "lamia_toploop"
-  FindlibParent: CoPylot
+Executable "lamia_toploop"
   Path: src/lamia_toploop
-  Modules:
-    Lamia_toploop
+  MainIs: lamia_toploop.ml
+  CompiledObject: byte
   BuildDepends:
     batteries,
     jhupllib,
