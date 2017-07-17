@@ -187,6 +187,7 @@ let builtin_bool_body arglist =
       emit
         [
           (* TODO: Make sure result of __bool__ really is a bool *)
+          (* TODO: Retrieve *value field if so, and return it *)
           If_result_value(bool_result);
         ]
     in

@@ -121,7 +121,7 @@ let fill_stop_iteration obj =
    so I'm decreeing this to be acceptable for the moment. *)
 let wrap_int x = wrap_obj fill_int x;;
 let wrap_float x = wrap_obj fill_float x;;
-let wrap_bool x = wrap_obj fill_bool x;;
+let wrap_bool x = wrap_obj fill_bool x;; (* TODO: Return True or False globals conditionally *)
 let wrap_string x = wrap_obj fill_string x;;
 let wrap_list x = wrap_obj fill_list x;;
 let wrap_tuple x = wrap_obj fill_tuple x;;
