@@ -71,7 +71,7 @@ let define_get_from_parent_scope =
 ;;
 
 (* TODO: This should probably go in a separate file where we put all the
-  definitions together *)
+   definitions together *)
 let define_func body_def func_loc =
   let%bind arglist = fresh_value_var () in
 
@@ -88,6 +88,21 @@ let define_func body_def func_loc =
 
 (*TODO: All the builtin functions need arglist size verification and/or
   typechecking *)
+
+let builtin_attribute_error_body arglist =
+  let%bind arg_val = extract_arg_to_value arglist 0 in
+  wrap_attribute_error arg_val
+;;
+
+let builtin_type_error_body arglist =
+  let%bind arg_val = extract_arg_to_value arglist 0 in
+  wrap_type_error arg_val
+;;
+
+let builtin_name_error_body arglist =
+  let%bind arg_val = extract_arg_to_value arglist 0 in
+  wrap_name_error arg_val
+;;
 
 let builtin_bool_body arglist =
   let%bind arg_loc = extract_nth_list_elt arglist 0 in

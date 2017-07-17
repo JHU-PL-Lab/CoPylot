@@ -20,13 +20,13 @@ let builtin_none = Value_variable("*None");;
 (* Builtin global python functions *)
 (* Technically these are constructor calls *)
 (* let builtin_type = Memory_variable("builtin_type");; *)
-let builtin_bool = Memory_variable("builtin_bool");;
-let builtin_slice = Memory_variable("builtin_slice");;
-let builtin_ValueError = Memory_variable("builtin_ValueError");;
-let builtin_AttributeError = Memory_variable("builtin_AttributeError");;
-let builtin_TypeError = Memory_variable("builtin_TypeError");;
+let builtin_bool = Memory_variable("*bool");;
+let builtin_slice = Memory_variable("*slice");;
+let builtin_ValueError = Memory_variable("*ValueError");;
+let builtin_AttributeError = Memory_variable("*AttributeError");;
+let builtin_TypeError = Memory_variable("*TypeError");;
 
 (* Builtin python methods *)
-let int_add = Memory_variable("builtin_int_add");;
+let int_add = Memory_variable("*int_add");;
 
-let method_call = Memory_variable("builtin_method_call");;
+let method_call = Memory_variable("*method_call");;
