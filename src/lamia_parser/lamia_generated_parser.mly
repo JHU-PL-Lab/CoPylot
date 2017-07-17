@@ -11,6 +11,7 @@
 %token <string> STRING
 
 /* symbols */
+%token DOUBLE_SEMICOLON
 %token SEMICOLON
 %token COLON
 %token EQUAL
@@ -60,16 +61,22 @@
 
 %%
 file_input:
-  | statement_list EOF
+  | statement_list input_terminator
     { reset_uid (); Block($1) }
 
 statement_input:
-  | statement SEMICOLON? EOF
+  | statement SEMICOLON? input_terminator
     { reset_uid (); $1 }
 
 value_expression_input:
-  | value_expression EOF
+  | value_expression input_terminator
     { reset_uid (); $1 }
+
+%inline
+input_terminator:
+  | EOF
+  | DOUBLE_SEMICOLON
+    { () }
 
 block:
   | OPEN_BRACE statement_list CLOSE_BRACE

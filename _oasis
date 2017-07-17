@@ -115,6 +115,36 @@ Library "lamia_parser"
     ppx_deriving_yojson,
     CoPylot.lamia_language
 
+Library "lamia_interpreter"
+  FindlibParent: CoPylot
+  Path: src/lamia_interpreter
+  Modules:
+    Lamia_evaluation_ast,
+    Lamia_evaluation_ast_converter,
+    Lamia_evaluation_grammar,
+    Lamia_heap,
+    Lamia_heap_monad,
+    Lamia_interpreter
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ocaml-monadic,
+    ppx_deriving.std,
+    ppx_deriving_yojson,
+    CoPylot.lamia_language
+
+Library "lamia_toploop"
+  FindlibParent: CoPylot
+  Path: src/lamia_toploop
+  Modules:
+    Lamia_toploop
+  BuildDepends:
+    batteries,
+    jhupllib,
+    CoPylot.lamia_language,
+    CoPylot.lamia_interpreter,
+    CoPylot.lamia_parser
+
 Executable "test"
   Path: test/
   MainIs: test.ml
