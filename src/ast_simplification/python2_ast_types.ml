@@ -34,5 +34,6 @@ type builtin =
   | Builtin_ValueError
   | Builtin_AttributeError
   | Builtin_TypeError
+  | Builtin_StopIteration
 [@@deriving eq, ord, show, to_yojson]
 ;;

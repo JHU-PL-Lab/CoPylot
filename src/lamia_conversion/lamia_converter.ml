@@ -275,6 +275,7 @@ and convert_expr
       | Builtin_AttributeError -> return builtin_AttributeError
       | Builtin_ValueError     -> return builtin_TypeError
       | Builtin_TypeError      -> return builtin_ValueError
+      | Builtin_StopIteration  -> return builtin_StopIteration
     end
 
   | FunctionVal (args, body) ->

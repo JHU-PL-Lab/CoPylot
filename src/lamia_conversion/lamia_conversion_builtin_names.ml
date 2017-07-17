@@ -25,6 +25,7 @@ let builtin_slice = Memory_variable("*slice");;
 let builtin_ValueError = Memory_variable("*ValueError");;
 let builtin_AttributeError = Memory_variable("*AttributeError");;
 let builtin_TypeError = Memory_variable("*TypeError");;
+let builtin_StopIteration = Memory_variable("*StopIteration");;
 
 (* Builtin python methods *)
 let int_add = Memory_variable("*int_add");;

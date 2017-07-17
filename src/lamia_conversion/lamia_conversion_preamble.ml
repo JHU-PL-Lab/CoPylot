@@ -104,6 +104,11 @@ let builtin_name_error_body arglist =
   wrap_name_error arg_val
 ;;
 
+let builtin_stop_iteration_body arglist =
+  let%bind arg_val = extract_arg_to_value arglist 0 in
+  wrap_stop_iteration arg_val
+;;
+
 let builtin_bool_body arglist =
   let%bind arg_loc = extract_nth_list_elt arglist 0 in
   let%bind arg_obj = get_value arg_loc in

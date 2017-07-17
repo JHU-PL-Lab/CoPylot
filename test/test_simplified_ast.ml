@@ -647,7 +647,7 @@ let for_test = gen_module_test "for_test"
                                 "__class__",
                                 annot),
                       Is,
-                      Name("StopIteration", annot),
+                      Builtin(Builtin_StopIteration, annot),
                       annot)],
                   annot),
              [Pass(annot)],

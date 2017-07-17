@@ -242,7 +242,7 @@ and simplify_stmt ctx
                ],
 
                [Concrete.ExceptHandler(
-                   Some(Concrete.Name("StopIteration", Concrete.Load, annot)),
+                   Some(Concrete.Builtin(Builtin_StopIteration, annot)),
                    None,
                    [ Concrete.Pass(annot) ],
                    annot)],
@@ -253,7 +253,7 @@ and simplify_stmt ctx
              Concrete.TryExcept(
                (snd tmp_bindings) @ [subordinate_try_except],
                [Concrete.ExceptHandler(
-                   Some(Concrete.Name("StopIteration", Concrete.Load, annot)),
+                   Some(Concrete.Builtin(Builtin_StopIteration, annot)),
                    None,
                    [
                      Concrete.Raise(
@@ -497,7 +497,7 @@ and simplify_stmt ctx
       Concrete.TryExcept(
         [while_loop],
         [Concrete.ExceptHandler(
-            Some(Concrete.Name("StopIteration", Concrete.Load, annot)),
+            Some(Concrete.Builtin(Builtin_StopIteration, annot)),
             None,
             [Concrete.Pass(annot)],
             annot

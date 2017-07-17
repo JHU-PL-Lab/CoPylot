@@ -98,13 +98,14 @@ and pp_binop fmt = function
   | Is -> fprintf fmt "%s" "is"
 
 and pp_builtin fmt = function
-  | Builtin_slice -> fprintf fmt "*slice"
+  (* | Builtin_slice -> fprintf fmt "*slice"
   | Builtin_bool  -> fprintf fmt "*bool"
   (* | Builtin_type  -> fprintf fmt "*type" *)
   (* | Builtin_method -> fprintf fmt "*method_type" *)
   | Builtin_AttributeError -> fprintf fmt "*AttributeError"
   | Builtin_ValueError -> fprintf fmt "*ValueError"
-  | Builtin_TypeError -> fprintf fmt "*TypeError"
+     | Builtin_TypeError -> fprintf fmt "*TypeError" *)
+  | _ -> fprintf fmt "BUILTIN"
 
 and pp_functionval indent fmt args body =
   fprintf fmt "def (%a) {\n%a\n}"
