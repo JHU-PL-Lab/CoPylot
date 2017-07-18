@@ -146,6 +146,7 @@ Library "analysis"
   Path: src/analysis
   Modules:
     Analysis_types,
+    Analysis_lift_ast,
     Analysis_lexical_relations,
     Analysis_grammar
   BuildDepends:
