@@ -145,6 +145,7 @@ Library "analysis"
   FindlibParent: CoPylot
   Path: src/analysis
   Modules:
+    Analysis_types,
     Analysis_lexical_relations
   BuildDepends:
     batteries,

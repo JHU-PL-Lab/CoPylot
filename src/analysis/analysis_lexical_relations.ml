@@ -1,11 +1,10 @@
 open Batteries;;
 open Lamia_ast;;
-
-type stmt = uid statement;;
+open Analysis_types;;
 
 module Stmt_ord =
 struct
-  type t = stmt;;
+  type t = statement;;
 
   let equal s1 s2 =
     let Statement(u1, _) = s1 in
@@ -21,7 +20,7 @@ struct
 end
 
 module Stmt_map = Map.Make(Stmt_ord);;
-type relation_map = stmt option Stmt_map.t;;
+type relation_map = statement option Stmt_map.t;;
 
 let construct_left_triangle_map (prog : uid block) =
   let rec add_block map block =
@@ -29,7 +28,7 @@ let construct_left_triangle_map (prog : uid block) =
     let map, _ = List.fold_left construct_map (map, None) stmts in
     map
 
-  and construct_map prev (stmt : stmt)=
+  and construct_map prev (stmt : statement)=
     let (map, prev_stmt) = prev in
     match stmt with
     | Statement(_, d) ->
@@ -59,7 +58,7 @@ let construct_down_triangle_map (prog : uid block) =
     let map, _ = List.fold_left construct_map (map, prev_stmt) stmts in
     map
 
-  and construct_map prev (stmt : stmt)=
+  and construct_map prev (stmt : statement)=
     let (map, prev_stmt) = prev in
     match stmt with
     | Statement(_, d) ->
@@ -90,7 +89,7 @@ let construct_double_left_triangle_map (prog : uid block) =
     let map, _ = List.fold_left construct_map (map, None) stmts in
     map
 
-  and construct_map prev (stmt : stmt)=
+  and construct_map prev (stmt : statement)=
     let (map, prev_stmt_opt) = prev in
     let prev_stmt =
       if prev_stmt_opt = None then Some(stmt) else prev_stmt_opt
