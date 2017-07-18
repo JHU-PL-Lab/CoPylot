@@ -141,6 +141,20 @@ Library "lamia_interpreter"
     CoPylot.lamia_language,
     CoPylot.utils
 
+Library "analysis"
+  FindlibParent: CoPylot
+  Path: src/analysis
+  Modules:
+    Analysis_lexical_relations
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ocaml-monadic,
+    ppx_deriving.std,
+    ppx_deriving_yojson,
+    CoPylot.lamia_language,
+    CoPylot.utils
+
 Executable "lamia_toploop"
   Path: src/lamia_toploop
   MainIs: lamia_toploop.ml
