@@ -1,5 +1,4 @@
 open Batteries;;
-open Lamia_ast;;
 open Analysis_types;;
 
 module Stmt_ord =
@@ -22,7 +21,7 @@ end
 module Stmt_map = Map.Make(Stmt_ord);;
 type relation_map = statement option Stmt_map.t;;
 
-let construct_left_triangle_map (prog : uid block) =
+let construct_left_triangle_map (prog : block) =
   let rec add_block map block =
     let Block(stmts) = block in
     let map, _ = List.fold_left construct_map (map, None) stmts in
@@ -35,13 +34,13 @@ let construct_left_triangle_map (prog : uid block) =
       let new_map = Stmt_map.add stmt prev_stmt map in
       let recursed_map =
         match d with
-        | Lamia_ast.Let_expression (_, Function_expression(_, body))
-        | Lamia_ast.While (_, body) ->
+        | Let_expression (_, Function_expression(_, body))
+        | While (_, body) ->
           add_block new_map body
 
-        | Lamia_ast.Try_except (body, _, orelse)
-        | Lamia_ast.Let_conditional_value (_, _, body, orelse)
-        | Lamia_ast.Let_conditional_memory (_, _, body, orelse) ->
+        | Try_except (body, _, orelse)
+        | Let_conditional_value (_, _, body, orelse)
+        | Let_conditional_memory (_, _, body, orelse) ->
           let body_map = add_block new_map body in
           add_block body_map orelse
 
@@ -52,7 +51,7 @@ let construct_left_triangle_map (prog : uid block) =
   add_block Stmt_map.empty prog
 ;;
 
-let construct_down_triangle_map (prog : uid block) =
+let construct_down_triangle_map (prog : block) =
   let rec add_block prev_stmt map block =
     let Block(stmts) = block in
     let map, _ = List.fold_left construct_map (map, prev_stmt) stmts in
@@ -66,13 +65,13 @@ let construct_down_triangle_map (prog : uid block) =
       let add_block = add_block (Some stmt) in
       let recursed_map =
         match d with
-        | Lamia_ast.Let_expression (_, Function_expression(_, body))
-        | Lamia_ast.While (_, body) ->
+        | Let_expression (_, Function_expression(_, body))
+        | While (_, body) ->
           add_block new_map body
 
-        | Lamia_ast.Try_except (body, _, orelse)
-        | Lamia_ast.Let_conditional_value (_, _, body, orelse)
-        | Lamia_ast.Let_conditional_memory (_, _, body, orelse) ->
+        | Try_except (body, _, orelse)
+        | Let_conditional_value (_, _, body, orelse)
+        | Let_conditional_memory (_, _, body, orelse) ->
           let body_map = add_block new_map body in
           add_block body_map orelse
 
@@ -83,7 +82,7 @@ let construct_down_triangle_map (prog : uid block) =
   add_block None Stmt_map.empty prog
 ;;
 
-let construct_double_left_triangle_map (prog : uid block) =
+let construct_double_left_triangle_map (prog : block) =
   let rec add_block map block =
     let Block(stmts) = block in
     let map, _ = List.fold_left construct_map (map, None) stmts in
@@ -99,13 +98,13 @@ let construct_double_left_triangle_map (prog : uid block) =
       let new_map = Stmt_map.add stmt prev_stmt map in
       let recursed_map =
         match d with
-        | Lamia_ast.Let_expression (_, Function_expression(_, body))
-        | Lamia_ast.While (_, body) ->
+        | Let_expression (_, Function_expression(_, body))
+        | While (_, body) ->
           add_block new_map body
 
-        | Lamia_ast.Try_except (body, _, orelse)
-        | Lamia_ast.Let_conditional_value (_, _, body, orelse)
-        | Lamia_ast.Let_conditional_memory (_, _, body, orelse) ->
+        | Try_except (body, _, orelse)
+        | Let_conditional_value (_, _, body, orelse)
+        | Let_conditional_memory (_, _, body, orelse) ->
           let body_map = add_block new_map body in
           add_block body_map orelse
 
@@ -117,7 +116,7 @@ let construct_double_left_triangle_map (prog : uid block) =
 ;;
 
 (* Returns a tuple of the left, down and double-left maps, in that order *)
-let construct_all_relation_maps (prog : uid block) =
+let construct_all_relation_maps (prog : block) =
   construct_left_triangle_map prog,
   construct_down_triangle_map prog,
   construct_double_left_triangle_map
