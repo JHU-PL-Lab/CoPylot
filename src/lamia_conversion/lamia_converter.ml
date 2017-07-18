@@ -2,6 +2,7 @@ open Batteries;;
 open Lamia_ast;;
 open Python2_normalized_ast;;
 open Python2_ast_types;;
+open Unique_name_ctx;;
 open Lamia_conversion_monad;;
 open Lamia_conversion_builtin_names;;
 open Lamia_conversion_builtin_defs;;
@@ -12,13 +13,13 @@ open Lamia_conversion_object_defs;;
 open Conversion_monad;;
 
 let rec convert_module
-    (ctx : Python2_simplification_ctx.simp_context)
+    (ctx : name_context)
     (m : modl)
   : annot block =
   let Module(stmts) = m in
   let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
   let preamble_ctx =
-    Python2_simplification_ctx.create_new_simplification_ctx 0 "$preamble_"
+    create_new_name_ctx 0 "$preamble_"
   in
   let _, lamia_preamble = run preamble_ctx annot preamble in
   let _, lamia_prog = run ctx annot @@ convert_stmt_list stmts in

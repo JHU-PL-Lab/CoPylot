@@ -1,7 +1,7 @@
 open Python2_ast_types
 module Simplified = Python2_simplified_ast;;
 module Normalized = Python2_normalized_ast;;
-open Python2_simplification_ctx;;
+open Unique_name_ctx;;
 
 (* FIXME: We need to create a type for builtin methods (in addition to builtin
    functions such as type, bool, slice) such as __getattr__, and use that
@@ -41,7 +41,7 @@ let normalize_list normalize_func lst =
   bindings, results
 ;;
 
-let rec normalize_modl (ctx : simp_context) m : Normalized.modl =
+let rec normalize_modl (ctx : name_context) m : Normalized.modl =
   match m with
   | Simplified.Module (body, _) ->
     let normalized_prog = map_and_concat (normalize_stmt ctx) body in

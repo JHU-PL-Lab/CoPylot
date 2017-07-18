@@ -1,6 +1,6 @@
 open Jhupllib;;
 open Python2_ast_types;;
-open Python2_simplification_ctx;;
+open Unique_name_ctx;;
 module Concrete = Python2_concrete_ast;;
 module Simplified = Python2_simplified_ast;;
 exception Invalid_assignment of string;;
@@ -54,7 +54,7 @@ let simplify_option func o =
   | Some(x) -> Some(func x)
 ;;
 
-let rec simplify_modl (ctx : simp_context) (m : 'a Concrete.modl)
+let rec simplify_modl (ctx : name_context) (m : 'a Concrete.modl)
   : 'a Simplified.modl =
   match m with
   | Concrete.Module (body, annot) ->
@@ -574,7 +574,7 @@ and simplify_stmt ctx
    the assignments necessary to compute it, and the name of the final
    variable that was bound *)
 and simplify_expr
-    (ctx : simp_context)
+    (ctx : name_context)
     (e : 'a Concrete.expr)
   : 'a Simplified.stmt list * 'a Simplified.expr =
   let gen_unique_name = gen_unique_name ctx in

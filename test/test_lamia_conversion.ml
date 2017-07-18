@@ -32,7 +32,7 @@ let gen_module_test (name : string) (prog : string)
   name>::
   ( fun _ ->
       let actual = parse_to_normalized_safe prog 1 true in
-      let ctx = Python2_simplification_ctx.create_new_simplification_ctx 0 "$lamia_" in
+      let ctx = Unique_name_ctx.create_new_name_ctx 0 "$lamia_" in
       let lamia_prog = convert_module ctx actual in
       let lamia_result, lamia_heap = evaluate lamia_prog in
 

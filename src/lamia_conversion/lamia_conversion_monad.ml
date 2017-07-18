@@ -1,6 +1,6 @@
 open Batteries;;
 open Lamia_ast;;
-open Python2_simplification_ctx;;
+open Unique_name_ctx;;
 
 type annot = Python2_ast.Pos.t;;
 
@@ -14,7 +14,7 @@ sig
   val listen: 'a t -> ('a * annot statement list) t
   val sequence: ('a t) list -> ('a list) t
 
-  val run: simp_context -> annot -> 'a t -> 'a * annot statement list
+  val run: name_context -> annot -> 'a t -> 'a * annot statement list
 
   val local_annot: annot -> 'a t -> 'a t
   val fresh_name: unit -> string t
@@ -23,7 +23,7 @@ sig
 end =
 struct
   (* TODO: Change to not use a list for performance reasons *)
-  type 'a t = simp_context -> annot -> 'a * annot statement list;;
+  type 'a t = name_context -> annot -> 'a * annot statement list;;
 
   let return x = fun _ _ -> (x, []);;
 

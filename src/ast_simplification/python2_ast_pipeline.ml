@@ -23,7 +23,7 @@ let parse_to_simplified
   let prefix = if short_names then "$simp" else "$simplified_unique_name_" in
   let concrete = parse_to_concrete prog in
   let ctx =
-    Python2_simplification_ctx.create_new_simplification_ctx starting_name prefix
+    Unique_name_ctx.create_new_name_ctx starting_name prefix
   in
   Simplify.simplify_modl ctx concrete
 ;;
@@ -37,7 +37,7 @@ let parse_to_normalized
   let prefix = if short_names then "$norm" else "$normalized_unique_name_" in
   let simplified = parse_to_simplified prog 0 short_names in
   let ctx =
-    Python2_simplification_ctx.create_new_simplification_ctx starting_name prefix
+    Unique_name_ctx.create_new_name_ctx starting_name prefix
   in
   Normalize.normalize_modl ctx simplified
 ;;

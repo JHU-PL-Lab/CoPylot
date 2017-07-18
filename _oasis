@@ -24,16 +24,6 @@ Library "CoPylot"
   Modules:
     Copylot
 
-Library "utils"
-  FindlibParent: CoPylot
-  Path: src/utils
-  Modules:
-    Graph
-  BuildDepends:
-    batteries,
-    jhupllib,
-    ppx_deriving.std
-
 Library "parser"
   FindlibParent: CoPylot
   Path: src/parser
@@ -50,6 +40,20 @@ Library "parser"
     jhupllib,
     ppx_deriving.std
 
+Library "utils"
+  FindlibParent: CoPylot
+  Path: src/utils
+  Modules:
+    Graph,
+    Uid_ctx,
+    Unique_name_ctx
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std,
+    CoPylot.parser
+
+
 Library "ast_simplification"
   FindlibParent: CoPylot
   Path: src/ast_simplification
@@ -62,7 +66,6 @@ Library "ast_simplification"
     Python2_ast_simplifier,
     Python2_normalized_ast,
     Python2_ast_normalizer,
-    Python2_simplification_ctx,
     Python2_normalized_ast_pretty,
     Python2_ast_pipeline
   BuildDepends:
@@ -70,7 +73,8 @@ Library "ast_simplification"
     jhupllib,
     ppx_deriving.std,
     ppx_deriving_yojson,
-    CoPylot.parser
+    CoPylot.parser,
+    CoPylot.utils
 
 Library "lamia_language"
   FindlibParent: CoPylot
@@ -88,7 +92,6 @@ Library "lamia_conversion"
   FindlibParent: CoPylot
   Path: src/lamia_conversion
   Modules:
-    Lamia_conversion_ctx,
     Lamia_conversion_monad,
     Lamia_conversion_builtin_names,
     Lamia_conversion_utils,
@@ -133,7 +136,8 @@ Library "lamia_interpreter"
     ocaml-monadic,
     ppx_deriving.std,
     ppx_deriving_yojson,
-    CoPylot.lamia_language
+    CoPylot.lamia_language,
+    CoPylot.utils
 
 Executable "lamia_toploop"
   Path: src/lamia_toploop

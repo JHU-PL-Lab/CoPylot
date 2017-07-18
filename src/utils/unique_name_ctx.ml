@@ -11,26 +11,17 @@ end
 
 module Counter_hashtbl = Hashtbl.Make(Counter);;
 
-type conversion_context = {
-  mutable uid_counter: int;
+type name_context = {
   mutable name_counter: int;
   name_prefix: string;
-  uid_map: Python2_ast.Pos.t Counter_hashtbl.t;
   name_map: Python2_ast.Pos.t Counter_hashtbl.t;
 }
 ;;
 
-let create_new_conversion_ctx starting_uid starting_name name_prefix =
-  { uid_counter = starting_uid; name_counter = starting_name;
+let create_new_name_ctx starting_name name_prefix =
+  { name_counter = starting_name;
     name_prefix = name_prefix;
-    uid_map = Counter_hashtbl.create 10; name_map = Counter_hashtbl.create 10; }
-;;
-
-let get_next_uid ctx annot =
-  let count = ctx.uid_counter in
-  ctx.uid_counter <- count + 1;
-  Counter_hashtbl.add ctx.uid_map count annot;
-  count
+    name_map = Counter_hashtbl.create 10; }
 ;;
 
 let gen_unique_name ctx annot =
@@ -38,10 +29,6 @@ let gen_unique_name ctx annot =
   ctx.name_counter <- count + 1;
   Counter_hashtbl.add ctx.name_map count annot;
   ctx.name_prefix ^ string_of_int count
-;;
-
-let get_annotation_from_uid ctx u =
-  Counter_hashtbl.find ctx.uid_map u
 ;;
 
 let get_annotation_from_name ctx u =
