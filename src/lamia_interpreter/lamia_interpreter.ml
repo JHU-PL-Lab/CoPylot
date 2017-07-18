@@ -204,7 +204,7 @@ let rec eval_step_directive (d : directive)
         |> List.map (fun (p,a) -> Statement(Let_alias_value(p,a)))
       in
       let function_block = Block(arg_wiring @ body) in
-      let freshened_block = function_block in (* FIXME: freshen variables in function body! *)
+      let freshened_block = Lamia_freshener.freshen_block_top function_block in
       return [Active_fun_block(y, freshened_block)]
   | Store(y, x) ->
     let%bind m = get_memory_address y in
