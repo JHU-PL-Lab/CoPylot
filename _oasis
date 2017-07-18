@@ -80,7 +80,8 @@ Library "lamia_language"
   FindlibParent: CoPylot
   Path: src/lamia_language
   Modules:
-    Lamia_ast
+    Lamia_ast,
+    Lamia_ast_pretty
   BuildDepends:
     batteries,
     jhupllib,
