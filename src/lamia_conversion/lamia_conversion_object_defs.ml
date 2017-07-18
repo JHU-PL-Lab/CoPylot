@@ -149,6 +149,7 @@ let wrap_method func self =
           Let_expression(self_list, List_value [self]);
           Let_binop(curried_args, self_list, Binop_listconcat, arglist);
           Let_call_function(retval, func, [curried_args]);
+          Return(retval);
         ]
     in
     let%bind _ = emit

@@ -205,7 +205,7 @@ and freshen_directive (directive : directive) : directive m =
     return @@ Let_call_function(ylet',xfun',xargs')
   | Store(y,x) ->
     let%bind x' = get_value_variable_freshening x in
-    let%bind y' = make_memory_variable_freshening y in
+    let%bind y' = get_memory_variable_freshening y in
     return @@ Store(y',x')
   | Let_get(x,y) ->
     let%bind y' = get_memory_variable_freshening y in

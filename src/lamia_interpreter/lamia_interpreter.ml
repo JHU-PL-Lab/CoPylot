@@ -8,7 +8,7 @@ open Lamia_heap;;
 
 open Logger_utils;;
 let add_to_log = make_logger "Lamia_interpreter";;
-set_default_logging_level `debug;;
+set_default_logging_level `warn;;
 
 type unary_operator = Lamia_ast.unary_operator;;
 type binary_operator = Lamia_ast.binary_operator;;
@@ -445,7 +445,11 @@ let evaluate (ast : 'a Lamia_ast.block) : evaluation_result * Heap.t =
   let ast' = Lamia_evaluation_ast_converter.convert_block ast in
   let result = Lamia_heap_monad.run (eval ast') in
   let open Lamia_heap_monad in
-  match result with
-  | Lamia_heap_monad.Heap_error(s,h) -> (Evaluation_error s, h.heap)
-  | Lamia_heap_monad.Heap_success(r,h) -> (r, h.heap)
+  let retval, heap =
+    match result with
+    | Lamia_heap_monad.Heap_error(s,h) -> (Evaluation_error s, h.heap)
+    | Lamia_heap_monad.Heap_success(r,h) -> (r, h.heap)
+  in
+  add_to_log `debug @@ "Done evaluating. Final Heap:\n" ^ Heap.to_string heap;
+  retval, heap
 ;;
