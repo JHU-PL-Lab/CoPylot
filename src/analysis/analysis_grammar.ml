@@ -1,15 +1,15 @@
-open Lamia_ast
+open Analysis_types;;
 
 module Program_state =
 struct
   type t =
     | Start
     | End
-    | Stmt of uid statement
-    | Advance of uid statement
-    | Ifresult of uid statement
-    | Return of uid statement
-    | Raise of uid statement
+    | Stmt of statement
+    | Advance of statement
+    | Ifresult of statement
+    | Return of statement
+    | Raise of statement
   [@@deriving eq, ord, show]
   ;;
 end;;
