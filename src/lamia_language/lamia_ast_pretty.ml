@@ -3,11 +3,10 @@ open Lamia_ast
 
 (* Default pretty printing *)
 
-(* let rec pp_lines printer fmt = function
-   | [] -> ()
-   | [x] -> printer fmt x
-   | x :: rest ->
-    fprintf fmt "%a@\n%a" printer x (pp_lines printer) rest *)
+let indent_per_level = 4;;
+let increase_indent indent =
+  indent ^ String.make indent_per_level ' '
+;;
 
 let rec pp_list pp fmt lst =
   let rec loop pp fmt = function
@@ -23,8 +22,8 @@ let rec pp_block indent fmt = function
     List.iter ((pp_stmt indent) fmt) body
 
 and pp_stmt indent fmt s =
-  let Statement(uid, d) = s in
-  fprintf fmt "@%4d:%s%a" uid indent
+  let Statement((_:uid), d) = s in
+  fprintf fmt "%s%a\n" indent
     (pp_directive indent) d
 
 and pp_directive indent fmt d =
@@ -108,27 +107,34 @@ and pp_directive indent fmt d =
     fprintf fmt "raise %a"
       pp_memory_var y
   | Try_except(body, y, handler) ->
-    fprintf fmt "try {\n%a\n} except %a {\n%a\n}"
-      (pp_block (indent ^ "  ")) body
+    fprintf fmt "try {\n%a\n%s} except %a {\n%a\n%s}"
+      (pp_block (increase_indent indent)) body
+      indent
       pp_memory_var y
-      (pp_block (indent ^ "  ")) handler
+      (pp_block (increase_indent indent)) handler
+      indent
 
   | Let_conditional_value(x1, x2, body, orelse) ->
-    fprintf fmt "let %a = if %a then {\n%a\n} else {\n%a\n}"
+    fprintf fmt "let %a = if %a then {\n%a\n%s} else {\n%a\n%s}"
       pp_value_var x1
       pp_value_var x2
-      (pp_block (indent ^ "  ")) body
-      (pp_block (indent ^ "  ")) orelse
+      (pp_block (increase_indent indent)) body
+      indent
+      (pp_block (increase_indent indent)) orelse
+      indent
   | Let_conditional_memory(y, x, body, orelse) ->
-    fprintf fmt "let %a = if %a then {\n%a\n} else {\n%a\n}"
+    fprintf fmt "let %a = if %a then {\n%a\n%s} else {\n%a\n%s}"
       pp_memory_var y
       pp_value_var x
-      (pp_block (indent ^ "  ")) body
-      (pp_block (indent ^ "  ")) orelse
+      (pp_block (increase_indent indent)) body
+      indent
+      (pp_block (increase_indent indent)) orelse
+      indent
   | While(y, body) ->
-    fprintf fmt "while %a do {\n%a\n}"
+    fprintf fmt "while %a do {\n%a\n%s}"
       pp_memory_var y
-      (pp_block (indent ^ "  ")) body
+      (pp_block (increase_indent indent)) body
+      indent
 
 and pp_expr indent fmt e =
   match e with
@@ -137,9 +143,10 @@ and pp_expr indent fmt e =
   | Boolean_literal b -> pp_print_bool fmt b
   | List_value lst -> pp_list pp_memory_var fmt lst
   | Function_expression (args, body) ->
-    fprintf fmt "def (%a) {\n%a\n}"
+    fprintf fmt "def (%a) {\n%a\n%s}"
       (pp_list pp_value_var) args
-      (pp_block (indent ^ "  ")) body
+      (pp_block (increase_indent indent)) body
+      indent
   | None_literal -> fprintf fmt "None"
   | Empty_binding -> fprintf fmt "{}"
 

@@ -5,8 +5,7 @@ open Jhupllib;;
 open Python2_ast_pipeline;;
 
 open Lamia_converter;;
-open Lamia_heap;;
-open Lamia_interpreter;;
+open Lamia_ast_pretty;;
 
 let parse_to_normalized_safe prog short_names =
   try
@@ -18,37 +17,23 @@ let parse_to_normalized_safe prog short_names =
                       p.pos_lnum p.pos_cnum)
 ;;
 
-let print_eval_result = function
-  | Evaluated_successfully ->
-    "Evaluation successful."
-  | Evaluated_to_exception(Lamia_ast.Memory_variable(y)) ->
-    Printf.sprintf "Raised exception: %s\n" y
-  | Evaluation_error s ->
-    Printf.sprintf "Evaluation error: %s\n" s
-;;
+let lamia_to_string prog = Pp_utils.pp_to_string pp_block_top prog;;
 
 let gen_module_test (name : string) (prog : string)
-    (expected_result : evaluation_result) =
+    (expected : string) =
   name>::
   ( fun _ ->
       let actual = parse_to_normalized_safe prog 1 true in
-      let ctx = Unique_name_ctx.create_new_name_ctx 0 "$lamia_" in
+      let ctx = Unique_name_ctx.create_new_name_ctx 0 "lamia$" in
       let lamia_prog = convert_module ctx actual in
-      let lamia_result, lamia_heap = evaluate lamia_prog in
+      let lamia_str = lamia_to_string lamia_prog in
 
-      let printer r =
-        "Result: " ^ print_eval_result r ^ "\n" ^
-        "Prog: " ^ Pp_utils.pp_to_string (Lamia_ast.pp_block (fun _ _ -> ())) lamia_prog ^ "\n" ^
-        "Heap: " ^ Heap.to_string lamia_heap ^ "\n"
-      in
-
-      (* assert_equal ~printer:print_eval_result ~cmp:equal_evaluation_result expected_result lamia_result; *)
-      assert_equal ~printer:printer ~cmp:equal_evaluation_result expected_result lamia_result;
+      assert_equal ~printer:(fun x -> x) ~cmp:String.equal expected lamia_str;
   )
 ;;
 
 let tests =
   "test_lamia_converter">:::
   [
-    gen_module_test "int_add_test" "1+2" @@ Evaluated_successfully;
+    gen_module_test "int_add_test" "1+2" ""
   ]

@@ -1081,7 +1081,7 @@ let expect_error_test
      assert_raises
        expected
        (fun _ ->
-          let ctx = Python2_simplification_ctx.create_new_simplification_ctx 0 "$simp" in
+          let ctx = Unique_name_ctx.create_new_name_ctx 0 "$simp" in
           (List.concat (List.map (Python2_ast_simplifier.simplify_stmt ctx) prog)))
   )
 ;;
