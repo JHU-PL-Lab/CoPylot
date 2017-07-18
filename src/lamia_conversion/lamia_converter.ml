@@ -3,27 +3,30 @@ open Lamia_ast;;
 open Python2_normalized_ast;;
 open Python2_ast_types;;
 open Unique_name_ctx;;
+open Uid_ctx;;
 open Lamia_conversion_monad;;
 open Lamia_conversion_builtin_names;;
 open Lamia_conversion_builtin_defs;;
 open Lamia_conversion_preamble;;
 open Lamia_conversion_utils;;
 open Lamia_conversion_object_defs;;
+open Lamia_conversion_add_uids;;
 
 open Conversion_monad;;
 
 let rec convert_module
     (ctx : name_context)
     (m : modl)
-  : annot block =
+  : uid block =
   let Module(stmts) = m in
   let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
-  let preamble_ctx =
-    create_new_name_ctx 0 "$preamble_"
-  in
+  let preamble_ctx = create_new_name_ctx 0 "$preamble_" in
   let _, lamia_preamble = run preamble_ctx annot preamble in
   let _, lamia_prog = run ctx annot @@ convert_stmt_list stmts in
-  Block(lamia_preamble @ lamia_prog)
+  let annot_block = Block(lamia_preamble @ lamia_prog) in
+  let uid_ctx = create_new_uid_ctx 0 in
+  let uid_block = add_uids_block uid_ctx annot_block in
+  uid_block
 
 and convert_stmt_list (stmts : annotated_stmt list) : unit m =
   (* TODO: Prepend preamble, scope setup, etc *)

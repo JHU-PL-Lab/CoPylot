@@ -98,6 +98,7 @@ Library "lamia_conversion"
     Lamia_conversion_object_defs,
     Lamia_conversion_builtin_defs,
     Lamia_conversion_preamble,
+    Lamia_conversion_add_uids,
     Lamia_converter
   BuildDepends:
     batteries,

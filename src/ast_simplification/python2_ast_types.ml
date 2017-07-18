@@ -6,9 +6,13 @@ type identifier = string
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
+type annot = Python2_ast.Pos.t
+(* [@@deriving eq, ord, show, to_yojson] *)
+;;
+
 type 'a annotation =
   {
-    annot: Python2_ast.Pos.t;
+    annot: annot;
     body: 'a;
   }
   (* [@@deriving eq, ord, show, to_yojson] *)
