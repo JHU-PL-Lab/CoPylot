@@ -34,13 +34,18 @@ let get_from_scope_def =
         ]
     in
     let%bind scope_val = fresh_value_var () in
+    let%bind _ =
+      emit
+        [
+          Let_get(scope_val, python_scope);
+        ]
+    in
     let%bind local_result =
       get_from_binding target scope_val lookup_in_parent
     in
     emit
       [
-        Let_get(scope_val, python_scope);
-        If_result_memory(local_result);
+        Return(local_result);
       ]
   in
   return @@ Function_expression([target], Block(func_body))

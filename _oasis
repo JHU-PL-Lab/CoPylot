@@ -160,7 +160,9 @@ Executable "test"
     CoPylot.parser,
     CoPylot.ast_simplification,
     CoPylot.lamia_language,
-    CoPylot.lamia_parser
+    CoPylot.lamia_parser,
+    CoPylot.lamia_interpreter,
+    CoPylot.lamia_conversion
 
 Test test
   Command: $test

@@ -12,6 +12,7 @@ type evaluation_result =
   | Evaluated_successfully
   | Evaluated_to_exception of memory_variable
   | Evaluation_error of string
+[@@deriving eq, ord, show]
 ;;
 
 let value_of (e : value_expression) : value Lamia_heap_monad.m =

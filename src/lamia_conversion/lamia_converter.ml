@@ -17,7 +17,10 @@ let rec convert_module
   : annot block =
   let Module(stmts) = m in
   let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
-  let _, lamia_preamble = run ctx annot preamble in
+  let preamble_ctx =
+    Python2_simplification_ctx.create_new_simplification_ctx 0 "$preamble_"
+  in
+  let _, lamia_preamble = run preamble_ctx annot preamble in
   let _, lamia_prog = run ctx annot @@ convert_stmt_list stmts in
   Block(lamia_preamble @ lamia_prog)
 
