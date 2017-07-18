@@ -146,12 +146,13 @@ Library "analysis"
   Path: src/analysis
   Modules:
     Analysis_types,
-    Analysis_grammar,
-    Analysis_lexical_relations
+    Analysis_lexical_relations,
+    Analysis_grammar
   BuildDepends:
     batteries,
     jhupllib,
     ocaml-monadic,
+    pds-reachability,
     ppx_deriving.std,
     ppx_deriving_yojson,
     CoPylot.lamia_language,
