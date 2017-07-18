@@ -50,5 +50,5 @@ let gen_module_test (name : string) (prog : string)
 let tests =
   "test_lamia_converter">:::
   [
-    gen_module_test "int_add_test" "x = 1" @@ Evaluated_successfully;
+    gen_module_test "int_add_test" "1+2" @@ Evaluated_successfully;
   ]

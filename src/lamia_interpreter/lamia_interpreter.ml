@@ -5,6 +5,11 @@ open Lamia_evaluation_ast;;
 open Lamia_evaluation_grammar;;
 open Lamia_heap;;
 
+
+open Logger_utils;;
+let add_to_log = make_logger "Lamia_interpreter";;
+set_default_logging_level `debug;;
+
 type unary_operator = Lamia_ast.unary_operator;;
 type binary_operator = Lamia_ast.binary_operator;;
 
@@ -23,7 +28,10 @@ let value_of (e : value_expression) : value Lamia_heap_monad.m =
   | Boolean_literal b -> return @@ Boolean_value b
   | Function_expression(xs,b) -> return @@ Function_value(xs, b)
   | Lamia_evaluation_ast.List_value ys ->
-    let%bind ms = sequence @@ List.map get_memory_address ys in
+    let tmp = List.map get_memory_address ys in
+    add_to_log `debug @@ "List value of length " ^ string_of_int @@ List.length tmp;
+    let%bind ms = sequence @@ tmp in
+    add_to_log `debug @@ "Sequenced length: " ^ string_of_int @@ List.length ms;
     return @@ Lamia_evaluation_grammar.List_value ms
   | Empty_binding -> return @@ Object_value StringMap.empty
   | None_literal -> return @@ None_value
@@ -136,12 +144,12 @@ let rec eval_step_directive (d : directive)
     let%bind () = set_memory_address y m in
     return []
   | Let_alias_value(x1,x2) ->
-    let%bind v = get_value x1 in
-    let%bind () = set_value x2 v in
+    let%bind v = get_value x2 in
+    let%bind () = set_value x1 v in
     return []
   | Let_alias_memory(y1,y2) ->
-    let%bind m = get_memory_address y1 in
-    let%bind () = set_memory_address y2 m in
+    let%bind m = get_memory_address y2 in
+    let%bind () = set_memory_address y1 m in
     return []
   | Let_binding_update(x,obj,key,y) ->
     let%bind objv = get_value obj in
@@ -409,6 +417,9 @@ and eval_step_statement_list (ss : statement list)
   match ss with
   | [] -> return []
   | s::ss' ->
+    add_to_log `debug @@
+    "Taking eval step:\n" ^
+    "Evaluating: " ^ Pp_utils.pp_to_string pp_statement s ^ "\n";
     let%bind new_ss = eval_step_statement s in
     return @@ new_ss @ ss'
 ;;

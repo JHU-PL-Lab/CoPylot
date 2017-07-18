@@ -25,7 +25,7 @@ let bind (x : 'a m) (f : 'a -> 'b m) : 'b m =
 let sequence (xs : 'a m list) : 'a list m =
   let rec loop (acc : 'a list) (xs' : 'a m list) : 'a list m =
     match xs' with
-    | [] -> return []
+    | [] -> return acc
     | x::xs'' ->
       let%bind z = x in
       loop (z::acc) xs''

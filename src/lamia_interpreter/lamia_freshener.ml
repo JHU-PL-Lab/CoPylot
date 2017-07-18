@@ -3,6 +3,9 @@ open Jhupllib;;
 
 open Lamia_evaluation_ast;;
 
+let add_to_log = Logger_utils.make_logger "Lamia freshening";;
+Logger_utils.set_default_logging_level `warn;;
+
 module Value_variable_map = Map.Make(Value_variable);;
 module Memory_variable_map = Map.Make(Memory_variable);;
 
@@ -106,7 +109,7 @@ struct
   let sequence (xs : 'a m list) : 'a list m =
     let rec loop (acc : 'a list) (xs' : 'a m list) : 'a list m =
       match xs' with
-      | [] -> return []
+      | [] -> return acc
       | x::xs'' ->
         let%bind z = x in
         loop (z::acc) xs''
@@ -130,6 +133,7 @@ struct
 
 end;;
 open FresheningMonad;;
+
 
 (* Note: ordering is important in this function.  The LHS is handled second so
    that free variables can be conditionally freshened before binding the LHS

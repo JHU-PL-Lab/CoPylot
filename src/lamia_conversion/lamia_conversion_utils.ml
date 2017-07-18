@@ -170,7 +170,8 @@ let get_call target =
       [
         Let_unop(test_name, Unop_is_function, tmp_value);
         Let_unop(test_name_inverted, Unop_not, test_name);
-        Store(test_loc, test_name);
+        Let_alloc(test_loc);
+        Store(test_loc, test_name_inverted);
       ]
   in
 
