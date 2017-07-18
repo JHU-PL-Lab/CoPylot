@@ -1,49 +1,43 @@
 type uid = Python2_ast_types.uid
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 ;;
 
 type identifier = Python2_ast_types.identifier
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 ;;
 
 type value_variable =
   | Value_variable of identifier
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 ;;
 
 type memory_variable =
   | Memory_variable of identifier
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 ;;
 
 type sign =
   | Pos
   | Neg
   | Zero
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 ;;
 
 type abstract_str =
   | String_exact of string
   | String_lossy
-[@@deriving eq, ord, show]
-;;
-
-type 'a abstract_list =
-  | List_exact of 'a list
-  | List_lossy of 'a list
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 ;;
 
 type value_expression =
     | Integer_literal of sign
   | String_literal of abstract_str
   | Boolean_literal of bool
-  | List_value of memory_variable abstract_list
-  | Function_expression of value_variable abstract_list * block
+  | List_value of memory_variable list
+  | Function_expression of value_variable list * block
   | None_literal
   | Empty_binding
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and binary_operator =
     | Binop_intplus
@@ -51,13 +45,13 @@ and binary_operator =
   | Binop_haskey
   | Binop_listconcat
   | Binop_equals
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and unary_operator =
     | Unop_not
   | Unop_is_function
   | Unop_is_int
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and directive =
     | Let_expression of value_variable * value_expression
@@ -82,29 +76,35 @@ and directive =
   | Let_conditional_value of value_variable * value_variable * block * block
   | Let_conditional_memory of memory_variable * value_variable * block * block
   | While of memory_variable * block
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and statement =
     | Statement of uid * directive
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 
 and block =
     | Block of statement list
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
+;;
+
+type memory_location =
+    | Memloc of statement
+[@@deriving eq, ord, show, to_yojson]
+;;
+
+type abstract_memloc_list =
+  | List_exact of memory_location list
+  | List_lossy of memory_location list
+[@@deriving eq, ord, show, to_yojson]
 ;;
 
 type value =
   | Integer of sign
   | String of abstract_str
   | Boolean of bool
-  | List of memory_variable abstract_list
-  | Function of value_variable abstract_list * block
+  | List of abstract_memloc_list
+  | Function of value_variable list * block
   | None_value
   | Empty_binding_value
-[@@deriving eq, ord, show]
-;;
-
-type memory_location =
-    | Memloc of statement
-[@@deriving eq, ord, show]
+[@@deriving eq, ord, show, to_yojson]
 ;;
