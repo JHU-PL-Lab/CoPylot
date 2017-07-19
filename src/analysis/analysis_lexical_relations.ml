@@ -24,7 +24,7 @@ type relation_map = (statement option) Stmt_map.t;;
 let construct_left_triangle_map (prog : block) =
   let rec add_block map block =
     let Block(stmts) = block in
-    let map, _ = List.fold_left construct_map (map, None) stmts in
+    let map, _ = List.fold_left construct_map (map, None) (List.rev stmts) in
     map
 
   and construct_map prev (stmt : statement)=
