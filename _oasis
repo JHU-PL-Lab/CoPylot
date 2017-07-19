@@ -147,8 +147,9 @@ Library "analysis"
   Modules:
     Analysis_types,
     Analysis_lift_ast,
+    Analysis_grammar,
     Analysis_lexical_relations,
-    Analysis_grammar
+    Analysis_construct_cfg
   BuildDepends:
     batteries,
     jhupllib,
