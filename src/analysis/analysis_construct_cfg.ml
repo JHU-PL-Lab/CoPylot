@@ -2,8 +2,8 @@ open Batteries;;
 open Analysis_types;;
 open Analysis_grammar;;
 open Analysis_lexical_relations;;
-open Jhupllib_nondeterminism;;
 open Analysis_lookup;;
+open Analysis_construct_cfg_monad;;
 
 type analysis_construction =
   {
@@ -32,14 +32,10 @@ let skippable s =
   | _
     -> false
 ;;
-
-let lookup_value _ _ _ = failwith "TODO: Lookup NYI";;
-let lookup_memory _ _ _ = failwith "TODO: Lookup NYI";;
-
 let add_edge relations analysis edge =
   let open Cfg in
   let open Program_state in
-  let open Nondeterminism_monad in
+  let open Cfg_monad in
   let Edge(_, v2) = edge in
   [
     (* Skip *)
@@ -53,7 +49,9 @@ let add_edge relations analysis edge =
     begin
       let%orzero Stmt(s) = v2 in
       let%orzero Statement(_, While(y, Block(body))) = s in
-      let%bind yval = pick_enum @@ lookup_memory v2 y analysis.pds in
+      let yvals, new_pds = lookup_memory v2 y analysis.pds in
+      update_pds new_pds @@
+      let%bind yval = pick_enum yvals in
       if yval = Boolean(true) then
         return @@ Edge(v2, Stmt(List.hd body))
       else if yval = Boolean(false) then
@@ -66,7 +64,9 @@ let add_edge relations analysis edge =
     begin
       let%orzero Stmt(Statement(_, d)) = v2 in
       let%orzero Let_conditional_value(_, test, Block(body), Block(orelse)) = d in
-      let%bind testval = lookup_value v2 test analysis.pds in
+      let testvals, new_pds = lookup_value v2 test analysis.pds in
+      update_pds new_pds @@
+      let%bind testval = pick_enum testvals in
       if testval = Boolean(true) then
         return @@ Edge(v2, Stmt(List.hd body))
       else if testval = Boolean(false) then
@@ -79,7 +79,9 @@ let add_edge relations analysis edge =
     begin
       let%orzero Stmt(Statement(_, d)) = v2 in
       let%orzero Let_conditional_memory(_, test, Block(body), Block(orelse)) = d in
-      let%bind testval = lookup_value v2 test analysis.pds in
+      let testvals, new_pds = lookup_value v2 test analysis.pds in
+      update_pds new_pds @@
+      let%bind testval = pick_enum testvals in
       if testval = Boolean(true) then
         return @@ Edge(v2, Stmt(List.hd body))
       else if testval = Boolean(false) then
@@ -106,7 +108,9 @@ let add_edge relations analysis edge =
     begin
       let%orzero Stmt(Statement(_, d)) = v2 in
       let%orzero Let_call_function(_, func, _) = d in
-      let%bind funcval = lookup_value v2 func analysis.pds in
+      let funcvals, new_pds = lookup_value v2 func analysis.pds in
+      update_pds new_pds @@
+      let%bind funcval = pick_enum funcvals in
       let%orzero Function(_, Block(body)) = funcval in
       return @@ Edge(v2, Stmt(List.hd body))
     end
@@ -228,14 +232,19 @@ let add_edge relations analysis edge =
     ;
   ]
   |> List.enum
-  |> Enum.map Nondeterminism_monad.enum
-  |> Enum.concat
+  |> fold_cfg_monad_enum analysis.pds
 ;;
 
 let rec add_all_edges relations analysis =
   let existing_edges = Cfg.edges_of analysis.cfg in
-  let edges_to_add =
-    Enum.concat @@ Enum.map (add_edge relations analysis) existing_edges
+  let edges_to_add, analysis =
+    Enum.fold
+      (fun (old_edges, analysis) e ->
+         let new_edges, new_pds = add_edge relations analysis e in
+         Enum.append old_edges new_edges, {analysis with pds = new_pds}
+      )
+      (Enum.empty (), analysis)
+      existing_edges
   in
   if Enum.is_empty edges_to_add then
     analysis.pds
