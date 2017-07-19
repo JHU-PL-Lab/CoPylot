@@ -150,7 +150,8 @@ Library "analysis"
     Analysis_grammar,
     Analysis_lookup,
     Analysis_lookup_basis,
-    Analysis_lookup_dph
+    Analysis_lookup_dph,
+    Analysis_lookup_edge_functions
   BuildDepends:
     batteries,
     jhupllib,

@@ -3,6 +3,7 @@ open Jhupllib;;
 (* open Analysis_grammar;; *)
 open Analysis_lookup_basis;;
 open Analysis_lookup_dph;;
+open Analysis_lookup_edge_functions;;
 
 (* open Pds_reachability_types_stack;; *)
 
@@ -16,7 +17,8 @@ module Reachability =
 type pds = Reachability.analysis;;
 
 let empty () =
-  raise @@ Utils.Not_yet_implemented "empty"
+  Reachability.empty ()
+  |> Reachability.add_edge_function global_edge_function
 ;;
 
 let add_cfg_edge edge pds =

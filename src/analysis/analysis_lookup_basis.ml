@@ -1,5 +1,6 @@
 open Batteries;;
 open Analysis_grammar;;
+open Analysis_types;;
 
 module State =
 struct
@@ -15,10 +16,10 @@ module Stack_element =
 struct
   type t =
     | Bottom
-    | Lookup_value_variable
-    | Lookup_memory_variable
-    | Lookup_value
-    | Lookup_memory
+    | Lookup_value_variable of value_variable
+    | Lookup_memory_variable of memory_variable
+    | Lookup_value of value
+    | Lookup_memory of memory_location
     | Lookup_capture of int
     | Lookup_jump of Program_state.t
     | Lookup_bind
