@@ -10,7 +10,7 @@ struct
     | Ifresult of statement
     | Return of statement
     | Raise of statement
-  [@@deriving eq, ord, show]
+  [@@deriving eq, ord, show, to_yojson]
   ;;
 end;;
 

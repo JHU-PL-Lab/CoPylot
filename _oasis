@@ -149,6 +149,9 @@ Library "analysis"
     Analysis_lift_ast,
     Analysis_grammar,
     Analysis_lexical_relations,
+    Analysis_lookup,
+    Analysis_lookup_basis,
+    Analysis_lookup_dph,
     Analysis_construct_cfg
   BuildDepends:
     batteries,
