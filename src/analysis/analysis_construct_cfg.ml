@@ -3,6 +3,14 @@ open Analysis_types;;
 open Analysis_grammar;;
 open Analysis_lexical_relations;;
 open Jhupllib_nondeterminism;;
+open Analysis_lookup;;
+
+type analysis_construction =
+  {
+    pds : pds;
+    cfg : Cfg.t;
+  }
+;;
 
 let skippable s =
   let Statement(_, d) = s in
@@ -25,9 +33,10 @@ let skippable s =
     -> false
 ;;
 
-let lookup _ _ _ = failwith "LOOKUP NYI";;
+let lookup_value _ _ _ = failwith "TODO: Lookup NYI";;
+let lookup_memory _ _ _ = failwith "TODO: Lookup NYI";;
 
-let add_edge relations analysis graph edge =
+let add_edge relations analysis edge =
   let open Cfg in
   let open Program_state in
   let open Nondeterminism_monad in
@@ -44,7 +53,7 @@ let add_edge relations analysis graph edge =
     begin
       let%orzero Stmt(s) = v2 in
       let%orzero Statement(_, While(y, Block(body))) = s in
-      let%bind yval = lookup analysis graph y in
+      let%bind yval = pick_enum @@ lookup_memory v2 y analysis.pds in
       if yval = Boolean(true) then
         return @@ Edge(v2, Stmt(List.hd body))
       else if yval = Boolean(false) then
@@ -57,7 +66,7 @@ let add_edge relations analysis graph edge =
     begin
       let%orzero Stmt(Statement(_, d)) = v2 in
       let%orzero Let_conditional_value(_, test, Block(body), Block(orelse)) = d in
-      let%bind testval = lookup analysis graph test in
+      let%bind testval = lookup_value v2 test analysis.pds in
       if testval = Boolean(true) then
         return @@ Edge(v2, Stmt(List.hd body))
       else if testval = Boolean(false) then
@@ -70,7 +79,7 @@ let add_edge relations analysis graph edge =
     begin
       let%orzero Stmt(Statement(_, d)) = v2 in
       let%orzero Let_conditional_memory(_, test, Block(body), Block(orelse)) = d in
-      let%bind testval = lookup analysis graph test in
+      let%bind testval = lookup_value v2 test analysis.pds in
       if testval = Boolean(true) then
         return @@ Edge(v2, Stmt(List.hd body))
       else if testval = Boolean(false) then
@@ -97,7 +106,7 @@ let add_edge relations analysis graph edge =
     begin
       let%orzero Stmt(Statement(_, d)) = v2 in
       let%orzero Let_call_function(_, func, _) = d in
-      let%bind funcval = lookup analysis graph func in
+      let%bind funcval = lookup_value v2 func analysis.pds in
       let%orzero Function(_, Block(body)) = funcval in
       return @@ Edge(v2, Stmt(List.hd body))
     end
@@ -135,7 +144,7 @@ let add_edge relations analysis graph edge =
       let%orzero Advance(s) = v2 in
       let%orzero None = Stmt_map.find s relations.left in
       let%orzero Some(block_start) = Stmt_map.find s relations.down in
-      let%orzero Statement(_, While(_)) = block_start in
+      let%orzero Statement(_, While _) = block_start in
       return @@ Edge(v2, Stmt(block_start))
     end
     ;
@@ -143,23 +152,9 @@ let add_edge relations analysis graph edge =
     begin
       let%orzero Advance(s) = v2 in
       let%orzero None = Stmt_map.find s relations.left in
-      let%orzero Some(block_fst) = Stmt_map.find s relations.double_left in
-      let edges_to_fst = Cfg.edges_to (Stmt(block_fst)) graph in
-      (* TODO: add of_enum to Nondeterminism_monad directly? *)
-      let%bind Edge(s0, _) = Nondeterminism_monad.of_list @@ List.of_enum edges_to_fst in
-      return @@ Edge(v2, s0)
-    end
-    ;
-    (* Advance (exn) *)
-    begin
-      let%orzero Advance(s) = v2 in
-      let%orzero None = Stmt_map.find s relations.left in
-      let%orzero Some(block_fst) = Stmt_map.find s relations.double_left in
-      let edges_to_fst = Cfg.edges_to (Stmt(block_fst)) graph in
-      (* TODO: add of_enum to Nondeterminism_monad directly? *)
-      let%bind Edge(s0, _) = Nondeterminism_monad.of_list @@ List.of_enum edges_to_fst in
-      let%orzero Advance(s') = s0 in
-      return @@ Edge(v2, Stmt(s'))
+      let%orzero Some(block_start) = Stmt_map.find s relations.down in
+      let%orzero Statement(_, Try_except _) = block_start in
+      return @@ Edge(v2, Advance(block_start))
     end
     ;
     (* Advance (EOF) *)
@@ -170,27 +165,95 @@ let add_edge relations analysis graph edge =
       return @@ Edge(v2, End)
     end
     ;
-
+    (* If result (value) *)
+    begin
+      let%orzero Ifresult(s) = v2 in
+      let%orzero Some(block_start) = Stmt_map.find s relations.down in
+      let%orzero Statement(_, Let_conditional_value _) = block_start in
+      return @@ Edge(v2, Advance(block_start))
+    end
+    ;
+    (* If result (memory) *)
+    begin
+      let%orzero Ifresult(s) = v2 in
+      let%orzero Some(block_start) = Stmt_map.find s relations.down in
+      let%orzero Statement(_, Let_conditional_memory _) = block_start in
+      return @@ Edge(v2, Advance(block_start))
+    end
+    ;
+    (* If result (in a while loop) *)
+    begin
+      let%orzero Ifresult(s) = v2 in
+      let%orzero Some(block_start) = Stmt_map.find s relations.down in
+      let%orzero Statement(_, While _) = block_start in
+      return @@ Edge(v2, Ifresult(block_start))
+    end
+    ;
+    (* If result (in a try block) *)
+    begin
+      let%orzero Ifresult(s) = v2 in
+      let%orzero Some(block_start) = Stmt_map.find s relations.down in
+      let%orzero Statement(_, Try_except _) = block_start in
+      return @@ Edge(v2, Ifresult(block_start))
+    end
+    ;
+    (* Return stmt *)
+    begin
+      let%orzero Program_state.Return(s) = v2 in
+      let%orzero Some(block_start) = Stmt_map.find s relations.down in
+      let%orzero Some(func_start) = Stmt_map.find s relations.double_left in
+      let edges_to_start = Cfg.edges_to (Stmt(func_start)) analysis.cfg in
+      let%bind edge = pick_enum edges_to_start in
+      let%orzero Edge(Stmt(s0), _) = edge in
+      match block_start with
+      (* Returning from top level in the function *)
+      | Statement(_, Let_expression(_, Function_expression _)) ->
+        return @@ Edge(v2, Advance(s0))
+      (* Returning from a subordinate block *)
+      | _ ->
+        return @@ Edge(v2, Return(s0))
+    end
+    ;
+    (* Raise stmt *)
+    begin
+      let%orzero Program_state.Raise(s) = v2 in
+      let%orzero Some(block_start) = Stmt_map.find s relations.down in
+      let Statement(_, d) = block_start in
+      match d with
+      | Try_except(_, _, orelse) ->
+        Pervasives.ignore orelse; zero () (*TODO*)
+      | _ ->
+        return @@ Edge(v2, Raise(block_start))
+    end
+    ;
   ]
   |> List.enum
   |> Enum.map Nondeterminism_monad.enum
   |> Enum.concat
 ;;
 
-let rec add_all_edges relations analysis graph =
-  let existing_edges = Cfg.edges_of graph in
+let rec add_all_edges relations analysis =
+  let existing_edges = Cfg.edges_of analysis.cfg in
   let edges_to_add =
-    Enum.concat @@ Enum.map (add_edge relations analysis graph) existing_edges
+    Enum.concat @@ Enum.map (add_edge relations analysis) existing_edges
   in
   if Enum.is_empty edges_to_add then
-    graph
+    analysis.pds
   else
-    let new_graph = Enum.fold (fun g e -> Cfg.add_edge e g) graph edges_to_add in
-    let new_analysis = analysis in (* TODO: update analysis *)
-    add_all_edges relations new_analysis new_graph
+    let new_analysis =
+      Enum.fold
+        (fun analysis edge ->
+           {
+             pds = Analysis_lookup.add_cfg_edge edge analysis.pds;
+             cfg = Cfg.add_edge edge analysis.cfg;
+           }
+        )
+        analysis edges_to_add
+    in
+    add_all_edges relations new_analysis
 ;;
 
-let construct_cfg (prog : block) : Cfg.t =
+let construct_pds (prog : block) : pds =
   let relations = construct_all_relation_maps prog in
   let Block(stmts) = prog in
   (* TODO: Throw useful error if prog is empty *)
@@ -198,6 +261,7 @@ let construct_cfg (prog : block) : Cfg.t =
     Cfg.empty
     |> Cfg.add_edge @@ Cfg.Edge(Program_state.Start, Program_state.Stmt(List.hd stmts))
   in
-  let empty_analysis = () in (* TODO: Analysis type *)
-  add_all_edges relations empty_analysis base_cfg
+  let empty_pds = Analysis_lookup.empty () in (* TODO: Analysis type *)
+  let base_analysis = {pds = empty_pds; cfg = base_cfg} in
+  add_all_edges relations base_analysis
 ;;
