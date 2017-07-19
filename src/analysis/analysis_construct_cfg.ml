@@ -224,8 +224,25 @@ let add_edge relations analysis edge =
       let%orzero Some(block_start) = Stmt_map.find s relations.down in
       let Statement(_, d) = block_start in
       match d with
-      | Try_except(_, _, orelse) ->
-        Pervasives.ignore orelse; zero () (*TODO*)
+      | Try_except _ ->
+        let%orzero Some(block_first) = Stmt_map.find s relations.double_left in
+        let edges_to_start = Cfg.edges_to (Stmt(block_first)) analysis.cfg in
+        let%bind edge = pick_enum edges_to_start in
+        let%orzero Edge(Stmt(s0), _) = edge in
+        begin
+          match s0 with
+          (* We're inside the body of a try_except; move to the handler *)
+          | Statement(_, Try_except(_, _, Block(orelse))) ->
+            return @@ Edge(v2, Stmt(List.hd orelse))
+
+          (* We entered this block from a raise; we're in the exn handler already *)
+          | Statement(_, Analysis_types.Raise _) ->
+            return @@ Edge(v2, Raise(block_start))
+
+          (* If this happens everything is broken *)
+          | _ ->
+            raise @@ Jhupllib.Utils.Invariant_failure "If stmt got non-boolean lamia value"
+        end
       | _ ->
         return @@ Edge(v2, Raise(block_start))
     end
@@ -246,19 +263,19 @@ let rec add_all_edges relations analysis =
       (Enum.empty (), analysis)
       existing_edges
   in
-  if Enum.is_empty edges_to_add then
-    analysis.pds
+  let new_analysis =
+    Enum.fold
+      (fun analysis edge ->
+         {
+           pds = Analysis_lookup.add_cfg_edge edge analysis.pds;
+           cfg = Cfg.add_edge edge analysis.cfg;
+         }
+      )
+      analysis edges_to_add
+  in
+  if Cfg.num_edges new_analysis.cfg = Cfg.num_edges analysis.cfg then
+    analysis
   else
-    let new_analysis =
-      Enum.fold
-        (fun analysis edge ->
-           {
-             pds = Analysis_lookup.add_cfg_edge edge analysis.pds;
-             cfg = Cfg.add_edge edge analysis.cfg;
-           }
-        )
-        analysis edges_to_add
-    in
     add_all_edges relations new_analysis
 ;;
 
@@ -272,5 +289,6 @@ let construct_pds (prog : block) : pds =
   in
   let empty_pds = Analysis_lookup.empty () in (* TODO: Analysis type *)
   let base_analysis = {pds = empty_pds; cfg = base_cfg} in
-  add_all_edges relations base_analysis
+  let final_analysis = add_all_edges relations base_analysis in
+  final_analysis.pds
 ;;
