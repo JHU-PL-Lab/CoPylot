@@ -147,7 +147,10 @@ Library "analysis"
   Modules:
     Analysis_types,
     Analysis_lexical_relations,
-    Analysis_grammar
+    Analysis_grammar,
+    Analysis_lookup,
+    Analysis_lookup_basis,
+    Analysis_lookup_dph
   BuildDepends:
     batteries,
     jhupllib,
