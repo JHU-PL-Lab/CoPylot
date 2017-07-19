@@ -19,12 +19,12 @@ struct
 end
 
 module Stmt_map = Map.Make(Stmt_ord);;
-type relation_map = statement option Stmt_map.t;;
+type relation_map = (statement option) Stmt_map.t;;
 
 let construct_left_triangle_map (prog : block) =
   let rec add_block map block =
     let Block(stmts) = block in
-    let map, _ = List.fold_left construct_map (map, None) stmts in
+    let map, _ = List.fold_left construct_map (map, None) (List.rev stmts) in
     map
 
   and construct_map prev (stmt : statement)=
@@ -116,8 +116,18 @@ let construct_double_left_triangle_map (prog : block) =
 ;;
 
 (* Returns a tuple of the left, down and double-left maps, in that order *)
+type relation_map_record =
+  {
+    left: relation_map;
+    down: relation_map;
+    double_left: relation_map;
+  }
+;;
+
 let construct_all_relation_maps (prog : block) =
-  construct_left_triangle_map prog,
-  construct_down_triangle_map prog,
-  construct_double_left_triangle_map
+  {
+    left = construct_left_triangle_map prog;
+    down = construct_down_triangle_map prog;
+    double_left = construct_double_left_triangle_map prog;
+  }
 ;;

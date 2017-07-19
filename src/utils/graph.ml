@@ -36,6 +36,8 @@ sig
   val preds : V.t -> t -> V.t Enum.t
 
   val succs : V.t -> t -> V.t Enum.t
+
+  val num_edges : t -> int
 end;;
 
 module Make(V:Vertex_type) :
@@ -88,6 +90,10 @@ struct
 
   let preds acl g =
     edges_to acl g |> Enum.map (fun (Edge(acl,_)) -> acl)
+  ;;
+
+  let num_edges (Graph(s)) =
+    Edge_set.cardinal s
   ;;
 
 end;;

@@ -146,12 +146,15 @@ Library "analysis"
   Path: src/analysis
   Modules:
     Analysis_types,
-    Analysis_lexical_relations,
+    Analysis_lift_ast,
     Analysis_grammar,
+    Analysis_lexical_relations,
     Analysis_lookup,
     Analysis_lookup_basis,
     Analysis_lookup_dph,
-    Analysis_lookup_edge_functions
+    Analysis_lookup_edge_functions, 
+    Analysis_construct_cfg_monad,
+    Analysis_construct_cfg
   BuildDepends:
     batteries,
     jhupllib,
@@ -172,6 +175,16 @@ Executable "lamia_toploop"
     CoPylot.lamia_language,
     CoPylot.lamia_interpreter,
     CoPylot.lamia_parser
+
+Executable "analysis_toploop"
+  Path: src/analysis_toploop
+  MainIs: analysis_toploop.ml
+  CompiledObject: byte
+  BuildDepends:
+    batteries,
+    jhupllib,
+    CoPylot.lamia_parser,
+    CoPylot.analysis,
 
 Executable "test"
   Path: test/
