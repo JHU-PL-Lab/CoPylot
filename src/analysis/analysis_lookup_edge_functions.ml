@@ -18,8 +18,18 @@ open Targeted_dynamic_pop_action;;
 let global_edge_function state =
   let open Nondeterminism_monad in
   [
+    (* Capture n *)
+    return ([], Dynamic_terminus(Udp_result));
+    (* Jump *)
     return ([], Dynamic_terminus(Udp_jump));
+    (* Capture n *)
     return ([Pop_dynamic_targeted(Tdp_capture_1)], Static_terminus(state));
+    (* Bind *)
+    return ([Pop(Lookup_bind); Pop_dynamic_targeted(Tdp_bind_1)], Static_terminus(state));
+    (* Project *)
+    return ([Pop(Lookup_project); Pop_dynamic_targeted(Tdp_project_1)], Static_terminus(state));
+    (* Index *)
+    return ([Pop(Lookup_index); Pop_dynamic_targeted(Tdp_index_1)], Static_terminus(state));
   ]
   |> List.enum
   |> Enum.map Nondeterminism_monad.enum
@@ -113,32 +123,94 @@ let per_cfg_edge_function src dst state =
 
       (* Skip While Loop *)
       begin
-        let%orzero Program_state (Stmt (Statement(uid, While (y,block)))) = o1 in
-        return ([Push (Lookup_jump (Stmt (Statement(uid, While (y,block)))))], Static_terminus(o1))
+        let%orzero Program_state (Stmt s) = o1 in
+        let%orzero Statement(_, While (_,_)) = s in
+        let%orzero Program_state (Advance s) = o0 in
+        return ([Push (Lookup_jump (Stmt s))], Static_terminus(o1))
       end;
-      (* In-while, reach block start *)
+      (* TODO: check if left loop  *)
+      (* While top x *)
       begin
         let%orzero Program_state (Stmt (s)) = o1 in
-        let%orzero Statement(uid, While (y,block)) = s in
-        (* let%orzero Some (block_start) = Stmt_map.find s relations.down in *)
-        (* TODO: use relations *)
-        return ([Push (Lookup_jump (Stmt (Statement(uid, While (y,block)))))], Static_terminus(o1))
-        (* TODO: null dst? *)
+        let%orzero Statement(_, While (_,_)) = s in
+        let%orzero Program_state (Stmt _) = o0 in
+        return ([Pop_dynamic_targeted(Tdp_peek_x)], Static_terminus(o1))
+      end;
+      (* While top y *)
+      begin
+        let%orzero Program_state (Stmt (s)) = o1 in
+        let%orzero Statement(_, While (_,_)) = s in
+        let%orzero Program_state (Stmt _) = o0 in
+        return ([Pop_dynamic_targeted(Tdp_peek_y)], Static_terminus(o1))
       end;
       (* Ifresult x *)
       begin
-        let%orzero Program_state (Stmt (Statement(_, If_result_value _))) = o1 in
+        let%orzero Program_state (Ifresult _) = o1 in
         let%orzero Advance (s) = dst in
         let%orzero Statement(_, Let_conditional_value (x,_,_,_)) = s in
         return ([], Dynamic_terminus(Udp_ifresult_x (x,o1,Stmt(s))))
       end;
       (* Ifresult y *)
       begin
-        let%orzero Program_state (Stmt (Statement(_, If_result_memory _))) = o1 in
+        let%orzero Program_state (Ifresult _) = o1 in
         let%orzero Advance (s) = dst in
         let%orzero Statement(_, Let_conditional_memory (y,_,_,_)) = s in
         return ([], Dynamic_terminus(Udp_ifresult_y (y,o1,Stmt(s))))
       end;
+      (* Function search (bound) *)
+      (* begin
+         let%orzero Program_state (Stmt (Statement(_, Let_call_function (y,x,lst)))) = o1 in
+         return ([], Dynamic_terminus(Udp_ifresult_y (y,o1,Stmt(s))))
+         end; *)
+      (* Function return *)
+      begin
+        let%orzero Program_state (Return _) = o1 in
+        let%orzero Advance (s) = dst in
+        let%orzero Statement(_, Let_call_function (y,_,_)) = s in
+        return ([], Dynamic_terminus(Udp_return (y,o1,Stmt(s))))
+      end;
+      (* Skip Try/Except *)
+      begin
+        let%orzero Program_state (Stmt s) = o1 in
+        let%orzero Statement(_, Try_except (_,_,_)) = s in
+        let%orzero Program_state (Advance _) = o0 in
+        return ([], Static_terminus(o1))
+      end;
+      (* Try/Except top x *)
+      begin
+        let%orzero Program_state (Stmt (s)) = o1 in
+        let%orzero Statement(_, Try_except (_,_,_)) = s in
+        let%orzero Program_state (Stmt _) = o0 in
+        return ([Pop_dynamic_targeted(Tdp_peek_x)], Static_terminus(o1))
+      end;
+      (* Try/Except top y *)
+      begin
+        let%orzero Program_state (Stmt (s)) = o1 in
+        let%orzero Statement(_, Try_except (_,_,_)) = s in
+        let%orzero Program_state (Stmt _) = o0 in
+        return ([Pop_dynamic_targeted(Tdp_peek_y)], Static_terminus(o1))
+      end;
+      (* Raise *)
+      begin
+        let%orzero Program_state (Raise _) = o1 in
+        let%orzero Advance (s) = dst in
+        let%orzero Statement(_, Try_except (_,y,_)) = s in
+        return ([], Dynamic_terminus(Udp_raise (y,o1,Stmt(s))))
+        (* FIXME: consider chained raise/return! *)
+      end;
+
+      (* Skip x with y *)
+      begin
+        let%orzero Program_state (Stmt (Statement(_, Let_expression _))) = o1 in
+        return ([Pop_dynamic_targeted(Tdp_peek_y)], Static_terminus(o1))
+      end;
+      (* TODO: make peek take option value *)
+      (* Skip y with x *)
+      begin
+        let%orzero Program_state (Stmt (Statement(_, Let_alloc _))) = o1 in
+        return ([Pop_dynamic_targeted(Tdp_peek_x)], Static_terminus(o1))
+      end
+
     ]
     |> List.enum
     |> Enum.map Nondeterminism_monad.enum
