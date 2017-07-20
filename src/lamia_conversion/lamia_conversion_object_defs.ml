@@ -146,7 +146,7 @@ let wrap_method func self =
       let%bind retval = fresh_memory_var () in
       emit
         [
-          Let_expression(self_list, List_value [self]);
+          Let_expression(self_list, List_expression [self]);
           Let_binop(curried_args, self_list, Binop_listconcat, arglist);
           Let_call_function(retval, func, [curried_args]);
           Return(retval);

@@ -26,7 +26,7 @@ type 'a value_expression =
   | Integer_literal of int
   | String_literal of string
   | Boolean_literal of bool
-  | List_value of memory_variable list
+  | List_expression of memory_variable list
   | Function_expression of value_variable list * 'a block
   | None_literal
   | Empty_binding

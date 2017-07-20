@@ -45,6 +45,7 @@ Library "utils"
   Path: src/utils
   Modules:
     Graph,
+    Counter_hashtbl,
     Uid_ctx,
     Unique_name_ctx
   BuildDepends:
@@ -52,7 +53,6 @@ Library "utils"
     jhupllib,
     ppx_deriving.std,
     CoPylot.parser
-
 
 Library "ast_simplification"
   FindlibParent: CoPylot
@@ -184,7 +184,19 @@ Executable "analysis_toploop"
     batteries,
     jhupllib,
     CoPylot.lamia_parser,
-    CoPylot.analysis,
+    CoPylot.analysis
+
+Executable "analysis_python_toploop"
+  Path: src/analysis_toploop
+  MainIs: analysis_python_toploop.ml
+  CompiledObject: byte
+  BuildDepends:
+    batteries,
+    jhupllib,
+    CoPylot.utils,
+    CoPylot.ast_simplification,
+    CoPylot.lamia_conversion,
+    CoPylot.analysis
 
 Executable "test"
   Path: test/

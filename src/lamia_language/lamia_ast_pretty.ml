@@ -141,7 +141,7 @@ and pp_expr indent fmt e =
   | Integer_literal n -> fprintf fmt "%d" n
   | String_literal s -> fprintf fmt "\"%s\"" (String.escaped s)
   | Boolean_literal b -> pp_print_bool fmt b
-  | List_value lst -> pp_list pp_memory_var fmt lst
+  | List_expression lst -> pp_list pp_memory_var fmt lst
   | Function_expression (args, body) ->
     fprintf fmt "def (%a) {\n%a\n%s}"
       (pp_list pp_value_var) args

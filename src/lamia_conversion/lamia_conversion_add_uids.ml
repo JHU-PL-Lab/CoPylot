@@ -68,8 +68,8 @@ and add_uids_expression ctx e =
     String_literal s
   | Boolean_literal(b) ->
     Boolean_literal b
-  | List_value(lst) ->
-    List_value lst
+  | List_expression(lst) ->
+    List_expression lst
   | Function_expression(args, body) ->
     Function_expression(args, add_uids_block ctx body)
   | None_literal ->

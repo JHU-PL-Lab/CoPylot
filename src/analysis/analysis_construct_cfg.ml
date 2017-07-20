@@ -52,9 +52,9 @@ let add_edge relations analysis edge =
       let yvals, new_pds = lookup_memory v2 y analysis.pds in
       update_pds new_pds @@
       let%bind yval = pick_enum yvals in
-      if yval = Boolean(true) then
+      if yval = Boolean_value(true) then
         return @@ Edge(v2, Stmt(List.hd body))
-      else if yval = Boolean(false) then
+      else if yval = Boolean_value(false) then
         return @@ Edge(v2, Advance(s))
       else
         raise @@ Jhupllib.Utils.Invariant_failure "While loop got non-boolean lamia value"
@@ -67,9 +67,9 @@ let add_edge relations analysis edge =
       let testvals, new_pds = lookup_value v2 test analysis.pds in
       update_pds new_pds @@
       let%bind testval = pick_enum testvals in
-      if testval = Boolean(true) then
+      if testval = Boolean_value(true) then
         return @@ Edge(v2, Stmt(List.hd body))
-      else if testval = Boolean(false) then
+      else if testval = Boolean_value(false) then
         return @@ Edge(v2, Stmt(List.hd orelse))
       else
         raise @@ Jhupllib.Utils.Invariant_failure "If stmt got non-boolean lamia value"
@@ -82,9 +82,9 @@ let add_edge relations analysis edge =
       let testvals, new_pds = lookup_value v2 test analysis.pds in
       update_pds new_pds @@
       let%bind testval = pick_enum testvals in
-      if testval = Boolean(true) then
+      if testval = Boolean_value(true) then
         return @@ Edge(v2, Stmt(List.hd body))
-      else if testval = Boolean(false) then
+      else if testval = Boolean_value(false) then
         return @@ Edge(v2, Stmt(List.hd orelse))
       else
         raise @@ Jhupllib.Utils.Invariant_failure "If stmt got non-boolean lamia value"
@@ -111,7 +111,7 @@ let add_edge relations analysis edge =
       let funcvals, new_pds = lookup_value v2 func analysis.pds in
       update_pds new_pds @@
       let%bind funcval = pick_enum funcvals in
-      let%orzero Function(_, Block(body)) = funcval in
+      let%orzero Function_value(_, Block(body)) = funcval in
       return @@ Edge(v2, Stmt(List.hd body))
     end
     ;

@@ -1,3 +1,6 @@
+open Batteries;;
+open Jhupllib;;
+
 type uid = Python2_ast_types.uid
 [@@deriving eq, ord, show, to_yojson]
 ;;
@@ -30,10 +33,10 @@ type abstract_str =
 ;;
 
 type value_expression =
-    | Integer_literal of sign
+  | Integer_literal of sign
   | String_literal of abstract_str
   | Boolean_literal of bool
-  | List_value of memory_variable list
+  | List_expression of memory_variable list
   | Function_expression of value_variable list * block
   | None_literal
   | Empty_binding
@@ -88,7 +91,7 @@ and block =
 ;;
 
 type memory_location =
-    | Memloc of statement
+  | Memloc of statement
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
@@ -98,13 +101,34 @@ type abstract_memloc_list =
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
+module PpString =
+struct
+  type t = abstract_str
+  [@@deriving eq,ord,show,to_yojson]
+  ;;
+end;;
+module RawStringMap = Map.Make(PpString);;
+
+module AbstractStringMap :
+sig
+  include module type of RawStringMap;;
+  val pp : 'a Pp_utils.pretty_printer ->
+    'a RawStringMap.t Pp_utils.pretty_printer;;
+  val to_yojson : ('v ->  Yojson.Safe.json) -> 'v RawStringMap.t -> Yojson.Safe.json;;
+end =
+struct
+  include RawStringMap;;
+  include Pp_utils.Map_pp(RawStringMap)(PpString);;
+  include Yojson_utils.Map_to_yojson(RawStringMap)(PpString);;
+end;;
+
 type value =
-  | Integer of sign
-  | String of abstract_str
-  | Boolean of bool
-  | List of abstract_memloc_list
-  | Function of value_variable list * block
+  | Integer_value of sign
+  | String_value of abstract_str
+  | Boolean_value of bool
+  | List_value of abstract_memloc_list
+  | Object_value of memory_location AbstractStringMap.t
+  | Function_value of value_variable list * block
   | None_value
-  | Empty_binding_value
 [@@deriving eq, ord, show, to_yojson]
 ;;
