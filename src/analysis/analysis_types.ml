@@ -123,8 +123,8 @@ struct
 end;;
 
 type value =
-  | Integer_value of int
-  | String_value of string
+  | Integer_value of sign
+  | String_value of abstract_str
   | Boolean_value of bool
   | List_value of abstract_memloc_list
   | Object_value of memory_location StringMap.t

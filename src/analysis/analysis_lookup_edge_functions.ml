@@ -32,18 +32,18 @@ let per_cfg_edge_function src dst state =
         let%orzero Stmt (Statement(_, Let_expression (x,e))) = src in
         match e with
         | Integer_literal sgn ->
-          return [Pop (Lookup_value_variable x); Push (Lookup_value (Integer sgn))]
+          return [Pop (Lookup_value_variable x); Push (Lookup_value (Integer_value sgn))]
         | String_literal str ->
-          return [Pop (Lookup_value_variable x); Push (Lookup_value (String str))]
+          return [Pop (Lookup_value_variable x); Push (Lookup_value (String_value str))]
         | Boolean_literal b ->
-          return [Pop (Lookup_value_variable x); Push (Lookup_value (Boolean b))]
-        | List_value _ -> raise @@ Utils.Not_yet_implemented "per_cfg_edge_function: list_value"
+          return [Pop (Lookup_value_variable x); Push (Lookup_value (Boolean_value b))]
+        | List_expression _ -> raise @@ Utils.Not_yet_implemented "per_cfg_edge_function: list_value"
         | Function_expression (args, block) ->
-          return [Pop (Lookup_value_variable x); Push (Lookup_value (Function (args, block)))]
+          return [Pop (Lookup_value_variable x); Push (Lookup_value (Function_value (args, block)))]
         | None_literal ->
           return [Pop (Lookup_value_variable x); Push (Lookup_value (None_value))]
         | Empty_binding ->
-          return [Pop (Lookup_value_variable x); Push (Lookup_value (Empty_binding_value))]
+          return [Pop (Lookup_value_variable x); Push (Lookup_value (Object_value StringMap.empty))]
       end;
       begin
         let%orzero Stmt (Statement(uid, Let_alloc y)) = src in
