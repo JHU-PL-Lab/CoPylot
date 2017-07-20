@@ -77,12 +77,17 @@ let get_starting_state uid_ctx stmt_map line =
     Program_state.Stmt(starting_stmt)
 ;;
 
-let make_query analysis_result target_str =
-  match String.get target_str 0 with
-  | '&' ->
-    lookup_memory Program_state.End (Memory_variable(target_str)) analysis_result
-  | _ ->
-    lookup_value Program_state.End (Value_variable(target_str)) analysis_result
+let make_query analysis_result target_str starting_state =
+  let results, new_analysis =
+    lookup_value starting_state (Value_variable("scope")) analysis_result
+  in
+  let possible_values =
+    ignore target_str;
+    Enum.map
+      (fun v -> v) (*TODO: Look for target_str in the scope bindings*)
+      results
+  in
+  possible_values, new_analysis
 ;;
 
 let main () =
@@ -92,7 +97,7 @@ let main () =
     let target_str, line = get_user_query () in
     let starting_state = get_starting_state uid_ctx stmt_map (int_of_string line) in
     let results, analysis_result =
-      lookup_value starting_state (Value_variable(target_str)) analysis_result
+      make_query analysis_result target_str starting_state
     in
     print_endline @@ "The possible values of " ^ target_str ^ " are " ^
                      Jhupllib_pp_utils.pp_to_string (Jhupllib_pp_utils.pp_list pp_value) (List.of_enum results)
