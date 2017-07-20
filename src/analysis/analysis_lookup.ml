@@ -35,3 +35,8 @@ let lookup_memory ps y pds =
   ignore ps; ignore y; ignore pds;
   raise @@ Utils.Not_yet_implemented "lookup_memory"
 ;;
+
+let lookup_memory_location ps m pds =
+  ignore ps; ignore m; ignore pds;
+  raise @@ Utils.Not_yet_implemented "lookup_memory_location"
+;;
