@@ -6,7 +6,7 @@ module State =
 struct
   type t =
     | Program_state of Program_state.t
-    (* | Answer_value of  *)
+    | Answer_value of value
   (* | Answer_memory of  *)
   [@@deriving eq, ord, show, to_yojson]
   ;;
@@ -32,6 +32,7 @@ struct
     | Lookup_binop
     | Lookup_answer
     | Lookup_is
+    | Lookup_drop
   [@@deriving eq, ord, show, to_yojson]
   ;;
 end;;
