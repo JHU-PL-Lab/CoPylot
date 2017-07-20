@@ -162,7 +162,7 @@ let builtin_bool_body arglist =
       let%bind _ =
         emit
           [
-            Let_expression(method_func_arglist, List_value [arg_loc]);
+            Let_expression(method_func_arglist, List_expression [arg_loc]);
             Let_call_function(method_func_result, method_func, [method_func_arglist]);
             Let_get(method_func_result_value, method_func_result);
           ]
@@ -227,7 +227,7 @@ let builtin_bool_body arglist =
     check_starvalue false arg_val (Integer_literal 0) @@
     (* check_starvalue (Float_literal 0.0) @@ *)
     check_starvalue false arg_val (String_literal "") @@
-    check_starvalue false arg_val (List_value []) @@
+    check_starvalue false arg_val (List_expression []) @@
     check_starvalue false arg_val (Empty_binding) @@
     call_bool_and_len
   in

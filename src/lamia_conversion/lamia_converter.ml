@@ -177,7 +177,7 @@ and convert_expr
     let%bind lookup_result = lookup func in
     let%bind arg_results = convert_list lookup args in
     let%bind callable = get_call lookup_result in
-    let%bind arg_list = store_value @@ List_value arg_results in
+    let%bind arg_list = store_value @@ List_expression arg_results in
     let%bind retval = fresh_memory_var () in
     let%bind _ = emit
         [
@@ -242,13 +242,13 @@ and convert_expr
 
   | List (elts) ->
     let%bind elt_results = convert_list lookup elts in
-    let%bind list_val = store_value @@ List_value elt_results in
+    let%bind list_val = store_value @@ List_expression elt_results in
     let%bind obj_result = wrap_list list_val in
     return obj_result
 
   | Tuple (elts) ->
     let%bind elt_results = convert_list lookup elts in
-    let%bind tuple_val = store_value @@ List_value elt_results in
+    let%bind tuple_val = store_value @@ List_expression elt_results in
     let%bind obj_result = wrap_tuple tuple_val in
     return obj_result
 

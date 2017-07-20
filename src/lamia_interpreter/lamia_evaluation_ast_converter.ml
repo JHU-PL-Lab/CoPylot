@@ -5,7 +5,7 @@ let rec convert_value_expression =
   | Lamia_ast.Integer_literal n -> Lamia_evaluation_ast.Integer_literal n
   | Lamia_ast.String_literal s -> Lamia_evaluation_ast.String_literal s
   | Lamia_ast.Boolean_literal b -> Lamia_evaluation_ast.Boolean_literal b
-  | Lamia_ast.List_value lst -> Lamia_evaluation_ast.List_value lst
+  | Lamia_ast.List_expression lst -> Lamia_evaluation_ast.List_value lst
   | Lamia_ast.Function_expression(xs,b) ->
     Lamia_evaluation_ast.Function_expression(xs, convert_block b)
   | Lamia_ast.None_literal -> Lamia_evaluation_ast.None_literal

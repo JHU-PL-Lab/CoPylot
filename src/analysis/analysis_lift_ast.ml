@@ -70,7 +70,7 @@ and lift_value_expression tbl e =
     Abstract.Integer_literal sign
   | Lamia.String_literal s -> Abstract.String_literal(Abstract.String_exact s)
   | Lamia.Boolean_literal b -> Abstract.Boolean_literal b
-  | Lamia.List_value lst -> Abstract.List_value(List.map lift_memory_var lst)
+  | Lamia.List_expression lst -> Abstract.List_expression(List.map lift_memory_var lst)
   | Lamia.Function_expression (args, body) ->
     Abstract.Function_expression (List.map lift_value_var args, lift_block tbl body)
   | Lamia.None_literal -> Abstract.None_literal
