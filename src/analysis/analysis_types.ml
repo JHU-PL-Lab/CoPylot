@@ -103,13 +103,13 @@ type abstract_memloc_list =
 
 module PpString =
 struct
-  type t = string
+  type t = abstract_str
   [@@deriving eq,ord,show,to_yojson]
   ;;
 end;;
 module RawStringMap = Map.Make(PpString);;
 
-module StringMap :
+module AbstractStringMap :
 sig
   include module type of RawStringMap;;
   val pp : 'a Pp_utils.pretty_printer ->
@@ -127,7 +127,7 @@ type value =
   | String_value of abstract_str
   | Boolean_value of bool
   | List_value of abstract_memloc_list
-  | Object_value of memory_location StringMap.t
+  | Object_value of memory_location AbstractStringMap.t
   | Function_value of value_variable list * block
   | None_value
 [@@deriving eq, ord, show, to_yojson]

@@ -43,7 +43,7 @@ let per_cfg_edge_function src dst state =
         | None_literal ->
           return [Pop (Lookup_value_variable x); Push (Lookup_value (None_value))]
         | Empty_binding ->
-          return [Pop (Lookup_value_variable x); Push (Lookup_value (Object_value StringMap.empty))]
+          return [Pop (Lookup_value_variable x); Push (Lookup_value (Object_value AbstractStringMap.empty))]
       end;
       begin
         let%orzero Stmt (Statement(uid, Let_alloc y)) = src in
