@@ -27,7 +27,6 @@ let rec convert_module
   annot_block
 
 and convert_stmt_list (stmts : annotated_stmt list) : unit m =
-  (* TODO: Prepend preamble, scope setup, etc *)
   let accumulate m s = bind m (fun () -> convert_stmt s) in
   List.fold_left accumulate empty stmts
 

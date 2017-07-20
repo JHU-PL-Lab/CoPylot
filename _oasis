@@ -152,7 +152,7 @@ Library "analysis"
     Analysis_lookup,
     Analysis_lookup_basis,
     Analysis_lookup_dph,
-    Analysis_lookup_edge_functions, 
+    Analysis_lookup_edge_functions,
     Analysis_construct_cfg_monad,
     Analysis_construct_cfg
   BuildDepends:
