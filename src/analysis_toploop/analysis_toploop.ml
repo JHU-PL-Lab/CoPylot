@@ -7,7 +7,8 @@ open Analysis_types;;
 
 let parse_and_analyze lexbuf =
   let block = Lamia_parser.parse_from_lexbuf lexbuf in
-  construct_pds @@ lift_block block
+  let lifted_block, _ = lift_block_top block in
+  construct_pds lifted_block
 ;;
 
 let make_query analysis_result target_str =

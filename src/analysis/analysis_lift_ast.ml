@@ -1,18 +1,21 @@
 module Lamia = Lamia_ast;;
 module Abstract = Analysis_types;;
+open Counter_hashtbl;;
 
-let rec lift_block (b : Lamia.uid Lamia.block) =
+let rec lift_block tbl b =
   let Lamia.Block(stmts) = b in
-  Abstract.Block(List.map lift_stmt stmts)
+  Abstract.Block(List.map (lift_stmt tbl) stmts)
 
-and lift_stmt s =
+and lift_stmt tbl s =
   let Lamia.Statement(uid, directive) = s in
-  Abstract.Statement(uid, lift_directive directive)
+  let lifted_stmt = Abstract.Statement(uid, lift_directive tbl directive) in
+  Counter_hashtbl.add tbl uid lifted_stmt;
+  lifted_stmt
 
-and lift_directive d =
+and lift_directive tbl d =
   match d with
   | Lamia.Let_expression(x, e) ->
-    Abstract.Let_expression(lift_value_var x, lift_value_expression e)
+    Abstract.Let_expression(lift_value_var x, lift_value_expression tbl e)
   | Lamia.Let_alloc(y) ->
     Abstract.Let_alloc(lift_memory_var y)
   | Lamia.Let_alias_value (x1, x2) ->
@@ -48,15 +51,15 @@ and lift_directive d =
   | Lamia.Raise(y) ->
     Abstract.Raise(lift_memory_var y)
   | Lamia.Try_except(body, y, handler) ->
-    Abstract.Try_except(lift_block body, lift_memory_var y, lift_block handler)
+    Abstract.Try_except(lift_block tbl body, lift_memory_var y, lift_block tbl handler)
   | Lamia.Let_conditional_value(x1, x2, body, orelse) ->
-    Abstract.Let_conditional_value(lift_value_var x1, lift_value_var x2, lift_block body, lift_block orelse)
+    Abstract.Let_conditional_value(lift_value_var x1, lift_value_var x2, lift_block tbl body, lift_block tbl orelse)
   | Lamia.Let_conditional_memory(y, x, body, orelse) ->
-    Abstract.Let_conditional_memory(lift_memory_var y, lift_value_var x, lift_block body, lift_block orelse)
+    Abstract.Let_conditional_memory(lift_memory_var y, lift_value_var x, lift_block tbl body, lift_block tbl orelse)
   | Lamia.While(y, body) ->
-    Abstract.While(lift_memory_var y, lift_block body)
+    Abstract.While(lift_memory_var y, lift_block tbl body)
 
-and lift_value_expression e =
+and lift_value_expression tbl e =
   match e with
   | Lamia.Integer_literal n ->
     let sign =
@@ -69,7 +72,7 @@ and lift_value_expression e =
   | Lamia.Boolean_literal b -> Abstract.Boolean_literal b
   | Lamia.List_value lst -> Abstract.List_value(List.map lift_memory_var lst)
   | Lamia.Function_expression (args, body) ->
-    Abstract.Function_expression (List.map lift_value_var args, lift_block body)
+    Abstract.Function_expression (List.map lift_value_var args, lift_block tbl body)
   | Lamia.None_literal -> Abstract.None_literal
   | Lamia.Empty_binding -> Abstract.Empty_binding
 
@@ -94,3 +97,10 @@ and lift_value_var x =
 and lift_memory_var x =
   let Lamia.Memory_variable(id) = x in
   Abstract.Memory_variable(id)
+;;
+
+let lift_block_top (b : Lamia.uid Lamia.block) =
+  let empty_tbl = Counter_hashtbl.create 10 in
+  let lifted_block = lift_block empty_tbl b in
+  lifted_block, empty_tbl
+;;

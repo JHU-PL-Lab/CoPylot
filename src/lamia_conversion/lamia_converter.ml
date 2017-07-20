@@ -4,6 +4,7 @@ open Python2_normalized_ast;;
 open Python2_ast_types;;
 open Unique_name_ctx;;
 open Uid_ctx;;
+open Counter_hashtbl;;
 open Lamia_conversion_monad;;
 open Lamia_conversion_builtin_names;;
 open Lamia_conversion_builtin_defs;;
@@ -17,16 +18,14 @@ open Conversion_monad;;
 let rec convert_module
     (ctx : name_context)
     (m : modl)
-  : uid block =
+  : annot block =
   let Module(stmts) = m in
   let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
   let preamble_ctx = create_new_name_ctx 0 "$preamble_" in
   let _, lamia_preamble = run preamble_ctx annot preamble in
   let _, lamia_prog = run ctx annot @@ convert_stmt_list stmts in
   let annot_block = Block(lamia_preamble @ lamia_prog) in
-  let uid_ctx = create_new_uid_ctx 0 in
-  let uid_block = add_uids_block uid_ctx annot_block in
-  uid_block
+  annot_block
 
 and convert_stmt_list (stmts : annotated_stmt list) : unit m =
   (* TODO: Prepend preamble, scope setup, etc *)
@@ -349,3 +348,12 @@ and convert_expr
 
   | Name (id) ->
     lookup id
+;;
+
+let annot_to_uid
+    (b : annot block)
+  : uid block * annot Counter_hashtbl.t =
+  let uid_ctx = create_new_uid_ctx 0 in
+  let uid_block = add_uids_block uid_ctx b in
+  uid_block, uid_ctx.uid_map
+;;

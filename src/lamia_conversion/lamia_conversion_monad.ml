@@ -85,5 +85,5 @@ let fresh_value_var () : value_variable m =
 
 let fresh_memory_var () : memory_variable m =
   let%bind name = fresh_name () in
-  return @@ Memory_variable(name)
+  return @@ Memory_variable("&" ^ name)
 ;;
