@@ -4,7 +4,6 @@ open Python2_normalized_ast;;
 open Python2_ast_types;;
 open Unique_name_ctx;;
 open Uid_ctx;;
-open Counter_hashtbl;;
 open Lamia_conversion_monad;;
 open Lamia_conversion_builtin_names;;
 open Lamia_conversion_builtin_defs;;
@@ -352,8 +351,8 @@ and convert_expr
 
 let annot_to_uid
     (b : annot block)
-  : uid block * annot Counter_hashtbl.t =
+  : uid block * uid_context =
   let uid_ctx = create_new_uid_ctx 0 in
   let uid_block = add_uids_block uid_ctx b in
-  uid_block, uid_ctx.uid_map
+  uid_block, uid_ctx
 ;;

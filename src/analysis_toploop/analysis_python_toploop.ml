@@ -8,10 +8,10 @@ let parse_and_analyze lexbuf =
   let modl = Python2_ast_pipeline.parse_to_normalized lexbuf 0 true in
   let ctx = Unique_name_ctx.create_new_name_ctx 0 "lamia$" in
   let annot_block = Lamia_converter.convert_module ctx modl in
-  let uid_block, annot_map = Lamia_converter.annot_to_uid annot_block in
+  let uid_block, uid_ctx = Lamia_converter.annot_to_uid annot_block in
   let abstract_block, stmt_map = Analysis_lift_ast.lift_block_top uid_block in
   let analysis = construct_pds abstract_block in
-  analysis, annot_map, stmt_map
+  analysis, uid_ctx, stmt_map
 ;;
 
 let rec get_input () =
@@ -39,10 +39,42 @@ let rec get_user_query () =
   target, line
 ;;
 
-let get_starting_state annot_map stmt_map line =
-  (* TODO: Reverse uid map to get uid to start at *) ignore annot_map; ignore line;
-  (* TODO: Get the appropriate stmt *) ignore stmt_map;
-  Program_state.End
+let get_starting_state uid_ctx stmt_map line =
+  let all_annots = Uid_ctx.Annot_hashtbl.keys uid_ctx.Uid_ctx.annot_map in
+  (* We want the annot nearest the input line number but not under it *)
+  let rec get_best_annot annots limit best_so_far =
+    let next_annot = Enum.get annots in
+    match next_annot with
+    | None -> best_so_far
+    | Some(a) ->
+      let next_pos = Python2_ast.Pos.to_pos a in
+      let next_best =
+        match best_so_far with
+        | None ->
+          if next_pos.Lexing.pos_lnum > limit then
+            next_annot
+          else
+            None
+        | Some(best) ->
+          let pos = Python2_ast.Pos.to_pos best in
+          let best_lnum = pos.Lexing.pos_lnum in
+          if next_pos.Lexing.pos_lnum > limit &&
+             next_pos.Lexing.pos_lnum < best_lnum
+          then
+            next_annot
+          else
+            best_so_far
+      in
+      get_best_annot annots limit next_best
+  in
+  let best_annot = get_best_annot all_annots line None in
+  match best_annot with
+  | None -> Program_state.End
+  | Some(best) ->
+    let uids = Uid_ctx.get_uids_from_annot uid_ctx best in
+    let min_uid = List.min uids in
+    let starting_stmt = Counter_hashtbl.Counter_hashtbl.find stmt_map min_uid in
+    Program_state.Stmt(starting_stmt)
 ;;
 
 let make_query analysis_result target_str =
@@ -55,10 +87,10 @@ let make_query analysis_result target_str =
 
 let main () =
   let prog = get_python_prog () in
-  let analysis_result, annot_map, stmt_map = parse_and_analyze prog in
+  let analysis_result, uid_ctx, stmt_map = parse_and_analyze prog in
   let rec loop analysis_result =
     let target_str, line = get_user_query () in
-    let starting_state = get_starting_state annot_map stmt_map line in
+    let starting_state = get_starting_state uid_ctx stmt_map (int_of_string line) in
     let results, analysis_result =
       lookup_value starting_state (Value_variable(target_str)) analysis_result
     in
