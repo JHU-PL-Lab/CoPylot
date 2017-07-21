@@ -287,7 +287,7 @@ let construct_pds (prog : block) : pds =
     Cfg.empty
     |> Cfg.add_edge @@ Cfg.Edge(Program_state.Start, Program_state.Stmt(List.hd stmts))
   in
-  let empty_pds = Analysis_lookup.empty () in (* TODO: Analysis type *)
+  let empty_pds = Analysis_lookup.empty relations in 
   let base_analysis = {pds = empty_pds; cfg = base_cfg} in
   let final_analysis = add_all_edges relations base_analysis in
   final_analysis.pds

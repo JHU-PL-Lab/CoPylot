@@ -1,9 +1,10 @@
 open Batteries;;
 open Jhupllib;;
-(* open Analysis_grammar;; *)
+open Analysis_grammar;;
 open Analysis_lookup_basis;;
 open Analysis_lookup_dph;;
 open Analysis_lookup_edge_functions;;
+open Analysis_lexical_relations;;
 
 (* open Pds_reachability_types_stack;; *)
 
@@ -14,16 +15,26 @@ module Reachability =
     (Pds_reachability_work_collection_templates.Work_stack)
 ;;
 
-type pds = Reachability.analysis;;
+type pds =
+  {
+    lookup_analysis: Reachability.analysis;
+    relations: relation_map_record
+  };;
 
-let empty () =
+let empty rmr =
+  let analysis =
   Reachability.empty ()
   |> Reachability.add_edge_function global_edge_function
+  in
+  {lookup_analysis = analysis; relations = rmr}
 ;;
 
 let add_cfg_edge edge pds =
-  ignore edge; ignore pds;
-  raise @@ Utils.Not_yet_implemented "add_cfg_edge"
+  let Cfg.Edge (src, dst) = edge in
+  let rmr = pds.relations in
+  let edge_function = per_cfg_edge_function rmr src dst in
+  let analysis' = Reachability.add_edge_function edge_function pds.lookup_analysis in
+  {pds with lookup_analysis = analysis'}
 ;;
 
 let lookup_value ps x pds =

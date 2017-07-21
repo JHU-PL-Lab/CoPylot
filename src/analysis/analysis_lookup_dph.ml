@@ -3,6 +3,7 @@ open Jhupllib;;
 open Analysis_lookup_basis;;
 open Analysis_types;;
 open Analysis_grammar;;
+open Analysis_lookup_utils;;
 
 open Program_state;;
 open Nondeterminism;;
@@ -30,7 +31,16 @@ struct
       | Tdp_index_1
       | Tdp_index_2 of abstract_memloc_list
       | Tdp_store of memory_variable * Program_state.t
-      | Tdp_unop of unary_operator * value_variable
+      | Tdp_unop_1 of unary_operator * value_variable * Program_state.t
+      | Tdp_unop_2 of unary_operator
+      | Tdp_binop_1 of binary_operator * value_variable * value_variable * Program_state.t
+      | Tdp_binop_2 of binary_operator
+      | Tdp_binop_3 of binary_operator * value
+      | Tdp_isalias_1 of value_variable
+      | Tdp_isalias_2 of value_variable * memory_location
+      | Tdp_is_1
+      | Tdp_is_2 of memory_location
+
       (* | Tdp_conditional_value of value_variable *)
     [@@deriving eq, ord, show, to_yojson]
     ;;
@@ -143,7 +153,47 @@ struct
         let%orzero Lookup_memory _ = element in
         return [Pop(Lookup_dereference); Push(Lookup_dereference); Push (element); Push (Lookup_isalias); Push (Lookup_jump o0); Push (Lookup_capture 2); Push(Lookup_memory_variable y)]
       end;
-      (* TODO: unop function? *)
+
+      (* Unop steps*)
+      begin
+        let%orzero Tdp_unop_1 (op,x',dst) = action in
+        match element with
+        | Lookup_value_variable _ ->
+            return [Push (Lookup_unop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x')]
+        | Lookup_unop ->
+          return [Pop_dynamic_targeted(Tdp_unop_2 op)]
+        | _ -> return []
+      end;
+      begin
+        let%orzero Tdp_unop_2 op = action in
+        let%orzero Lookup_value v = element in
+        let%bind v' = pick_enum(unary_operation op v) in
+        return [Push(Lookup_value v')]
+      end;
+
+      (* Binop steps*)
+      begin
+        let%orzero Tdp_binop_1 (op,x1,x2,dst) = action in
+        match element with
+        | Lookup_value_variable _ ->
+          return [Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push (Lookup_value_variable x1;)]
+        | Lookup_binop ->
+          return [Pop_dynamic_targeted(Tdp_binop_2 op)]
+        | _ -> return []
+      end;
+      begin
+        let%orzero Tdp_binop_2 op = action in
+        let%orzero Lookup_value v1 = element in
+        return [Pop_dynamic_targeted(Tdp_binop_3 (op,v1))]
+      end;
+      begin
+        let%orzero Tdp_binop_3 (op,v1) = action in
+        let%orzero Lookup_value v2 = element in
+        let%bind v = pick_enum (binary_operation op v1 v2) in
+        return [Push(Lookup_value v)]
+      end;
+
+
       (* begin
          let%orzero Tdp_conditional_value x = action in
          let%orzero Lookup_value_variable x' = element in
@@ -152,6 +202,7 @@ struct
          else
           return [Push (Lookup_value_variable x')]
          end; *)
+
       begin
         let%orzero Tdp_peek_x x = action in
         let%orzero Lookup_value_variable (Value_variable id) = element in
@@ -180,13 +231,43 @@ struct
       (* Peek dereference steps *)
       begin
         let%orzero Tdp_peek_m_1 = action in
-        let%orzero Lookup_memory (Memloc _) = element in
+        let%orzero Lookup_memory _ = element in
         return [Pop_dynamic_targeted(Tdp_peek_m_2 element)]
       end;
       begin
         let%orzero Tdp_peek_m_2 element' = action in
         let%orzero Lookup_dereference = element in
         return [Push(element); Push(element')]
+      end;
+
+      (* Isalias steps *)
+      begin
+        let%orzero Tdp_isalias_1 x = action in
+        let%orzero Lookup_memory m = element in
+        return [Pop_dynamic_targeted(Tdp_isalias_2 (x,m))]
+      end;
+      begin
+        let%orzero Tdp_isalias_2 (x,m) = action in
+        let%orzero Lookup_memory m' = element in
+        if m = m' then
+          return [Pop(Lookup_dereference); Push(Lookup_dereference); Push(Lookup_value_variable x)]
+        else
+          return [Pop(Lookup_dereference); Push(Lookup_dereference); Push(element)]
+      end;
+
+      (* Is steps *)
+      begin
+        let%orzero Tdp_is_1 = action in
+        let%orzero Lookup_memory m = element in
+        return [Pop_dynamic_targeted(Tdp_is_2 m)]
+      end;
+      begin
+        let%orzero Tdp_is_2 m = action in
+        let%orzero Lookup_memory m' = element in
+        if m = m' then
+          return [Push(Lookup_value (Boolean_value true))]
+        else
+          return [Push(Lookup_value (Boolean_value false))]
       end;
     ]
     |> List.enum
@@ -208,45 +289,53 @@ struct
         | Lookup_jump state -> Enum.singleton ([], Static_terminus(Program_state state))
         | _ -> Enum.empty ()
       end
-    | Udp_ifresult_x (x,body,skip) ->
+    | Udp_ifresult_x (x,prev,skip) ->
       begin
         match element with
         | Lookup_value_variable x' ->
           if x = x' then
-            Enum.singleton ([Push (Lookup_answer)], Static_terminus(body))
+            Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
           else
             Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
+        | Lookup_answer ->
+          Enum.singleton ([Push (element)], Static_terminus(prev))
         | _ -> Enum.empty ()
       end
     (* TODO: combine the following? *)
-    | Udp_ifresult_y (y,body,skip) ->
+    | Udp_ifresult_y (y,prev,skip) ->
       begin
         match element with
         | Lookup_memory_variable y' ->
           if y = y' then
-            Enum.singleton ([Push (Lookup_answer)], Static_terminus(body))
+            Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
           else
             Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
+        | Lookup_answer ->
+          Enum.singleton ([Push (element)], Static_terminus(prev))
         | _ -> Enum.empty ()
       end
-    | Udp_return (y,body,skip) ->
+    | Udp_return (y,prev,skip) ->
       begin
         match element with
         | Lookup_memory_variable y' ->
           if y = y' then
-            Enum.singleton ([Push (Lookup_answer)], Static_terminus(body))
+            Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
           else
             Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
+        | Lookup_answer ->
+            Enum.singleton ([Push (element)], Static_terminus(prev))
         | _ -> Enum.empty ()
       end
-    | Udp_raise (y,body,skip) ->
+    | Udp_raise (y,prev,skip) ->
       begin
         match element with
         | Lookup_memory_variable y' ->
           if y = y' then
-            Enum.singleton ([Push (Lookup_answer)], Static_terminus(body))
+            Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
           else
             Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
+        | Lookup_answer ->
+            Enum.singleton ([Push (element)], Static_terminus(prev))
         | _ -> Enum.empty ()
       end
     | Udp_advance (target, prev) ->
