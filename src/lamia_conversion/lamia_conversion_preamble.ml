@@ -55,6 +55,19 @@ let define_obj_mem obj_loc fill_func starvalue =
     ]
 ;;
 
+let add_to_global_python_scope varname memloc =
+  let%bind varstr = fresh_value_var () in
+  let%bind scopeval = fresh_value_var () in
+  let%bind new_scopeval = fresh_value_var () in
+  emit
+    [
+      Let_expression(varstr, String_literal varname);
+      Let_get(scopeval, python_scope);
+      Let_binding_update(new_scopeval, scopeval, varstr, memloc);
+      Store(python_scope, new_scopeval);
+    ]
+;;
+
 let all_definitions =
   [
     define_scope;
@@ -74,6 +87,20 @@ let all_definitions =
 
     define_func_mem int_add_body int_add;
     (* define_func_mem method_call_body method_call; *)
+
+    (* Global builtin values *)
+    add_to_global_python_scope "*None" builtin_none;
+    add_to_global_python_scope "True" builtin_true;
+    add_to_global_python_scope "False" builtin_false;
+    (* Global builtin functions *)
+    add_to_global_python_scope "bool" builtin_bool;
+    add_to_global_python_scope "slice" builtin_slice;
+    add_to_global_python_scope "NameError" builtin_NameError;
+    add_to_global_python_scope "TypeError" builtin_TypeError;
+    add_to_global_python_scope "AttributeError" builtin_AttributeError;
+    add_to_global_python_scope "ValueError" builtin_ValueError;
+    add_to_global_python_scope "StopIteration" builtin_StopIteration;
+
   ]
 
 let preamble =
