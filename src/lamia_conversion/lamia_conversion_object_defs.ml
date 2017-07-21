@@ -63,8 +63,7 @@ let fill_float obj =
 ;;
 
 let fill_bool obj =
-  (* TODO: Implement this *)
-  return obj
+  fill_int obj
 ;;
 
 let fill_string obj =
@@ -115,6 +114,11 @@ let fill_stop_iteration obj =
   return obj
 ;;
 
+let fill_none obj =
+  (* TODO: Implement this *)
+  return obj
+;;
+
 (* The "right" way to handle all these similar functions is to make a type
    representing what type the object is, and pass that in as a parameter.
    However, a lot of this process will change once we implement classes,
@@ -157,6 +161,10 @@ let wrap_bool x =
       ]
   in
   return output_name
+;;
+
+let wrap_none =
+  return builtin_none
 ;;
 
 (* Wrapping methods is significantly more complicated than other wraps. *)
