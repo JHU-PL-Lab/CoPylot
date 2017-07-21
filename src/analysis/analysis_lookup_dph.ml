@@ -4,6 +4,7 @@ open Analysis_lookup_basis;;
 open Analysis_types;;
 open Analysis_grammar;;
 
+open Program_state;;
 open Nondeterminism;;
 open Pds_reachability_types_stack;;
 
@@ -14,8 +15,10 @@ struct
   module Targeted_dynamic_pop_action =
   struct
     type t =
-      | Tdp_peek_x
-      | Tdp_peek_y
+      | Tdp_peek_x of value_variable option
+      | Tdp_peek_y of memory_variable option
+      | Tdp_peek_m_1
+      | Tdp_peek_m_2 of Stack_element.t
       | Tdp_capture_1
       | Tdp_capture_2 of value
       | Tdp_capture_3 of value * int * Stack_element.t list
@@ -41,6 +44,7 @@ struct
       | Udp_ifresult_y of memory_variable * State.t * Program_state.t
       | Udp_return of memory_variable * State.t * Program_state.t
       | Udp_raise of memory_variable * State.t * Program_state.t
+      | Udp_advance of statement * State.t
     [@@deriving eq, ord, show, to_yojson]
   end;;
   module Stack_action =
@@ -103,7 +107,6 @@ struct
         let%orzero Lookup_value(Object_value v) = element in
         return [Pop_dynamic_targeted (Tdp_project_2 v)]
       end;
-
       begin
         let%orzero Tdp_project_2 v = action in
         let%orzero Lookup_value(String_value str) = element in
@@ -117,20 +120,22 @@ struct
         let%orzero Lookup_value(List_value lst) = element in
         return [Pop_dynamic_targeted (Tdp_index_2 lst)]
       end;
-
-      (* begin
+      begin
         let%orzero Tdp_index_2 lst = action in
         let%orzero Lookup_value(Integer_value i) = element in
         match i with
         | Neg -> return []
-        (* match lst with
-        | List_exact le ->
-          let m = List.nth le i in
-          return [Push(Lookup_memory m)]
-        | List_lossy ll ->
-          let m = List.nth ll i in
-          return [Push(Lookup_memory m)] *)
-      end; *)
+        | _ ->
+          begin
+            match lst with
+            | List_exact le ->
+              let m = List.hd le in
+              return [Push(Lookup_memory m)]
+            | List_lossy ll ->
+              let m = List.hd ll in
+              return [Push(Lookup_memory m)]
+          end
+      end;
 
       (* Store *)
       begin
@@ -148,14 +153,40 @@ struct
           return [Push (Lookup_value_variable x')]
          end; *)
       begin
-        let%orzero Tdp_peek_x = action in
-        let%orzero Lookup_value_variable _ = element in
-        return [Pop(element); Push (element)]
+        let%orzero Tdp_peek_x x = action in
+        let%orzero Lookup_value_variable (Value_variable id) = element in
+        match x with
+        | None ->
+          return [Pop(element); Push (element)]
+        | Some Value_variable id' ->
+          if id != id' then
+            return [Pop(element); Push (element)]
+          else
+            return []
       end;
       begin
-        let%orzero Tdp_peek_y = action in
-        let%orzero Lookup_memory_variable _ = element in
-        return [Pop(element); Push (element)]
+        let%orzero Tdp_peek_y y = action in
+        let%orzero Lookup_memory_variable (Memory_variable id) = element in
+        match y with
+        | None ->
+          return [Pop(element); Push (element)]
+        | Some Memory_variable id' ->
+          if id != id' then
+            return [Pop(element); Push (element)]
+          else
+            return []
+      end;
+
+      (* Peek dereference steps *)
+      begin
+        let%orzero Tdp_peek_m_1 = action in
+        let%orzero Lookup_memory (Memloc _) = element in
+        return [Pop_dynamic_targeted(Tdp_peek_m_2 element)]
+      end;
+      begin
+        let%orzero Tdp_peek_m_2 element' = action in
+        let%orzero Lookup_dereference = element in
+        return [Push(element); Push(element')]
       end;
     ]
     |> List.enum
@@ -217,6 +248,14 @@ struct
           else
             Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
         | _ -> Enum.empty ()
+      end
+    | Udp_advance (target, prev) ->
+      begin
+        match target with
+        | Statement(_, Try_except _) ->
+          Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
+        | _ ->
+          Enum.singleton ([Push (element)], Static_terminus(prev))
       end
   ;;
 end;;
