@@ -13,9 +13,9 @@ let get_from_scope = Value_variable("get_from_scope");;
    get_from_scope *)
 let get_from_parent_scope = Value_variable("get_from_parent_scope");;
 
-let builtin_true = Value_variable ("*True");;
-let builtin_false = Value_variable("*False");;
-let builtin_none = Value_variable("*None");;
+let builtin_true = Memory_variable("*True");;
+let builtin_false = Memory_variable("*False");;
+let builtin_none = Memory_variable("*None");;
 
 (* Builtin global python functions *)
 (* Technically these are constructor calls *)

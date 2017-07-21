@@ -111,9 +111,10 @@ let builtin_bool_body arglist =
     let%bind result_name = fresh_value_var () in
     let%bind _, return_false =
       listen @@
+      let%bind retval = store_value @@ Boolean_literal false in
       emit
         [
-          If_result_value(builtin_false);
+          If_result_value(retval);
         ]
     in
     let return_if_necessary =
@@ -182,7 +183,10 @@ let builtin_bool_body arglist =
     in
 
     let%bind _, if_no_bool = listen @@
-      let return_true = emit [If_result_value(builtin_true)] in
+      let return_true =
+        let%bind retval = store_value @@ Boolean_literal true in
+        emit [If_result_value(retval)]
+      in
 
       let%bind _, if_has_len =
         listen @@

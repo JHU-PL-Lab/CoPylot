@@ -121,7 +121,6 @@ let fill_stop_iteration obj =
    so I'm decreeing this to be acceptable for the moment. *)
 let wrap_int x = wrap_obj fill_int x;;
 let wrap_float x = wrap_obj fill_float x;;
-let wrap_bool x = wrap_obj fill_bool x;; (* TODO: Return True or False globals conditionally *)
 let wrap_string x = wrap_obj fill_string x;;
 let wrap_list x = wrap_obj fill_list x;;
 let wrap_tuple x = wrap_obj fill_tuple x;;
@@ -132,6 +131,33 @@ let wrap_name_error = wrap_obj fill_name_error;;
 let wrap_attribute_error = wrap_obj fill_attribute_error;;
 let wrap_type_error = wrap_obj fill_type_error;;
 let wrap_stop_iteration = wrap_obj fill_stop_iteration;;
+
+(* Since there are only two bool values, we check our input and return the
+   appropriate one, rather than creating a new one *)
+let wrap_bool x =
+  let%bind output_name = fresh_memory_var () in
+  let%bind _, if_true =
+    listen @@
+    emit
+      [
+        If_result_memory(builtin_true);
+      ]
+  in
+  let%bind _, if_false =
+    listen @@
+    emit
+      [
+        If_result_memory(builtin_false);
+      ]
+  in
+  let%bind _ =
+    emit
+      [
+        Let_conditional_memory(output_name, x, Block if_true, Block if_false);
+      ]
+  in
+  return output_name
+;;
 
 (* Wrapping methods is significantly more complicated than other wraps. *)
 let wrap_method func self =
