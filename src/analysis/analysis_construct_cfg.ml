@@ -279,7 +279,7 @@ let rec add_all_edges relations analysis =
     add_all_edges relations new_analysis
 ;;
 
-let construct_pds (prog : block) : pds =
+let construct_analysis (prog : block) : pds * relation_map_record =
   let relations = construct_all_relation_maps prog in
   let Block(stmts) = prog in
   (* TODO: Throw useful error if prog is empty *)
@@ -290,5 +290,5 @@ let construct_pds (prog : block) : pds =
   let empty_pds = Analysis_lookup.empty relations in 
   let base_analysis = {pds = empty_pds; cfg = base_cfg} in
   let final_analysis = add_all_edges relations base_analysis in
-  final_analysis.pds
+  final_analysis.pds, relations
 ;;

@@ -20,14 +20,13 @@ let rec convert_module
   : annot block =
   let Module(stmts) = m in
   let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
-  let preamble_ctx = create_new_name_ctx 0 "$preamble_" in
+  let preamble_ctx = create_new_name_ctx 0 "preamble$" in
   let _, lamia_preamble = run preamble_ctx annot preamble in
   let _, lamia_prog = run ctx annot @@ convert_stmt_list stmts in
   let annot_block = Block(lamia_preamble @ lamia_prog) in
   annot_block
 
 and convert_stmt_list (stmts : annotated_stmt list) : unit m =
-  (* TODO: Prepend preamble, scope setup, etc *)
   let accumulate m s = bind m (fun () -> convert_stmt s) in
   List.fold_left accumulate empty stmts
 
@@ -48,8 +47,20 @@ and convert_stmt
       ]
 
   | While (test, body) ->
-    let%bind value_result, value_stmts =
-      listen @@ lookup_and_get_attr "*value" test
+    let%bind value_loc, value_stmts =
+      listen @@
+      let%bind test_loc = lookup test in
+      let%bind test_val = fresh_value_var () in
+      let%bind result_loc = fresh_memory_var () in
+      let%bind _ =
+        emit
+          [
+            Let_is(test_val, test_loc, builtin_true);
+            Let_alloc(result_loc);
+            Store(result_loc, test_val);
+          ]
+      in
+      return result_loc
     in
     (* Work to figure out if test is True or False. Needs to be
        appended to the while loop body as well *)
@@ -65,17 +76,23 @@ and convert_stmt
     emit @@
     value_bindings @
     [
-      Lamia_ast.While(value_result,
+      Lamia_ast.While(value_loc,
                       Block(while_body));
     ]
 
   | If (test, body, orelse) ->
-    let%bind value_result = lookup_and_get_attr "*value" test in
-
+    let%bind test_loc = lookup test in
+    let%bind test_val = fresh_value_var () in
+    let%bind _ = emit
+        [
+          Let_is(test_val, test_loc, builtin_true);
+        ]
+    in
     let dummy_return =
+      let%bind dummy_retval = store_value @@ None_literal in
       emit
         [
-          If_result_value(builtin_none);
+          If_result_value(dummy_retval);
         ]
     in
 
@@ -90,14 +107,12 @@ and convert_stmt
       dummy_return
     in
 
-    let%bind test_result = fresh_value_var () in
     let%bind dummy_variable = fresh_value_var () in
 
     emit @@
     [
-      Let_get(test_result, value_result);
       Let_conditional_value(dummy_variable,
-                            test_result,
+                            test_val,
                             Block(new_body),
                             Block(new_orelse));
     ]

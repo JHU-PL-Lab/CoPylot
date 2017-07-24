@@ -4,6 +4,7 @@ open Lamia_conversion_monad;;
 open Conversion_monad;;
 open Lamia_conversion_builtin_names;;
 open Lamia_conversion_builtin_defs;;
+open Lamia_conversion_object_defs;;
 
 let define_func_mem body_def func_loc =
   let%bind arglist = fresh_value_var () in
@@ -28,21 +29,78 @@ let define_func_val func func_name =
     ]
 ;;
 
+let define_obj_mem obj_loc fill_func starvalue =
+  let%bind value_val = fresh_value_var () in
+  let%bind value_loc = fresh_memory_var () in
+  let%bind empty_obj = fresh_value_var () in
+  let%bind value_str = fresh_value_var () in
+  let%bind obj_with_value = fresh_value_var () in
+  let%bind _ =
+    emit
+      [
+        Let_alloc(value_loc);
+        Let_expression(value_val, starvalue);
+        Store(value_loc, value_val);
+
+        Let_expression(empty_obj, Empty_binding);
+        Let_expression(value_str, String_literal "*value");
+        Let_binding_update(obj_with_value, empty_obj, value_str, value_loc);
+      ]
+  in
+  let%bind filled_obj = fill_func obj_with_value in
+  emit
+    [
+      Let_alloc(obj_loc);
+      Store(obj_loc, filled_obj);
+    ]
+;;
+
+let add_to_global_python_scope varname memloc =
+  let%bind varstr = fresh_value_var () in
+  let%bind scopeval = fresh_value_var () in
+  let%bind new_scopeval = fresh_value_var () in
+  emit
+    [
+      Let_expression(varstr, String_literal varname);
+      Let_get(scopeval, python_scope);
+      Let_binding_update(new_scopeval, scopeval, varstr, memloc);
+      Store(python_scope, new_scopeval);
+    ]
+;;
+
 let all_definitions =
   [
     define_scope;
     define_func_val get_from_scope_def get_from_scope;
     define_get_from_parent_scope;
 
+    define_obj_mem builtin_true fill_bool @@ Integer_literal 1;
+    define_obj_mem builtin_false fill_bool @@ Integer_literal 0;
+    define_obj_mem builtin_none fill_none @@ None_literal;
+
     (* define_func_mem builtin_attribute_error_body builtin_AttributeError;
-    define_func_mem builtin_type_error_body builtin_TypeError;
-    define_func_mem builtin_name_error_body builtin_NameError;
-    define_func_mem builtin_stop_iteration_body builtin_StopIteration; *)
+       define_func_mem builtin_type_error_body builtin_TypeError;
+       define_func_mem builtin_name_error_body builtin_NameError;
+       define_func_mem builtin_stop_iteration_body builtin_StopIteration; *)
 
     (* define_func_mem builtin_bool_body builtin_bool; *)
 
     define_func_mem int_add_body int_add;
     (* define_func_mem method_call_body method_call; *)
+
+    (* Global builtin values *)
+    add_to_global_python_scope "*None" builtin_none;
+    add_to_global_python_scope "True" builtin_true;
+    add_to_global_python_scope "False" builtin_false;
+    (* Global builtin functions *)
+    add_to_global_python_scope "bool" builtin_bool;
+    add_to_global_python_scope "slice" builtin_slice;
+    add_to_global_python_scope "NameError" builtin_NameError;
+    add_to_global_python_scope "TypeError" builtin_TypeError;
+    add_to_global_python_scope "AttributeError" builtin_AttributeError;
+    add_to_global_python_scope "ValueError" builtin_ValueError;
+    add_to_global_python_scope "StopIteration" builtin_StopIteration;
+
   ]
 
 let preamble =
