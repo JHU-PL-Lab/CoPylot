@@ -7,7 +7,7 @@ struct
   type t =
     | Program_state of Program_state.t
     | Answer_value of value
-  (* | Answer_memory of  *)
+    | Answer_memory of memory_location
   [@@deriving eq, ord, show, to_yojson]
   ;;
 end;;

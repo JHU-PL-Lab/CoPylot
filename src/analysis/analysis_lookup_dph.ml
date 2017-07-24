@@ -40,7 +40,7 @@ struct
       | Tdp_isalias_2 of value_variable * memory_location
       | Tdp_is_1
       | Tdp_is_2 of memory_location
-
+      | Tdp_func_search of value_variable * value_variable list
       (* | Tdp_conditional_value of value_variable *)
     [@@deriving eq, ord, show, to_yojson]
     ;;
@@ -268,6 +268,16 @@ struct
           return [Push(Lookup_value (Boolean_value true))]
         else
           return [Push(Lookup_value (Boolean_value false))]
+      end;
+
+      (* Function search *)
+      begin
+        let%orzero Tdp_func_search (x0,lst') = action in
+        let%orzero Lookup_value_variable xi = element in
+        if List.mem xi lst' then
+          return [Push(Lookup_value_variable xi)]
+        else
+          return [Push (Lookup_value_variable xi); Push (Lookup_drop); Push (Lookup_value_variable x0)]
       end;
     ]
     |> List.enum

@@ -5,7 +5,7 @@ open Nondeterminism;;
 open Analysis_grammar;;
 open Analysis_types;;
 open Analysis_lookup_dph.Dph;;
-(* open Analysis_lexical_relations;; *)
+open Analysis_lexical_relations;;
 open Analysis_lookup_basis;;
 open State;;
 open Program_state;;
@@ -39,7 +39,7 @@ let global_edge_function state =
 ;;
 
 let per_cfg_edge_function rmr src dst state =
-  ignore rmr;
+  (* ignore rmr; *)
   if State.equal state (Program_state dst) then
     let open Nondeterminism_monad in
     let o0 = Program_state(dst) in
@@ -107,7 +107,7 @@ let per_cfg_edge_function rmr src dst state =
         let%orzero Program_state (Stmt (Statement(_, Let_get (x,y)))) = o1 in
         return ([Pop (Lookup_value_variable x); Push (Lookup_dereference); Push (Lookup_jump dst); Push (Lookup_capture 1); Push(Lookup_memory_variable y)], Static_terminus(o1))
       end;
-      (* Let x = y1 == y2 *)
+      (* Let x = y1 is y2 *)
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_is (x,y1,y2)))) = o1 in
         return ([Pop (Lookup_value_variable x); Push (Lookup_is); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_memory_variable y1)], Static_terminus(o1))
@@ -129,7 +129,8 @@ let per_cfg_edge_function rmr src dst state =
       begin
         let%orzero Program_state (Stmt s) = o1 in
         let%orzero Statement(_, While (_,_)) = s in
-        let%orzero Program_state (Advance s) = o0 in
+        let%orzero Program_state (Advance s') = o0 in
+        let%orzero Statement(_, While (_,_)) = s' in
         return ([Push (Lookup_jump (Stmt s))], Static_terminus(o1))
       end;
       (* TODO: check if left loop  *)
@@ -161,11 +162,16 @@ let per_cfg_edge_function rmr src dst state =
         let%orzero Statement(_, Let_conditional_memory (y,_,_,_)) = s in
         return ([], Dynamic_terminus(Udp_ifresult_y (y,o1,Stmt(s))))
       end;
-      (* Function search (bound) *)
-      (* begin
-         let%orzero Program_state (Stmt (Statement(_, Let_call_function (y,x,lst)))) = o1 in
-         return ([], Dynamic_terminus(Udp_ifresult_y (y,o1,Stmt(s))))
-         end; *)
+      (* Function search *)
+      begin
+        let%orzero Program_state (Stmt (s)) = o1 in
+        let%orzero Statement(_, Let_call_function (_,_,lst)) = s in
+        let%orzero Some Statement(_, Let_expression (x, Function_expression (lst',_))) = (Stmt_map.find s rmr.down) in
+        if List.length lst = List.length lst' then
+          return ([Pop_dynamic_targeted(Tdp_func_search (x,lst'))], Static_terminus(o1))
+        else
+          return ([], Static_terminus(o0)) (* FIXME *)
+         end;
       (* Function return *)
       begin
         let%orzero Program_state (Return _) = o1 in
