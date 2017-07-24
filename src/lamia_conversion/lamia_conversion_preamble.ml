@@ -85,7 +85,7 @@ let all_definitions =
 
     (* define_func_mem builtin_bool_body builtin_bool; *)
 
-    define_func_mem int_add_body int_add;
+    (* define_func_mem int_add_body int_add; *)
     (* define_func_mem method_call_body method_call; *)
 
     (* Global builtin values *)

@@ -25,7 +25,6 @@ let wrap_obj
     (x : value_variable)
   : memory_variable m =
   let%bind value_loc = fresh_memory_var () in
-  let%bind obj_loc = fresh_memory_var () in
   let%bind value_name = fresh_value_var () in
   let%bind empty_obj = fresh_value_var () in
   let%bind obj_with_value = fresh_value_var () in
@@ -34,15 +33,16 @@ let wrap_obj
       [
         Let_alloc(value_loc);
         Store(value_loc, x);
-        Let_alloc(obj_loc);
-        Let_expression(empty_obj, Empty_binding);
         Let_expression(value_name, String_literal("*value"));
+        Let_expression(empty_obj, Empty_binding);
         Let_binding_update(obj_with_value, empty_obj, value_name, value_loc);
       ]
   in
   let%bind filled_obj = fill_func obj_with_value in
+  let%bind obj_loc = fresh_memory_var () in
   let%bind _ = emit
       [
+        Let_alloc(obj_loc);
         Store(obj_loc, filled_obj);
       ]
   in
@@ -52,7 +52,7 @@ let wrap_obj
 let fill_int obj =
   (* This should be a method, but because we don't have classes we store it
      as a function value directly *)
-  let%bind obj = add_binding obj "__add__" int_add in
+  (* let%bind obj = add_binding obj "__add__" int_add in *)
   (* TODO: More of this *)
   return obj
 ;;
