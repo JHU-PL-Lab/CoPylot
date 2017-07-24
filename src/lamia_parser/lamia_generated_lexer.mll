@@ -37,6 +37,7 @@ rule token = parse
   | "get" { GET }
   | "is" { IS }
   | "return" { RETURN }
+  | "ifresult" { IFRESULT }
   | "raise" { RAISE }
   | "try" { TRY }
   | "except" { EXCEPT }

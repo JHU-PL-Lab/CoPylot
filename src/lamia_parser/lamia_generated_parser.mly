@@ -30,6 +30,7 @@
 %token GET
 %token IS
 %token RETURN
+%token IFRESULT
 %token RAISE
 %token TRY
 %token EXCEPT
@@ -128,6 +129,10 @@ directive:
     { Let_binop($2,$4,$5,$6) }
   | RETURN memory_variable
     { Return($2) }
+  | IFRESULT value_variable
+    { If_result_value($2) }
+  | IFRESULT memory_variable
+    { If_result_memory($2) }
   | RAISE memory_variable
     { Raise($2) }
   | TRY block EXCEPT memory_variable block

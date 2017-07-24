@@ -82,35 +82,42 @@ struct
       begin
         let%orzero Tdp_capture_1 = action in
         let%orzero Lookup_value v = element in
+        let () = logger `debug "capture step 1" in
         return [Pop_dynamic_targeted (Tdp_capture_2 v)]
       end;
       begin
         let%orzero Tdp_capture_2 v = action in
         let%orzero Lookup_capture n = element in
+        let () = logger `debug "capture step 2" in
         return [Pop_dynamic_targeted (Tdp_capture_3 (v,n,[]))]
       end;
       begin
         let%orzero Tdp_capture_3 (v,n,lst) = action in
         if n > 1 then
+          let () = logger `debug ("capture "^(string_of_int n)) in
           return [Pop_dynamic_targeted (Tdp_capture_3 (v,n-1,element::lst))]
         else
           return @@ [Push (Lookup_value v); Push element] @ List.map (fun x -> Push x) (lst)
+          (* return @@ [Push element; Push (Lookup_value v)] @ List.map (fun x -> Push x) (lst) *)
       end;
 
       (* Bind steps *)
       begin
         let%orzero Tdp_bind_1 = action in
         let%orzero Lookup_value(Object_value v) = element in
+        let () = logger `debug "bind step 1" in
         return [Pop_dynamic_targeted (Tdp_bind_2 v)]
       end;
       begin
         let%orzero Tdp_bind_2 v = action in
         let%orzero Lookup_value(String_value str) = element in
+        let () = logger `debug "bind step 2" in
         return [Pop_dynamic_targeted (Tdp_bind_3 (v,str))]
       end;
       begin
         let%orzero Tdp_bind_3 (v,str) = action in
         let%orzero Lookup_memory m = element in
+        let () = logger `debug "bind step 3" in
         let new_binding = AbstractStringMap.add str m v in
         return [Push(Lookup_value (Object_value new_binding))]
       end;
@@ -248,6 +255,7 @@ struct
       begin
         let%orzero Tdp_unop_2 op = action in
         let%orzero Lookup_value v = element in
+        let () = logger `debug "unop step 2" in
         let%bind v' = pick_enum(unary_operation op v) in
         return [Push(Lookup_value v')]
       end;
@@ -281,7 +289,9 @@ struct
     | Udp_jump ->
       begin
         match element with
-        | Lookup_jump state -> Enum.singleton ([], Static_terminus(Program_state state))
+        | Lookup_jump state ->
+          let () = logger `debug "jump" in
+          Enum.singleton ([], Static_terminus(Program_state state))
         | _ -> Enum.empty ()
       end
     | Udp_ifresult_x (x,prev,skip) ->
@@ -343,21 +353,23 @@ struct
           let () = logger `debug "normal advance" in
           Enum.singleton ([Push (element)], Static_terminus(prev))
       end
-    | Udp_unop_1 (op,x',dst,o0,o1) ->
+    | Udp_unop_1 (op,x',dst,o0,_) ->
       begin
         match element with
         | Lookup_value_variable _ ->
+          let () = logger `debug "push unop" in
           Enum.singleton ([Push (Lookup_unop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x')], Static_terminus(o0))
         | Lookup_unop ->
-          Enum.singleton ([Pop_dynamic_targeted(Tdp_unop_2 op)], Static_terminus(o1))
+          let () = logger `debug "pop unop" in
+          Enum.singleton ([Pop_dynamic_targeted(Tdp_unop_2 op)], Static_terminus(o0))
         | _ -> Enum.empty ()
       end;
-    | Udp_binop_1 (op,x1,x2,dst,o0,o1) ->
+    | Udp_binop_1 (op,x1,x2,dst,o0,_) ->
       match element with
       | Lookup_value_variable _ ->
         Enum.singleton ([Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push (Lookup_value_variable x1;)], Static_terminus(o0))
       | Lookup_binop ->
-        Enum.singleton ([Pop_dynamic_targeted(Tdp_binop_2 op)], Static_terminus(o1))
+        Enum.singleton ([Pop_dynamic_targeted(Tdp_binop_2 op)], Static_terminus(o0))
       | _ -> Enum.empty ()
   ;;
 end;;
