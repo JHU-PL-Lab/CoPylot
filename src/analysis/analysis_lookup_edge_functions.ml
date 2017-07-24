@@ -82,7 +82,7 @@ let per_cfg_edge_function rmr src dst state =
         (* logger `debug "alias x"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_alias_value (x1, x2)))) = o1 in
         (* let Value_variable v1 = x1 and Value_variable v2 = x2 in
-        let () = logger `debug ("let"^v1^"="^v2) in *)
+           let () = logger `debug ("let"^v1^"="^v2) in *)
         return ([Pop (Lookup_value_variable x1); Push (Lookup_value_variable x2)], Static_terminus(o1))
       end;
       (* Let y1 = y2 *)
@@ -187,7 +187,7 @@ let per_cfg_edge_function rmr src dst state =
           return ([Pop_dynamic_targeted(Tdp_func_search (x,lst'))], Static_terminus(o1))
         else
           return ([], Static_terminus(o0)) (* FIXME *)
-         end;
+      end;
       (* Function return *)
       begin
         let%orzero Program_state (Return _) = o1 in
@@ -297,14 +297,22 @@ let per_cfg_edge_function rmr src dst state =
         | _ ->return ([Pop_dynamic_targeted(Tdp_peek_m_1)], Static_terminus(o1))
       end;
       (* Skip Try/Except, follow advance otherwise *)
+      (* begin
+         let%orzero Program_state (Advance target) = o0 in
+         return ([], (Dynamic_terminus(Udp_advance (target,o1))))
+         end; *)
       begin
         let%orzero Program_state (Advance target) = o0 in
-        return ([Nop], (Dynamic_terminus(Udp_advance (target,o1))))
+        return ([], Static_terminus(Program_state (Stmt target)))
       end;
       begin
-        let%orzero Program_state End = o0 in
+        let%orzero Program_state (Advance _) = o1 in
         return ([Nop], Static_terminus(o1))
-      end
+      end;
+      (* begin
+         let%orzero Program_state End = o0 in
+         return ([], Static_terminus(o1))
+         end *)
     ]
     |> List.enum
     |> Enum.map Nondeterminism_monad.enum

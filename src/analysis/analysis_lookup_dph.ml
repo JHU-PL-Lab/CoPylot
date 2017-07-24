@@ -5,9 +5,13 @@ open Analysis_types;;
 open Analysis_grammar;;
 open Analysis_lookup_utils;;
 
+open Logger_utils;;
 open Program_state;;
 open Nondeterminism;;
 open Pds_reachability_types_stack;;
+
+set_default_logging_level `debug;;
+let logger = make_logger "Analysis_lookup_dph";;
 
 module Dph =
 struct
@@ -352,8 +356,10 @@ struct
       begin
         match target with
         | Statement(_, Try_except _) ->
+          let () = logger `debug "skip try/except" in
           Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
         | _ ->
+          let () = logger `debug "normal advance" in
           Enum.singleton ([Push (element)], Static_terminus(prev))
       end
   ;;
