@@ -51,6 +51,8 @@ rule token = parse
 
   | "not" { NOT }
   | "haskey" { HASKEY }
+  | "isint" {ISINT}
+  | "isfunc" {ISFUNC}
 
   | "int+" { INTPLUS }
   | "int-" { INTMINUS }

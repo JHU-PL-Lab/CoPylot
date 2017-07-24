@@ -43,6 +43,8 @@
 /* operators */
 %token NOT
 %token HASKEY
+%token ISINT
+%token ISFUNC
 %token INTPLUS
 %token INTMINUS
 
@@ -169,6 +171,10 @@ value_expression:
 unary_operator:
   | NOT
     { Unop_not }
+  | ISINT
+    { Unop_is_int }
+  | ISFUNC
+    { Unop_is_function }
 
 %inline
 binary_operator:
