@@ -21,6 +21,9 @@ sig
   type t
   type edge = Edge of V.t * V.t
 
+  val compare_edge: edge -> edge -> int
+  val pp_edge: edge pretty_printer
+
   val empty : t
 
   val add_edge : edge -> t -> t

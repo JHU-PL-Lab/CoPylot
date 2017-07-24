@@ -30,7 +30,7 @@ let main () =
     let target_str = input_line stdin in
     if String.length target_str > 0 then
       let results, analysis_result = make_query analysis_result target_str in
-      print_endline @@ "The possible values of " ^ target_str ^ " are " ^
+      print_endline @@ "The possible values of " ^ target_str ^ " at the end of the program are " ^
                        Jhupllib_pp_utils.pp_to_string (Jhupllib_pp_utils.pp_list pp_value) (List.of_enum results)
       ;
       loop analysis_result

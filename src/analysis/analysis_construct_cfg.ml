@@ -5,6 +5,13 @@ open Analysis_lexical_relations;;
 open Analysis_lookup;;
 open Analysis_construct_cfg_monad;;
 
+open Jhupllib;;
+open Logger_utils;;
+open Pp_utils;;
+
+let add_to_log = make_logger "Analysis cfg construction";;
+set_default_logging_level `debug;;
+
 type analysis_construction =
   {
     pds : pds;
@@ -106,9 +113,12 @@ let add_edge relations analysis edge =
     ;
     (* Function call *)
     begin
-      let%orzero Stmt(Statement(_, d)) = v2 in
+      let%orzero Stmt(Statement(u, d)) = v2 in
       let%orzero Let_call_function(_, func, _) = d in
+      let Value_variable (v) = func in
+      add_to_log `debug @@ "Calling function " ^ v ^ " at line " ^ string_of_int u;
       let funcvals, new_pds = lookup_value v2 func analysis.pds in
+      add_to_log `debug @@ "Number of results: " ^ string_of_int @@ Enum.count funcvals;
       update_pds new_pds @@
       let%bind funcval = pick_enum funcvals in
       let%orzero Function_value(_, Block(body)) = funcval in
@@ -279,6 +289,32 @@ let rec add_all_edges relations analysis =
     add_all_edges relations new_analysis
 ;;
 
+
+let simple_pp_edge fmt edge =
+  let open Format in
+
+  let simple_pp_statement fmt statement =
+    let Statement(u, _) = statement in
+    fprintf fmt "%d" u
+  in
+
+  let simple_pp_state fmt state =
+    match state with
+    | Program_state.Stmt(s) -> fprintf fmt "Stmt(%a)" simple_pp_statement s
+    | Program_state.Advance(s) -> fprintf fmt "Advance(%a)" simple_pp_statement s
+    | Program_state.Raise(s) -> fprintf fmt "Raise(%a)" simple_pp_statement s
+    | Program_state.Return(s) -> fprintf fmt "Return(%a)" simple_pp_statement s
+    | Program_state.Ifresult(s) -> fprintf fmt "Ifresult(%a)" simple_pp_statement s
+    | Program_state.Start -> fprintf fmt "Start"
+    | Program_state.End -> fprintf fmt "End"
+  in
+
+  let Cfg.Edge(s1, s2) = edge in
+  fprintf fmt "%a -> %a"
+    simple_pp_state s1
+    simple_pp_state s2
+;;
+
 let construct_analysis (prog : block) : pds * relation_map_record =
   let relations = construct_all_relation_maps prog in
   let Block(stmts) = prog in
@@ -287,8 +323,9 @@ let construct_analysis (prog : block) : pds * relation_map_record =
     Cfg.empty
     |> Cfg.add_edge @@ Cfg.Edge(Program_state.Start, Program_state.Stmt(List.hd stmts))
   in
-  let empty_pds = Analysis_lookup.empty relations in 
+  let empty_pds = Analysis_lookup.empty relations in
   let base_analysis = {pds = empty_pds; cfg = base_cfg} in
   let final_analysis = add_all_edges relations base_analysis in
+  add_to_log `debug @@ "Final cfg:\n" ^ pp_to_string (pp_set simple_pp_edge (fun () -> Cfg.edges_of final_analysis.cfg)) ();
   final_analysis.pds, relations
 ;;
