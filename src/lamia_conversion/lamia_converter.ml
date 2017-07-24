@@ -56,7 +56,6 @@ and convert_stmt
         emit
           [
             Let_is(test_val, test_loc, builtin_true);
-            Let_alloc(result_loc);
             Store(result_loc, test_val);
           ]
       in
@@ -74,6 +73,9 @@ and convert_stmt
       emit value_bindings
     in
     emit @@
+    [
+      Let_alloc(value_loc);
+    ] @
     value_bindings @
     [
       Lamia_ast.While(value_loc,
