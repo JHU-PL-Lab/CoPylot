@@ -2,6 +2,7 @@ open Batteries;;
 open Jhupllib;;
 open Nondeterminism;;
 
+open Logger_utils;;
 open Analysis_grammar;;
 open Analysis_types;;
 open Analysis_lookup_dph.Dph;;
@@ -15,10 +16,13 @@ open Stack_action.T;;
 open Untargeted_dynamic_pop_action;;
 open Targeted_dynamic_pop_action;;
 
+set_default_logging_level `debug;;
+let logger = make_logger "Analysis_lookup_edge_functions";;
+
 let global_edge_function state =
   let open Nondeterminism_monad in
   [
-    (* Capture n *)
+    (* Result *)
     return ([], Dynamic_terminus(Udp_result));
     (* Jump *)
     return ([], Dynamic_terminus(Udp_jump));
@@ -50,13 +54,17 @@ let per_cfg_edge_function rmr src dst state =
         let%orzero Program_state (Stmt (Statement(_, Let_expression (x,e)))) = o1 in
         match e with
         | Integer_literal sgn ->
+          logger `debug "let x = int";
+          (* let () = logger `debug "let x = int" in *)
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Integer_value sgn))], Static_terminus(o1))
         | String_literal str ->
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (String_value str))], Static_terminus(o1))
         | Boolean_literal b ->
+          (* logger `debug "let x = binding"; *)
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Boolean_value b))], Static_terminus(o1))
         | List_expression _ -> raise @@ Utils.Not_yet_implemented "per_cfg_edge_function: list_value"
         | Function_expression (args, block) ->
+          (* logger `debug "let x = funcdef"; *)
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Function_value (args, block)))], Static_terminus(o1))
         | None_literal ->
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (None_value))], Static_terminus(o1))
@@ -71,21 +79,27 @@ let per_cfg_edge_function rmr src dst state =
       end;
       (* Let x1 = x2 *)
       begin
+        (* logger `debug "alias x"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_alias_value (x1, x2)))) = o1 in
+        (* let Value_variable v1 = x1 and Value_variable v2 = x2 in
+        let () = logger `debug ("let"^v1^"="^v2) in *)
         return ([Pop (Lookup_value_variable x1); Push (Lookup_value_variable x2)], Static_terminus(o1))
       end;
       (* Let y1 = y2 *)
       begin
+        (* logger `debug "alias y"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_alias_memory (y1, y2)))) = o1 in
         return ([Pop (Lookup_memory_variable y1); Push (Lookup_memory_variable y2)], Static_terminus(o1))
       end;
       (* Let b = b'{x->y} *)
       begin
+        (* logger `debug "update binding"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_binding_update (b, b', x, y)))) = o1 in
         return ([Pop (Lookup_value_variable b); Push (Lookup_bind); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 7); Push(Lookup_value_variable b')], Static_terminus(o1))
       end;
       (* Let y = b{x} *)
       begin
+        (* logger `debug "access binding"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_binding_access (y,b,x)))) = o1 in
         return ([Pop (Lookup_memory_variable y); Push (Lookup_project); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_value_variable b)], Static_terminus(o1))
       end;
@@ -104,11 +118,13 @@ let per_cfg_edge_function rmr src dst state =
       end;
       (* Let x = get y *)
       begin
+        (* logger `debug "let get"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_get (x,y)))) = o1 in
         return ([Pop (Lookup_value_variable x); Push (Lookup_dereference); Push (Lookup_jump dst); Push (Lookup_capture 1); Push(Lookup_memory_variable y)], Static_terminus(o1))
       end;
       (* Let x = y1 is y2 *)
       begin
+        (* logger `debug "let is"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_is (x,y1,y2)))) = o1 in
         return ([Pop (Lookup_value_variable x); Push (Lookup_is); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_memory_variable y1)], Static_terminus(o1))
       end;
@@ -231,6 +247,7 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, Let_binop _))
         )
           = src in
+        let () = logger `debug "skip x with y" in
         return ([Pop_dynamic_targeted(Tdp_peek_y None)], Static_terminus(o1))
       end;
       (* Skip y with x *)
@@ -242,6 +259,7 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, Let_list_access _))
         )
           = src in
+        let () = logger `debug "skip y with x" in
         return ([Pop_dynamic_targeted(Tdp_peek_x None)], Static_terminus(o1))
       end;
       (* Skip x with x' *)
@@ -257,6 +275,7 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, Let_binop (x,_,_,_)))
         )
           = src in
+        let () = logger `debug "skip x with x'" in
         return ([Pop_dynamic_targeted(Tdp_peek_x (Some x))], Static_terminus(o1))
       end;
       (* Skip y with y' *)
@@ -268,6 +287,7 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, Let_list_access (y,_,_)))
         )
           = src in
+        let () = logger `debug "skip y with y'" in
         return ([Pop_dynamic_targeted(Tdp_peek_y (Some y))], Static_terminus(o1))
       end;
       (* Skip non-Store with m! *)
@@ -279,8 +299,12 @@ let per_cfg_edge_function rmr src dst state =
       (* Skip Try/Except, follow advance otherwise *)
       begin
         let%orzero Program_state (Advance target) = o0 in
-        return ([], (Dynamic_terminus(Udp_advance (target,o1))))
+        return ([Nop], (Dynamic_terminus(Udp_advance (target,o1))))
       end;
+      begin
+        let%orzero Program_state End = o0 in
+        return ([Nop], Static_terminus(o1))
+      end
     ]
     |> List.enum
     |> Enum.map Nondeterminism_monad.enum

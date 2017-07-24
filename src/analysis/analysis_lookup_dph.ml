@@ -213,7 +213,7 @@ struct
           if id != id' then
             return [Pop(element); Push (element)]
           else
-            return []
+            return [Nop]
       end;
       begin
         let%orzero Tdp_peek_y y = action in
@@ -225,7 +225,7 @@ struct
           if id != id' then
             return [Pop(element); Push (element)]
           else
-            return []
+            return [Nop]
       end;
 
       (* Peek dereference steps *)
