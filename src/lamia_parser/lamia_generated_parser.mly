@@ -162,6 +162,8 @@ value_expression:
     { Function_expression($3,$5) }
   | NONE
     { None_literal }
+  | OPEN_BRACE CLOSE_BRACE
+    { Empty_binding }
 
 %inline
 unary_operator:
