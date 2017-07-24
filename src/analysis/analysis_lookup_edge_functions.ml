@@ -27,7 +27,8 @@ let global_edge_function state =
     (* Jump *)
     return ([], Dynamic_terminus(Udp_jump));
     (* Capture n *)
-    return ([Pop_dynamic_targeted(Tdp_capture_1)], Static_terminus(state));
+    return ([Pop_dynamic_targeted(Tdp_capture_v_1)], Static_terminus(state));
+    return ([Pop_dynamic_targeted(Tdp_capture_m_1)], Static_terminus(state));
     (* Bind *)
     return ([Pop(Lookup_bind); Pop_dynamic_targeted(Tdp_bind_1)], Static_terminus(state));
     (* Project *)
@@ -75,7 +76,8 @@ let per_cfg_edge_function rmr src dst state =
       (* Let y = alloc *)
       begin
         let%orzero Program_state (Stmt (Statement(uid, Let_alloc y))) = o1 in
-        let () = logger `debug "let alloc" in
+        let Memory_variable id = y in
+        let () = logger `debug ("let "^id^" = alloc") in
         return ([Pop (Lookup_memory_variable y); Push (Lookup_memory (Memloc (Statement(uid, Let_alloc y))))], Static_terminus(o1))
       end;
       (* Let x1 = x2 *)
@@ -94,9 +96,9 @@ let per_cfg_edge_function rmr src dst state =
       end;
       (* Let b = b'{x->y} *)
       begin
-        (* logger `debug "update binding"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_binding_update (b, b', x, y)))) = o1 in
-        return ([Pop (Lookup_value_variable b); Push (Lookup_bind); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 7); Push(Lookup_value_variable b')], Static_terminus(o1))
+        let () = logger `debug "update binding" in
+        return ([Pop (Lookup_value_variable b); Push (Lookup_bind); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 9); Push(Lookup_value_variable b')], Static_terminus(o1))
       end;
       (* Let y = b{x} *)
       begin
@@ -127,7 +129,7 @@ let per_cfg_edge_function rmr src dst state =
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_is (x,y1,y2)))) = o1 in
         let () = logger `debug "let is" in
-        return ([Pop (Lookup_value_variable x); Push (Lookup_is); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_memory_variable y1)], Static_terminus(o1))
+        return ([Pop (Lookup_value_variable x); Push (Lookup_is); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y2); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_memory_variable y1)], Static_terminus(o1))
       end;
       (* Let x = unop x' *)
       begin
