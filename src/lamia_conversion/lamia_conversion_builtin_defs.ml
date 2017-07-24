@@ -243,6 +243,8 @@ let builtin_bool_body arglist =
     ]
 ;;
 
+(* Builtin methods *)
+
 let int_add_body arglist =
   let%bind arg0_val = extract_arg_to_value arglist 0 in
   let%bind arg1_val = extract_arg_to_value arglist 1 in
