@@ -22,8 +22,8 @@ let rec pp_block indent fmt = function
     List.iter ((pp_stmt indent) fmt) body
 
 and pp_stmt indent fmt s =
-  let Statement((_:uid), d) = s in
-  fprintf fmt "%s%a\n" indent
+  let Statement((u:uid), d) = s in
+  fprintf fmt "%s@%4d: %a\n" indent u
     (pp_directive indent) d
 
 and pp_directive indent fmt d =
@@ -170,6 +170,6 @@ and pp_value_var fmt x =
 
 and pp_memory_var fmt y =
   let Memory_variable(id) = y in
-  fprintf fmt "%s" @@ "&" ^ id
+  fprintf fmt "%s" @@ id
 
 let pp_block_top = pp_block "";;

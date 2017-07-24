@@ -7,6 +7,13 @@ open Analysis_types;;
 open Analysis_lexical_relations;;
 open Uid_ctx;;
 
+open Logger_utils;;
+open Lamia_ast_pretty;;
+open Pp_utils;;
+
+let add_to_log = make_logger "Python Analysis Toploop";;
+set_default_logging_level `debug;;
+
 type analysis =
   {
     pds: pds;
@@ -21,6 +28,7 @@ let parse_and_analyze lexbuf : analysis =
   let ctx = Unique_name_ctx.create_new_name_ctx 0 "lamia$" in
   let annot_block = Lamia_converter.convert_module ctx modl in
   let uid_block, uid_ctx = Lamia_converter.annot_to_uid annot_block in
+  add_to_log `debug @@ "Lamia program:\n" ^ pp_to_string pp_block_top uid_block;
   let abstract_block, _ = Analysis_lift_ast.lift_block_top uid_block in
   let pds, relations = construct_analysis abstract_block in
   {
@@ -135,8 +143,13 @@ let rec extract_value (analysis : analysis) starting_state target_str v =
     | _ -> Enum.empty (), analysis
 
 and make_query analysis starting_state target_str =
+  let target = Memory_variable("&scope") in
+  add_to_log `debug @@ "Performing lookup for " ^
+                       pp_to_string pp_memory_variable target ^
+                       " from " ^
+                       pp_to_string Program_state.pp starting_state;
   let results, new_pds =
-    lookup_value starting_state (Value_variable("scope")) analysis.pds
+    lookup_memory starting_state target analysis.pds
   in
   let analysis = {analysis with pds = new_pds} in
   let all_possible_values, final_analysis =

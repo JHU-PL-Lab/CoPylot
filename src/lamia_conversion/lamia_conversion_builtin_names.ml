@@ -5,7 +5,7 @@ open Lamia_ast;;
    but will always exist *)
 
 (* Name of our local python scope variable *)
-let python_scope = Memory_variable("scope");;
+let python_scope = Memory_variable("&scope");;
 (* Function to lookup a variable in the current scope, searching parent
    scopes as necessary *)
 let get_from_scope = Value_variable("get_from_scope");;
