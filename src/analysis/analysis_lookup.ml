@@ -50,7 +50,8 @@ let get_value state=
 ;;
 
 let lookup_value ps x pds =
-  let analysis' = Reachability.add_start_state (Program_state ps) [Push (Lookup_value_variable x)] pds.lookup_analysis in
+  let start_actions = [Push Bottom; Push (Lookup_value_variable x)] in
+  let analysis' = Reachability.add_start_state (Program_state ps) start_actions pds.lookup_analysis in
   let closed = Reachability.fully_close analysis' in
   let reachables = Reachability.get_reachable_states (Program_state ps) [] closed in
   let values = Enum.filter_map get_value reachables in
@@ -58,7 +59,8 @@ let lookup_value ps x pds =
 ;;
 
 let lookup_memory ps y pds =
-  let analysis' = Reachability.add_start_state (Program_state ps) [Push (Lookup_memory_variable y)] pds.lookup_analysis in
+  let start_actions = [Push Bottom; Push (Lookup_memory_variable y)] in
+  let analysis' = Reachability.add_start_state (Program_state ps) start_actions pds.lookup_analysis in
   let closed = Reachability.fully_close analysis' in
   let reachables = Reachability.get_reachable_states (Program_state ps) [] closed in
   let values = Enum.filter_map get_value reachables in
@@ -66,7 +68,8 @@ let lookup_memory ps y pds =
 ;;
 
 let lookup_memory_location ps m pds =
-  let analysis' = Reachability.add_start_state (Program_state ps) [Push (Lookup_memory m); Push Lookup_dereference] pds.lookup_analysis in
+  let start_actions = [Push Bottom; Push (Lookup_memory m); Push Lookup_dereference]in
+  let analysis' = Reachability.add_start_state (Program_state ps) start_actions pds.lookup_analysis in
   let closed = Reachability.fully_close analysis' in
   let reachables = Reachability.get_reachable_states (Program_state ps) [] closed in
   let values = Enum.filter_map get_value reachables in
