@@ -215,7 +215,8 @@ Executable "test"
     CoPylot.lamia_language,
     CoPylot.lamia_parser,
     CoPylot.lamia_interpreter,
-    CoPylot.lamia_conversion
+    CoPylot.lamia_conversion,
+    CoPylot.analysis
 
 Test test
   Command: $test

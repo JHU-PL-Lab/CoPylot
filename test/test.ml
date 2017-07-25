@@ -9,6 +9,7 @@ let all_tests =
     (* Test_normalized_ast.tests; *)
 
     Test_lamia_parser.tests;
+    Test_lamia_analysis.tests;
     (* Test_lamia_conversion.tests; *)
   ]
 ;;
