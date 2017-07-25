@@ -210,6 +210,7 @@ struct
       begin
         let%orzero Tdp_store (y,o0) = action in
         let%orzero Lookup_memory _ = element in
+        let () = logger `debug "store" in
         return [Pop(Lookup_dereference); Push(Lookup_dereference); Push (element); Push (Lookup_isalias); Push (Lookup_jump o0); Push (Lookup_capture 2); Push(Lookup_memory_variable y)]
       end;
 
@@ -264,8 +265,8 @@ struct
       begin
         let%orzero Tdp_isalias_2 (x,m) = action in
         let%orzero Lookup_memory m' = element in
-        if m = m' then
-          return [Pop(Lookup_dereference); Push(Lookup_dereference); Push(Lookup_value_variable x)]
+        if equal_memory_location m m' then
+          return [Pop(Lookup_dereference); Push(Lookup_value_variable x)]
         else
           return [Pop(Lookup_dereference); Push(Lookup_dereference); Push(element)]
       end;

@@ -139,7 +139,8 @@ let per_cfg_edge_function rmr src dst state =
       begin
         (* logger `debug "let get"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_get (x,y)))) = o1 in
-        return ([Pop (Lookup_value_variable x); Push (Lookup_dereference); Push (Lookup_jump dst); Push (Lookup_capture 2); Push(Lookup_memory_variable y)], Static_terminus(o1))
+        let () = log_debug src dst "get" in
+        return ([Pop (Lookup_value_variable x); Push (Lookup_dereference); Push (Lookup_jump dst); Push (Lookup_capture 1); Push(Lookup_memory_variable y)], Static_terminus(o1))
       end;
       (* Let x = y1 is y2 *)
       begin
@@ -241,6 +242,7 @@ let per_cfg_edge_function rmr src dst state =
       (* Is Alias *)
       begin
         let%orzero Program_state (Stmt (Statement(_, Store (_,x)))) = o1 in
+        let () = log_debug src dst "is alias" in
         return ([Pop Lookup_isalias; Pop_dynamic_targeted(Tdp_isalias_1 x)], Static_terminus(o1))
       end;
       (* Trace and get Answer *)
