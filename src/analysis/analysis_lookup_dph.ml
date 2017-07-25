@@ -83,8 +83,6 @@ struct
       | Udp_return of memory_variable * State.t * Program_state.t
       | Udp_raise of memory_variable * State.t * Program_state.t
       | Udp_advance of statement * State.t
-      | Udp_unop_1 of unary_operator * value_variable * Program_state.t * State.t * State.t
-      | Udp_binop_1 of binary_operator * value_variable * value_variable * Program_state.t * State.t * State.t
     [@@deriving eq, ord, show, to_yojson]
   end;;
   module Stack_action =
@@ -346,6 +344,7 @@ struct
   ;;
 
   let perform_untargeted_dynamic_pop element action =
+    (* let open Nondeterminism_monad in *)
     match action with
     | Udp_result ->
       begin
@@ -417,28 +416,12 @@ struct
         match target with
         | Statement(_, Try_except _) ->
           let () = logger `debug "skip try/except" in
-          Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
-        | _ ->
-          let () = logger `debug "normal advance" in
-          Enum.singleton ([Push (element)], Static_terminus(prev))
+          begin
+            match element with
+            | Lookup_memory _ -> Enum.singleton ([Push (element)], Static_terminus prev)
+            | _-> Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
+          end
+        | _ -> Enum.singleton ([Push (element)], Static_terminus prev)
       end
-    | Udp_unop_1 (op,x',dst,o0,_) ->
-      begin
-        match element with
-        | Lookup_value_variable _ ->
-          let () = logger `debug "push unop" in
-          Enum.singleton ([Push (Lookup_unop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x')], Static_terminus(o0))
-        | Lookup_unop ->
-          let () = logger `debug "pop unop" in
-          Enum.singleton ([Pop_dynamic_targeted(Tdp_unop_2 op)], Static_terminus(o0))
-        | _ -> Enum.empty ()
-      end;
-    | Udp_binop_1 (op,x1,x2,dst,o0,_) ->
-      match element with
-      | Lookup_value_variable _ ->
-        Enum.singleton ([Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 6); Push (Lookup_value_variable x1;)], Static_terminus(o0))
-      | Lookup_binop ->
-        Enum.singleton ([Pop_dynamic_targeted(Tdp_binop_2 op)], Static_terminus(o0))
-      | _ -> Enum.empty ()
   ;;
 end;;

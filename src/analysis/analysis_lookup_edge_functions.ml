@@ -321,19 +321,19 @@ let per_cfg_edge_function rmr src dst state =
         | _ ->return ([Pop_dynamic_targeted(Tdp_peek_m_1)], Static_terminus(o1))
       end;
 
-      (* Skip Try/Except, follow advance otherwise *)
-      (* begin
-         let%orzero Program_state (Advance target) = o0 in
+      (* Skip Try/Except, or advance *)
+      begin
+        let%orzero Program_state (Advance target) = o1 in
          return ([], (Dynamic_terminus(Udp_advance (target,o1))))
-         end; *)
+         end;
       (* begin
          let%orzero Program_state (Advance target) = o0 in
          return ([], Static_terminus(Program_state (Stmt target)))
          end; *)
-      begin
-        let%orzero Program_state (Advance _) = o1 in
+      (* begin
+        let%orzero Program_state (Advance target) = o1 in
         return ([Nop], Static_terminus(o1))
-      end;
+      end; *)
       (* begin
          let%orzero Program_state End = o0 in
          return ([], Static_terminus(o1))
