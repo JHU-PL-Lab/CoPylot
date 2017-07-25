@@ -114,13 +114,13 @@ let per_cfg_edge_function rmr src dst state =
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_binding_update (b, b', x, y)))) = o1 in
         let () = logger `debug "update binding" in
-        return ([Pop (Lookup_value_variable b); Push (Lookup_bind); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_memory_variable y); Push (Lookup_jump dst); Push (Lookup_capture 7); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 9); Push(Lookup_value_variable b')], Static_terminus(o1))
+        return ([Pop (Lookup_value_variable b); Push (Lookup_bind); Push (Lookup_jump dst); Push (Lookup_capture 4); Push(Lookup_memory_variable y); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 8); Push(Lookup_value_variable b')], Static_terminus(o1))
       end;
       (* Let y = b{x} *)
       begin
         (* logger `debug "access binding"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_binding_access (y,b,x)))) = o1 in
-        return ([Pop (Lookup_memory_variable y); Push (Lookup_project); Push (Lookup_jump dst); Push (Lookup_capture 4); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_value_variable b)], Static_terminus(o1))
+        return ([Pop (Lookup_memory_variable y); Push (Lookup_project); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_value_variable b)], Static_terminus(o1))
       end;
       (* Let y = lst[i] *)
       begin
@@ -145,18 +145,20 @@ let per_cfg_edge_function rmr src dst state =
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_is (x,y1,y2)))) = o1 in
         let () = logger `debug "let is" in
-        return ([Pop (Lookup_value_variable x); Push (Lookup_is); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y2); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_memory_variable y1)], Static_terminus(o1))
+        return ([Pop (Lookup_value_variable x); Push (Lookup_is); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_memory_variable y1)], Static_terminus(o1))
       end;
       (* Let x = unop x' *)
       begin
-        let%orzero Program_state (Stmt (Statement(_, Let_unop (_,op,x')))) = o1 in
-        return ([], Dynamic_terminus(Udp_unop_1(op,x',dst,o0,o1)))
+        let%orzero Program_state (Stmt (Statement(_, Let_unop (x,op,x')))) = o1 in
+        (* return ([], Dynamic_terminus(Udp_unop_1(op,x',dst,o0,o1))) *)
+        return ([Pop_dynamic_targeted(Tdp_unop_1 (x,op,x',dst))], Static_terminus(o1))
         (* return ([Pop (Lookup_value_variable x); Push (Lookup_unop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x')], Static_terminus(o0)) *)
       end;
       (* Let x = x1 binop x2 *)
       begin
-        let%orzero Program_state (Stmt (Statement(_, Let_binop (_,x1,op,x2)))) = o1 in
-        return ([], Dynamic_terminus(Udp_binop_1(op,x1,x2,dst,o0,o1)))
+        let%orzero Program_state (Stmt (Statement(_, Let_binop (x,x1,op,x2)))) = o1 in
+        return ([Pop_dynamic_targeted(Tdp_binop_1 (x,op,x1,x2,dst))], Static_terminus(o1))
+        (* return ([], Dynamic_terminus(Udp_binop_1(op,x1,x2,dst,o0,o1))) *)
         (* return ([Pop (Lookup_value_variable x); Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_value_variable x1)], Static_terminus(o0)) *)
       end;
 

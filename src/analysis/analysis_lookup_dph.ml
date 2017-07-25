@@ -64,7 +64,9 @@ struct
       | Tdp_is_1
       | Tdp_is_2 of memory_location
       | Tdp_func_search of value_variable * value_variable list
+      | Tdp_unop_1 of value_variable * unary_operator * value_variable * Program_state.t
       | Tdp_unop_2 of unary_operator
+      | Tdp_binop_1 of value_variable * binary_operator * value_variable * value_variable * Program_state.t
       | Tdp_binop_2 of binary_operator
       | Tdp_binop_3 of binary_operator * value
       (* | Tdp_conditional_value of value_variable *)
@@ -122,8 +124,8 @@ struct
           (* let () = logger `debug ("capture "^(string_of_int n)) in *)
           return [Pop_dynamic_targeted (Tdp_capture_v_3 (v,n-1,element::lst))]
         else
-          (* return @@ [Push (Lookup_value v); Push element] @ List.map (fun x -> Push x) (lst) *)
-          return @@ [Push element; Push (Lookup_value v)] @ List.map (fun x -> Push x) (lst)
+          return @@ [Push (Lookup_value v); Push element] @ List.map (fun x -> Push x) (lst)
+          (* return @@ [Push element; Push (Lookup_value v)] @ List.map (fun x -> Push x) (lst) *)
       end;
 
       (* Capture steps m *)
@@ -295,7 +297,18 @@ struct
           return [Push (Lookup_value_variable xi); Push (Lookup_drop); Push (Lookup_value_variable x0)]
       end;
 
-      (* Unop *)
+      (* Unop steps*)
+      begin
+        let%orzero Tdp_unop_1 (x,op,x',dst) = action in
+        (* return [Push (Lookup_unop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x')] *)
+        match element with
+        | Lookup_value_variable id ->
+          [%guard equal_value_variable id x];
+          return [Push (Lookup_unop); Push (Lookup_jump dst); Push (Lookup_capture 2); Push(Lookup_value_variable x')]
+        | Lookup_unop ->
+          return [Pop_dynamic_targeted(Tdp_unop_2 op)]
+        | _ -> return []
+      end;
       begin
         let%orzero Tdp_unop_2 op = action in
         let%orzero Lookup_value v = element in
@@ -305,6 +318,16 @@ struct
       end;
 
       (* Binop steps *)
+      begin
+        let%orzero Tdp_binop_1 (x,op,x1,x2,dst) = action in
+        match element with
+        | Lookup_value_variable id ->
+          [%guard equal_value_variable id x];
+          return [Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push (Lookup_value_variable x1;)]
+        | Lookup_binop ->
+          return [Pop_dynamic_targeted(Tdp_binop_2 op)]
+        | _ -> return []
+      end;
       begin
         let%orzero Tdp_binop_2 op = action in
         let%orzero Lookup_value v1 = element in
