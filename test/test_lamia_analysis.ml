@@ -61,11 +61,41 @@ let literal_tests =
     (* TODO: Function value? *)
     (* TODO: List_value *)
   ]
+;;
+
+let skip_test = gen_lamia_test "skip_test"
+    "let x = 2; let y = -2;;"
+    "x"
+    [Integer_value Pos]
+;;
+
+let skip_operator_test = gen_lamia_test "skip_operator_test"
+    "let x = 1; let y = -1; let z = x int+ y;;"
+    "x"
+    [Integer_value Pos]
+;;
+
+let operator_tests =
+  [
+    gen_lamia_test "not_test_x" "let x = True; let y = not x;;" "x" [Boolean_value true];
+    gen_lamia_test "not_test_y" "let x = True; let y = not x;;" "y" [Boolean_value false];
+    gen_lamia_test "not_test_overwrite" "let x = True; let x = not x;;" "x" [Boolean_value false];
+
+    gen_lamia_test "isint_test_true" "let x = -7; let y = isint x;;" "y" [Boolean_value true];
+    gen_lamia_test "isint_test_false" "let x = \"\"; let y = isint x;;" "y" [Boolean_value false];
+
+    gen_lamia_test "int_add_test1" "let x = 1; let y = 2; let z = x int+ y" "z" [Integer_value Pos];
+    gen_lamia_test "int_add_test2" "let x = 1; let y = 0; let z = x int+ y" "z" [Integer_value Pos];
+    gen_lamia_test "int_add_test3" "let x = 1; let y = -1; let z = x int+ y" "z" [Integer_value Pos; Integer_value Neg; Integer_value Zero];
+  ]
+;;
 
 let tests =
   "test_lamia_parser" >:::
   literal_tests @
+  operator_tests @
   [
-
+    skip_test;
+    skip_operator_test;
   ]
 ;;
