@@ -145,8 +145,8 @@ struct
           (* let () = logger `debug ("capture "^(string_of_int n)) in *)
           return [Pop_dynamic_targeted (Tdp_capture_m_3 (m,n-1,element::lst))]
         else
-          (* return @@ [Push (Lookup_memory m); Push element] @ List.map (fun x -> Push x) (lst) *)
-          return @@ [Push element; Push (Lookup_memory m)] @ List.map (fun x -> Push x) (lst)
+          return @@ [Push (Lookup_memory m); Push element] @ List.map (fun x -> Push x) (lst)
+          (* return @@ [Push element; Push (Lookup_memory m)] @ List.map (fun x -> Push x) (lst) *)
       end;
 
       (* Bind steps *)
@@ -260,14 +260,17 @@ struct
       begin
         let%orzero Tdp_isalias_1 x = action in
         let%orzero Lookup_memory m = element in
+        let () = logger `debug "isalias step 1" in
         return [Pop_dynamic_targeted(Tdp_isalias_2 (x,m))]
       end;
       begin
         let%orzero Tdp_isalias_2 (x,m) = action in
         let%orzero Lookup_memory m' = element in
         if equal_memory_location m m' then
+          let () = logger `debug "isalias step 2: true" in
           return [Pop(Lookup_dereference); Push(Lookup_value_variable x)]
         else
+          let () = logger `debug "isalias step 2: false" in
           return [Pop(Lookup_dereference); Push(Lookup_dereference); Push(element)]
       end;
 

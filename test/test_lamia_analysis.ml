@@ -86,12 +86,17 @@ let operator_tests =
   ]
 ;;
 
+let store_test =
+  [
+    gen_lamia_test "store_test" "let x = 4;let &y = alloc; let x = \"\"; store &y x; let x2 = get &y;;" "x2" [String_value (String_exact "")];
+  ]
+
 let tests =
   "test_lamia_parser" >:::
   literal_tests @
   skip_tests @
   operator_tests @
   [
-    
+
   ]
 ;;

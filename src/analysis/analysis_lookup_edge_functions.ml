@@ -93,7 +93,7 @@ let per_cfg_edge_function rmr src dst state =
       begin
         let%orzero Program_state (Stmt (Statement(uid, Let_alloc y))) = o1 in
         let Memory_variable id = y in
-        let () = logger `debug ("let "^id^" = alloc") in
+        let () = log_debug src dst ("let "^id^" = alloc") in
         return ([Pop (Lookup_memory_variable y); Push (Lookup_memory (Memloc (Statement(uid, Let_alloc y))))], Static_terminus(o1))
       end;
       (* Let x1 = x2 *)
@@ -145,7 +145,7 @@ let per_cfg_edge_function rmr src dst state =
       (* Let x = y1 is y2 *)
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_is (x,y1,y2)))) = o1 in
-        let () = logger `debug "let is" in
+        let () = log_debug src dst "let is" in
         return ([Pop (Lookup_value_variable x); Push (Lookup_is); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_memory_variable y1)], Static_terminus(o1))
       end;
       (* Let x = unop x' *)
@@ -269,6 +269,7 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, Let_is _))
         | Stmt (Statement(_, Let_unop _))
         | Stmt (Statement(_, Let_binop _))
+        | Stmt (Statement(_, Store _))
         )
           = src in
         let () = log_debug src dst "skip x with y" in
@@ -281,6 +282,7 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, Let_alias_memory _))
         | Stmt (Statement(_, Let_binding_access _))
         | Stmt (Statement(_, Let_list_access _))
+        | Stmt (Statement(_, Store _))
         )
           = src in
         let () = log_debug src dst "skip y with x" in
@@ -316,6 +318,8 @@ let per_cfg_edge_function rmr src dst state =
         let () = log_debug src dst "skip y with y'" in
         return ([Pop_dynamic_targeted(Tdp_peek_y (Some y))], Static_terminus(o1))
       end;
+
+
       (* Skip non-Store with m! *)
       begin
         match o1 with
