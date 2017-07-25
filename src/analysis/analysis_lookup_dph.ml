@@ -12,6 +12,27 @@ open Pds_reachability_types_stack;;
 
 set_default_logging_level `debug;;
 let logger = make_logger "Analysis_lookup_dph";;
+let print_value v =
+  match v with
+  | Integer_value n ->
+    begin
+      match n with
+      | Pos -> "int+"
+      | Neg -> "int-"
+      | Zero -> "int0"
+    end
+  | String_value s ->
+    begin
+      match s with
+      | String_exact s -> s
+      | String_lossy -> "blah"
+    end
+  | Boolean_value b -> string_of_bool b
+  | None_value -> "None"
+  | Object_value _ -> "object"
+  | List_value _ -> "list"
+  | Function_value _ -> "function"
+;;
 
 module Dph =
 struct
@@ -24,9 +45,12 @@ struct
       | Tdp_peek_y of memory_variable option
       | Tdp_peek_m_1
       | Tdp_peek_m_2 of Stack_element.t
-      | Tdp_capture_1
-      | Tdp_capture_2 of value
-      | Tdp_capture_3 of value * int * Stack_element.t list
+      | Tdp_capture_v_1
+      | Tdp_capture_v_2 of value
+      | Tdp_capture_v_3 of value * int * Stack_element.t list
+      | Tdp_capture_m_1
+      | Tdp_capture_m_2 of memory_location
+      | Tdp_capture_m_3 of memory_location * int * Stack_element.t list
       | Tdp_bind_1
       | Tdp_bind_2 of memory_location AbstractStringMap.t
       | Tdp_bind_3 of memory_location AbstractStringMap.t * abstract_str
@@ -78,34 +102,58 @@ struct
   let perform_targeted_dynamic_pop element action =
     let open Nondeterminism_monad in
     [
-      (* Capture steps *)
+      (* Capture steps v *)
       begin
-        let%orzero Tdp_capture_1 = action in
+        let%orzero Tdp_capture_v_1 = action in
         let%orzero Lookup_value v = element in
-        let () = logger `debug "capture step 1" in
-        return [Pop_dynamic_targeted (Tdp_capture_2 v)]
+        (* let str = print_value v in *)
+        (* let () = logger `debug ("capture step 1: "^str) in *)
+        return [Pop_dynamic_targeted (Tdp_capture_v_2 v)]
       end;
       begin
-        let%orzero Tdp_capture_2 v = action in
+        let%orzero Tdp_capture_v_2 v = action in
         let%orzero Lookup_capture n = element in
-        let () = logger `debug "capture step 2" in
-        return [Pop_dynamic_targeted (Tdp_capture_3 (v,n,[]))]
+        (* let () = logger `debug "capture step 2" in *)
+        return [Pop_dynamic_targeted (Tdp_capture_v_3 (v,n,[]))]
       end;
       begin
-        let%orzero Tdp_capture_3 (v,n,lst) = action in
+        let%orzero Tdp_capture_v_3 (v,n,lst) = action in
         if n > 1 then
-          let () = logger `debug ("capture "^(string_of_int n)) in
-          return [Pop_dynamic_targeted (Tdp_capture_3 (v,n-1,element::lst))]
+          (* let () = logger `debug ("capture "^(string_of_int n)) in *)
+          return [Pop_dynamic_targeted (Tdp_capture_v_3 (v,n-1,element::lst))]
         else
-          return @@ [Push (Lookup_value v); Push element] @ List.map (fun x -> Push x) (lst)
-          (* return @@ [Push element; Push (Lookup_value v)] @ List.map (fun x -> Push x) (lst) *)
+          (* return @@ [Push (Lookup_value v); Push element] @ List.map (fun x -> Push x) (lst) *)
+          return @@ [Push element; Push (Lookup_value v)] @ List.map (fun x -> Push x) (lst)
+      end;
+
+      (* Capture steps m *)
+      begin
+        let%orzero Tdp_capture_m_1 = action in
+        (* let () = logger `debug "capture step 1" in *)
+        let%orzero Lookup_memory m = element in
+        return [Pop_dynamic_targeted (Tdp_capture_m_2 m)]
+      end;
+      begin
+        let%orzero Tdp_capture_m_2 m = action in
+        let%orzero Lookup_capture n = element in
+        (* let () = logger `debug "capture step 2" in *)
+        return [Pop_dynamic_targeted (Tdp_capture_m_3 (m,n,[]))]
+      end;
+      begin
+        let%orzero Tdp_capture_m_3 (m,n,lst) = action in
+        if n > 1 then
+          (* let () = logger `debug ("capture "^(string_of_int n)) in *)
+          return [Pop_dynamic_targeted (Tdp_capture_m_3 (m,n-1,element::lst))]
+        else
+          (* return @@ [Push (Lookup_memory m); Push element] @ List.map (fun x -> Push x) (lst) *)
+          return @@ [Push element; Push (Lookup_memory m)] @ List.map (fun x -> Push x) (lst)
       end;
 
       (* Bind steps *)
       begin
         let%orzero Tdp_bind_1 = action in
-        let%orzero Lookup_value(Object_value v) = element in
         let () = logger `debug "bind step 1" in
+        let%orzero Lookup_value(Object_value v) = element in
         return [Pop_dynamic_targeted (Tdp_bind_2 v)]
       end;
       begin
@@ -367,7 +415,7 @@ struct
     | Udp_binop_1 (op,x1,x2,dst,o0,_) ->
       match element with
       | Lookup_value_variable _ ->
-        Enum.singleton ([Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push (Lookup_value_variable x1;)], Static_terminus(o0))
+        Enum.singleton ([Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 6); Push (Lookup_value_variable x1;)], Static_terminus(o0))
       | Lookup_binop ->
         Enum.singleton ([Pop_dynamic_targeted(Tdp_binop_2 op)], Static_terminus(o0))
       | _ -> Enum.empty ()
