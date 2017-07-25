@@ -227,24 +227,20 @@ struct
         let%orzero Lookup_value_variable (Value_variable id) = element in
         match x with
         | None ->
-          return [Pop(element); Push (element)]
+          return [Push (element)]
         | Some Value_variable id' ->
-          if id != id' then
-            return [Pop(element); Push (element)]
-          else
-            return [Nop]
+          [%guard id <> id'];
+          return [Push (element)]
       end;
       begin
         let%orzero Tdp_peek_y y = action in
         let%orzero Lookup_memory_variable (Memory_variable id) = element in
         match y with
         | None ->
-          return [Pop(element); Push (element)]
+          return [Push (element)]
         | Some Memory_variable id' ->
-          if id != id' then
-            return [Pop(element); Push (element)]
-          else
-            return [Nop]
+          [%guard id <> id'];
+          return [Push (element)]
       end;
 
       (* Peek dereference steps *)
@@ -331,7 +327,9 @@ struct
     | Udp_result ->
       begin
         match element with
-        | Lookup_value v -> Enum.singleton ([Pop(Bottom)], Static_terminus(Answer_value v))
+        | Lookup_value v ->
+          let () = logger `debug "value state" in
+          Enum.singleton ([Pop(Bottom)], Static_terminus(Answer_value v))
         | _ -> Enum.empty ()
       end
     | Udp_jump ->

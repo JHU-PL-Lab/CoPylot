@@ -18,8 +18,24 @@ open Targeted_dynamic_pop_action;;
 
 set_default_logging_level `debug;;
 let logger = make_logger "Analysis_lookup_edge_functions";;
+let get_uid ps =
+  match ps with
+  | Stmt ( Statement (uid,_)) -> string_of_int uid
+  | Advance ( Statement (uid,_)) -> "adv " ^ (string_of_int uid)
+  | Return ( Statement (uid,_)) -> "ret " ^ (string_of_int uid)
+  | Ifresult ( Statement (uid,_)) -> "ifr " ^ (string_of_int uid)
+  | Raise ( Statement (uid,_)) -> "rai " ^ (string_of_int uid)
+  | Start -> "start"
+  | End -> "end"
+;;
+let log_debug src dst str =
+  let s1 = get_uid src in
+  let s0 = get_uid dst in
+  logger `debug (s0 ^ "->" ^ s1 ^ ": " ^ str)
+;;
 
 let global_edge_function state =
+
   let open Nondeterminism_monad in
   [
     (* Result *)
@@ -37,6 +53,7 @@ let global_edge_function state =
     return ([Pop(Lookup_index); Pop_dynamic_targeted(Tdp_index_1)], Static_terminus(state));
     (* Is *)
     return ([Pop(Lookup_is); Pop_dynamic_targeted(Tdp_is_1)], Static_terminus(state));
+
   ]
   |> List.enum
   |> Enum.map Nondeterminism_monad.enum
@@ -55,8 +72,7 @@ let per_cfg_edge_function rmr src dst state =
         let%orzero Program_state (Stmt (Statement(_, Let_expression (x,e)))) = o1 in
         match e with
         | Integer_literal sgn ->
-          logger `debug "let x = int";
-          (* let () = logger `debug "let x = int" in *)
+          let () = log_debug src dst "let x = int" in
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Integer_value sgn))], Static_terminus(o1))
         | String_literal str ->
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (String_value str))], Static_terminus(o1))
@@ -98,13 +114,13 @@ let per_cfg_edge_function rmr src dst state =
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_binding_update (b, b', x, y)))) = o1 in
         let () = logger `debug "update binding" in
-        return ([Pop (Lookup_value_variable b); Push (Lookup_bind); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 9); Push(Lookup_value_variable b')], Static_terminus(o1))
+        return ([Pop (Lookup_value_variable b); Push (Lookup_bind); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_memory_variable y); Push (Lookup_jump dst); Push (Lookup_capture 7); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 9); Push(Lookup_value_variable b')], Static_terminus(o1))
       end;
       (* Let y = b{x} *)
       begin
         (* logger `debug "access binding"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_binding_access (y,b,x)))) = o1 in
-        return ([Pop (Lookup_memory_variable y); Push (Lookup_project); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_value_variable b)], Static_terminus(o1))
+        return ([Pop (Lookup_memory_variable y); Push (Lookup_project); Push (Lookup_jump dst); Push (Lookup_capture 4); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_value_variable b)], Static_terminus(o1))
       end;
       (* Let y = lst[i] *)
       begin
@@ -123,7 +139,7 @@ let per_cfg_edge_function rmr src dst state =
       begin
         (* logger `debug "let get"; *)
         let%orzero Program_state (Stmt (Statement(_, Let_get (x,y)))) = o1 in
-        return ([Pop (Lookup_value_variable x); Push (Lookup_dereference); Push (Lookup_jump dst); Push (Lookup_capture 1); Push(Lookup_memory_variable y)], Static_terminus(o1))
+        return ([Pop (Lookup_value_variable x); Push (Lookup_dereference); Push (Lookup_jump dst); Push (Lookup_capture 2); Push(Lookup_memory_variable y)], Static_terminus(o1))
       end;
       (* Let x = y1 is y2 *)
       begin
@@ -237,6 +253,7 @@ let per_cfg_edge_function rmr src dst state =
         | _ -> return ([], Static_terminus(o0)) (* TODO: change this *)
       end;
 
+
       (* Skip x with y *)
       begin
         let%orzero (
@@ -250,7 +267,7 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, Let_binop _))
         )
           = src in
-        let () = logger `debug "skip x with y" in
+        let () = log_debug src dst "skip x with y" in
         return ([Pop_dynamic_targeted(Tdp_peek_y None)], Static_terminus(o1))
       end;
       (* Skip y with x *)
@@ -262,9 +279,10 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, Let_list_access _))
         )
           = src in
-        let () = logger `debug "skip y with x" in
+        let () = log_debug src dst "skip y with x" in
         return ([Pop_dynamic_targeted(Tdp_peek_x None)], Static_terminus(o1))
       end;
+
       (* Skip x with x' *)
       begin
         let%orzero (
@@ -278,9 +296,10 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, Let_binop (x,_,_,_)))
         )
           = src in
-        let () = logger `debug "skip x with x'" in
+        let () = log_debug src dst "skip x with x'" in
         return ([Pop_dynamic_targeted(Tdp_peek_x (Some x))], Static_terminus(o1))
       end;
+
       (* Skip y with y' *)
       begin
         let%orzero (
@@ -290,7 +309,7 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, Let_list_access (y,_,_)))
         )
           = src in
-        let () = logger `debug "skip y with y'" in
+        let () = log_debug src dst "skip y with y'" in
         return ([Pop_dynamic_targeted(Tdp_peek_y (Some y))], Static_terminus(o1))
       end;
       (* Skip non-Store with m! *)
@@ -299,11 +318,12 @@ let per_cfg_edge_function rmr src dst state =
         | Program_state (Stmt ((Statement(_, Store _)))) -> return ([Pop_dynamic_targeted(Tdp_peek_m_1)], Static_terminus(o0))
         | _ ->return ([Pop_dynamic_targeted(Tdp_peek_m_1)], Static_terminus(o1))
       end;
+
       (* Skip Try/Except, follow advance otherwise *)
-      begin
-        let%orzero Program_state (Advance target) = o0 in
-        return ([], (Dynamic_terminus(Udp_advance (target,o1))))
-      end;
+      (* begin
+         let%orzero Program_state (Advance target) = o0 in
+         return ([], (Dynamic_terminus(Udp_advance (target,o1))))
+         end; *)
       (* begin
          let%orzero Program_state (Advance target) = o0 in
          return ([], Static_terminus(Program_state (Stmt target)))
