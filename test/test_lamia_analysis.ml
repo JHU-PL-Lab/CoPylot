@@ -63,16 +63,12 @@ let literal_tests =
   ]
 ;;
 
-let skip_test = gen_lamia_test "skip_test"
-    "let x = 2; let y = -2;;"
-    "x"
-    [Integer_value Pos]
-;;
-
-let skip_operator_test = gen_lamia_test "skip_operator_test"
-    "let x = 1; let y = -1; let z = x int+ y;;"
-    "x"
-    [Integer_value Pos]
+let skip_tests =
+  [
+    gen_lamia_test "basic_skip_test" "let x = 2; let y = -2;;" "x" [Integer_value Pos];
+    gen_lamia_test "don't_skip_test" "let x = 2; let x = -2;;" "x" [Integer_value Neg];
+    gen_lamia_test "skip_operator_test" "let x = 1; let y = -1; let z = x int+ y;;" "x" [Integer_value Pos];
+  ]
 ;;
 
 let operator_tests =
@@ -93,9 +89,9 @@ let operator_tests =
 let tests =
   "test_lamia_parser" >:::
   literal_tests @
+  skip_tests @
   operator_tests @
   [
-    skip_test;
-    skip_operator_test;
+    
   ]
 ;;
