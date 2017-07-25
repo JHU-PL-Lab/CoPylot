@@ -63,6 +63,12 @@ let literal_tests =
   ]
 ;;
 
+let let_alloc_tests =
+  [
+    gen_lamia_test "basic_alloc_test" "let x = True; let &y = alloc; store &y x;;" "&y" [Boolean_value true];
+  ]
+;;
+
 let skip_tests =
   [
     gen_lamia_test "basic_skip_test" "let x = 2; let y = -2;;" "x" [Integer_value Pos];
@@ -86,16 +92,25 @@ let operator_tests =
   ]
 ;;
 
-let store_test =
+let store_tests =
   [
     gen_lamia_test "store_test" "let x = 4;let &y = alloc; let x = \"\"; store &y x; let x2 = get &y;;" "x2" [String_value (String_exact "")];
   ]
 
+let if_tests =
+ [
+   gen_lamia_test "basic_if_test_x" "let x = True; let y = if x then {let x = False; ifresult x; } else {};;" "y" [Boolean_value false];
+ ]
+;;
+
 let tests =
   "test_lamia_parser" >:::
   literal_tests @
+  let_alloc_tests @
   skip_tests @
   operator_tests @
+  store_tests @
+  if_tests @
   [
 
   ]

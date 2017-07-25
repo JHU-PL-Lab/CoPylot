@@ -163,17 +163,16 @@ let per_cfg_edge_function rmr src dst state =
         (* return ([Pop (Lookup_value_variable x); Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_value_variable x1)], Static_terminus(o0)) *)
       end;
 
-      (* Skip While Loop *)
+      (* Go to while *)
       begin
         let%orzero Program_state (Stmt s) = o1 in
         let%orzero Statement(_, While (_,_)) = s in
-        let%orzero Program_state (Advance s') = o0 in
-        let%orzero Statement(_, While (_,_)) = s' in
-        return ([Push (Lookup_jump (Stmt s))], Static_terminus(o1))
+        return ([Nop], Static_terminus(o1))
       end;
       (* TODO: check if left loop  *)
+      (* Enter While Loop *)
       (* While top x *)
-      begin
+      (* begin
         let%orzero Program_state (Stmt (s)) = o1 in
         let%orzero Statement(_, While (_,_)) = s in
         let%orzero Program_state (Stmt _) = o0 in
@@ -185,7 +184,8 @@ let per_cfg_edge_function rmr src dst state =
         let%orzero Statement(_, While (_,_)) = s in
         let%orzero Program_state (Stmt _) = o0 in
         return ([Pop_dynamic_targeted(Tdp_peek_y None)], Static_terminus(o1))
-      end;
+      end; *)
+
       (* Ifresult x *)
       begin
         let%orzero Program_state (Ifresult _) = o1 in
@@ -247,13 +247,14 @@ let per_cfg_edge_function rmr src dst state =
       end;
       (* Trace and get Answer *)
       begin
-        match src with
+        match dst with
         | Program_state.Return s
         | Program_state.Ifresult s
         | Program_state.Raise s -> return ([Pop(Lookup_answer); Push(Lookup_answer)], Static_terminus(Program_state (Stmt s)))
         | Stmt (Statement(_, Analysis_types.Return y))
         | Stmt (Statement(_, If_result_memory y))
         | Stmt (Statement(_, Analysis_types.Raise y)) -> return ([Pop(Lookup_answer); Push(Lookup_memory_variable y)], Static_terminus o1)
+        | Stmt (Statement(_, If_result_value x)) -> return ([Pop(Lookup_answer); Push(Lookup_value_variable x)], Static_terminus o1)
         | _ -> return ([], Static_terminus(o0)) (* TODO: change this *)
       end;
 

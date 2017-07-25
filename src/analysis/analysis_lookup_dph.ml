@@ -370,7 +370,7 @@ struct
       begin
         match element with
         | Lookup_value_variable x' ->
-          if x = x' then
+          if equal_value_variable x x' then
             Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
           else
             Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
@@ -383,7 +383,7 @@ struct
       begin
         match element with
         | Lookup_memory_variable y' ->
-          if y = y' then
+          if equal_memory_variable y y' then
             Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
           else
             Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
@@ -419,12 +419,16 @@ struct
       begin
         match target with
         | Statement(_, Try_except _) ->
-          let () = logger `debug "skip try/except" in
           begin
             match element with
-            | Lookup_memory _ -> Enum.singleton ([Push (element)], Static_terminus prev)
-            | _-> Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
+            | Lookup_memory _ ->
+              Enum.singleton ([Push (element)], Static_terminus prev)
+            | _->
+              let () = logger `debug "skip try/except" in
+              Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
           end
+        (* | Statement(_, While (_,_)) ->
+          Enum.singleton ([Push (element)], Static_terminus (Program_state (Stmt target))) *)
         | _ -> Enum.singleton ([Push (element)], Static_terminus prev)
       end
   ;;

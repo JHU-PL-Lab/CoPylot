@@ -29,8 +29,8 @@ type pds =
 
 let empty rmr =
   let analysis =
-  Reachability.empty ()
-  |> Reachability.add_edge_function global_edge_function
+    Reachability.empty ()
+    |> Reachability.add_edge_function global_edge_function
   in
   {lookup_analysis = analysis; relations = rmr}
 ;;
@@ -43,7 +43,7 @@ let add_cfg_edge edge pds =
   {pds with lookup_analysis = analysis'}
 ;;
 
-let get_value state=
+let get_value state =
   match state with
   | Program_state _ | Answer_memory _ -> None
   | Answer_value v -> Some v
@@ -59,7 +59,7 @@ let lookup_value ps x pds =
 ;;
 
 let lookup_memory ps y pds =
-  let start_actions = [Push Bottom; Push (Lookup_memory_variable y)] in
+  let start_actions = [Push Bottom; Push Lookup_dereference; Push (Lookup_jump ps); Push (Lookup_capture 1); Push (Lookup_memory_variable y)] in
   let analysis' = Reachability.add_start_state (Program_state ps) start_actions pds.lookup_analysis in
   let closed = Reachability.fully_close analysis' in
   let reachables = Reachability.get_reachable_states (Program_state ps) start_actions closed in
@@ -68,7 +68,7 @@ let lookup_memory ps y pds =
 ;;
 
 let lookup_memory_location ps m pds =
-  let start_actions = [Push Bottom; Push (Lookup_memory m); Push Lookup_dereference]in
+  let start_actions = [Push Bottom; Push Lookup_dereference; Push (Lookup_memory m)]in
   let analysis' = Reachability.add_start_state (Program_state ps) start_actions pds.lookup_analysis in
   let closed = Reachability.fully_close analysis' in
   let reachables = Reachability.get_reachable_states (Program_state ps) start_actions closed in
