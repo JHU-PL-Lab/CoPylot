@@ -167,24 +167,28 @@ let per_cfg_edge_function rmr src dst state =
       begin
         let%orzero Program_state (Stmt s) = o1 in
         let%orzero Statement(_, While (_,_)) = s in
+        let () = log_debug src dst "go to while" in
         return ([Nop], Static_terminus(o1))
       end;
+
+      (* While top (m) *)
+
+
       (* TODO: check if left loop  *)
-      (* Enter While Loop *)
       (* While top x *)
       (* begin
-        let%orzero Program_state (Stmt (s)) = o1 in
-        let%orzero Statement(_, While (_,_)) = s in
-        let%orzero Program_state (Stmt _) = o0 in
-        return ([Pop_dynamic_targeted(Tdp_peek_x None)], Static_terminus(o1))
-      end;
-      (* While top y *)
-      begin
-        let%orzero Program_state (Stmt (s)) = o1 in
-        let%orzero Statement(_, While (_,_)) = s in
-        let%orzero Program_state (Stmt _) = o0 in
-        return ([Pop_dynamic_targeted(Tdp_peek_y None)], Static_terminus(o1))
-      end; *)
+         let%orzero Program_state (Stmt (s)) = o1 in
+         let%orzero Statement(_, While (_,_)) = s in
+         let%orzero Program_state (Stmt _) = o0 in
+         return ([Pop_dynamic_targeted(Tdp_peek_x None)], Static_terminus(o1))
+         end;
+         (* While top y *)
+         begin
+         let%orzero Program_state (Stmt (s)) = o1 in
+         let%orzero Statement(_, While (_,_)) = s in
+         let%orzero Program_state (Stmt _) = o0 in
+         return ([Pop_dynamic_targeted(Tdp_peek_y None)], Static_terminus(o1))
+         end; *)
 
       (* Ifresult x *)
       begin
@@ -331,16 +335,35 @@ let per_cfg_edge_function rmr src dst state =
       (* Skip Try/Except, or advance *)
       begin
         let%orzero Program_state (Advance target) = o1 in
-         return ([], (Dynamic_terminus(Udp_advance (target,o1))))
-         end;
+        match dst with
+        | Stmt (Statement (_, While _)) ->
+          zero ()
+        | _ ->
+          return ([], (Dynamic_terminus(Udp_advance (target,o1))))
+      end;
+
+      (* Skip advance from while *)
+      begin
+        let%orzero Program_state (Advance target) = o1 in
+        let%orzero Program_state( Stmt s) = o0 in
+        let%orzero Statement(_, While _) = s in
+        let target_parent = Stmt_map.find target rmr.down in
+        let is_parent =
+          match target_parent with
+          | None -> false
+          | Some tp -> equal_statement s tp in
+        (* let () = log_debug src dst ("is_parent: " ^ string_of_bool is_parent) in *)
+        let () = log_debug src dst ("is_parent: " ^ string_of_bool is_parent) in
+        return ([], Dynamic_terminus(Udp_advance_while (is_parent, o1)))
+      end;
       (* begin
          let%orzero Program_state (Advance target) = o0 in
          return ([], Static_terminus(Program_state (Stmt target)))
          end; *)
       (* begin
-        let%orzero Program_state (Advance target) = o1 in
-        return ([Nop], Static_terminus(o1))
-      end; *)
+         let%orzero Program_state (Advance target) = o1 in
+         return ([Nop], Static_terminus(o1))
+         end; *)
       (* begin
          let%orzero Program_state End = o0 in
          return ([], Static_terminus(o1))

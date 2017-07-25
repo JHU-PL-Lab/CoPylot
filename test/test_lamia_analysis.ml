@@ -103,6 +103,13 @@ let if_tests =
  ]
 ;;
 
+let while_tests =
+  [
+    gen_lamia_test "skip_while_test" "let x = True; let x1 = \"\"; let &y = alloc; store &y x; @2:while &y {let x = False; let x1 = 3; @3:store &y x;};@1:let x2 = get &y;;" "x" [Boolean_value true];
+    gen_lamia_test "while_result_test" "let x = True; let x1 = \"\"; let &y = alloc; store &y x; @2:while &y {let x = False; let x1 = 3; @3:store &y x;};@1:let x2 = get &y;;" "x2" [Boolean_value true; Boolean_value false;];
+  ]
+;;
+
 let tests =
   "test_lamia_parser" >:::
   literal_tests @
@@ -111,6 +118,7 @@ let tests =
   operator_tests @
   store_tests @
   if_tests @
+  while_tests @
   [
 
   ]

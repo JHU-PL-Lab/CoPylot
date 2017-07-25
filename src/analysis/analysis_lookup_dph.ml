@@ -83,6 +83,7 @@ struct
       | Udp_return of memory_variable * State.t * Program_state.t
       | Udp_raise of memory_variable * State.t * Program_state.t
       | Udp_advance of statement * State.t
+      | Udp_advance_while of bool * State.t
     [@@deriving eq, ord, show, to_yojson]
   end;;
   module Stack_action =
@@ -354,7 +355,7 @@ struct
       begin
         match element with
         | Lookup_value v ->
-          let () = logger `debug "value state" in
+          let () = logger `debug ("value state: " ^ print_value v) in
           Enum.singleton ([Pop(Bottom)], Static_terminus(Answer_value v))
         | _ -> Enum.empty ()
       end
@@ -428,8 +429,37 @@ struct
               Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
           end
         (* | Statement(_, While (_,_)) ->
-          Enum.singleton ([Push (element)], Static_terminus (Program_state (Stmt target))) *)
-        | _ -> Enum.singleton ([Push (element)], Static_terminus prev)
+           Enum.singleton ([Push (element)], Static_terminus (Program_state (Stmt target))) *)
+        | _ ->
+          Enum.singleton ([Push (element)], Static_terminus prev)
+          (* begin
+                      match element with
+                      | Lookup_memory _ ->
+                        Enum.singleton ([Push (element)], Static_terminus prev)
+                      | _ ->
+                        (* If advance does not point to a statement "under" the current statement---not in a while loop, then go to advance. Otherwise, don't proceed in that universe. *)
+                        if not is_parent then
+                          Enum.singleton ([Push (element)], Static_terminus prev)
+                        else
+                          Enum.empty ()
+
+                    end *)
+      end
+    | Udp_advance_while (is_parent, prev)->
+      begin
+        match element with
+        | Lookup_memory _ ->
+          Enum.singleton ([Push (element)], Static_terminus prev)
+        | _ ->
+          (* If advance does not point to a statement "under" the current statement---not in a while loop, then go to advance. Otherwise, don't proceed in that universe. *)
+          if is_parent then
+            let () = logger `debug "is_parent" in
+            Enum.singleton ([Pop (Lookup_value_variable (Value_variable "impossible"))], Static_terminus prev)
+          else
+            let () = logger `debug "not_parent" in
+            Enum.singleton ([Push (element)], Static_terminus prev)
+
+
       end
   ;;
 end;;
