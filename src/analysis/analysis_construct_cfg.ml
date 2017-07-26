@@ -87,6 +87,7 @@ let add_edge relations analysis edge =
       let%orzero Stmt(Statement(_, d)) = v2 in
       let%orzero Let_conditional_memory(_, test, Block(body), Block(orelse)) = d in
       let testvals, new_pds = lookup_value v2 test analysis.pds in
+      add_to_log `debug @@ "Number of testvals: " ^ string_of_int @@ Enum.count testvals;
       update_pds new_pds @@
       let%bind testval = pick_enum testvals in
       if testval = Boolean_value(true) then
@@ -113,12 +114,9 @@ let add_edge relations analysis edge =
     ;
     (* Function call *)
     begin
-      let%orzero Stmt(Statement(u, d)) = v2 in
+      let%orzero Stmt(Statement(_, d)) = v2 in
       let%orzero Let_call_function(_, func, _) = d in
-      let Value_variable (v) = func in
-      add_to_log `debug @@ "Calling function " ^ v ^ " at line " ^ string_of_int u;
       let funcvals, new_pds = lookup_value v2 func analysis.pds in
-      add_to_log `debug @@ "Number of results: " ^ string_of_int @@ Enum.count funcvals;
       update_pds new_pds @@
       let%bind funcval = pick_enum funcvals in
       let%orzero Function_value(_, Block(body)) = funcval in

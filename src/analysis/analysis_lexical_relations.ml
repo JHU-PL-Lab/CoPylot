@@ -57,7 +57,7 @@ let construct_down_triangle_map (prog : block) =
     let map, _ = List.fold_left construct_map (map, prev_stmt) stmts in
     map
 
-  and construct_map prev (stmt : statement)=
+  and construct_map prev (stmt : statement) =
     let (map, prev_stmt) = prev in
     match stmt with
     | Statement(_, d) ->

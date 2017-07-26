@@ -10,8 +10,9 @@ open Program_state;;
 open Nondeterminism;;
 open Pds_reachability_types_stack;;
 
-set_default_logging_level `debug;;
 let logger = make_logger "Analysis_lookup_dph";;
+set_default_logging_level `debug;;
+
 let print_value v =
   match v with
   | Integer_value n ->
@@ -419,7 +420,8 @@ struct
     | Udp_advance (target, prev) ->
       begin
         match target with
-        | Statement(_, Try_except _) ->
+        | Statement(_, Try_except _)
+        | Statement(_, Let_call_function _) ->
           begin
             match element with
             | Lookup_memory _ ->
