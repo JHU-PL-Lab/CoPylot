@@ -89,7 +89,6 @@ let skip_tests =
 
     gen_lamia_test "skip_funcdef_test" "let x = 1; let f = def () {let &y = alloc; return &y};;" "x" [Integer_value Pos];
     gen_lamia_test "skip_call_test" "let x = 1; let f = def () {let &y = alloc; return &y}; let &z = f();;" "x" [Integer_value Pos];
-    (* gen_lamia_test "don't_skip_call_test" "let x = 1; let f = def () {let &y = alloc; return &y}; let &z = f();;" "&z" []; *) (* Not yet implemented *)
 
   ]
 ;;
@@ -132,6 +131,16 @@ let while_tests =
   ]
 ;;
 
+let function_call_tests =
+  [
+    gen_lamia_test "simple_call_test" "let f = def () {let &y = alloc; let x = 1; store &y x; return &y}; let &z = f();;" "&z" [Integer_value Pos];
+    (* gen_lamia_test "free_var_test1" "let x = 1; let &y = alloc; store &y x; let f = def () {return &y}; let &z = f();;" "&z" [Integer_value Pos]; *)
+    (* gen_lamia_test "free_var_test2" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let &z = f();;" "&z" [Integer_value Pos]; *)
+    (* gen_lamia_test "free_var_test3" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let x = -1; let &z = f();;" "&z" [Integer_value Pos]; *)
+    (* gen_lamia_test "arg_test" "let x = 1; let f = def (n) {let &y = alloc; store &y n; return &y}; let &z = f();;" "&z" [Integer_value Pos]; *)
+  ]
+;;
+
 let tests =
   "test_lamia_parser" >:::
   literal_tests @
@@ -141,6 +150,7 @@ let tests =
   store_tests @
   if_tests @
   while_tests @
+  function_call_tests @
   [
 
   ]
