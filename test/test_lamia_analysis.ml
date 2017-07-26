@@ -94,19 +94,26 @@ let operator_tests =
 
 let store_tests =
   [
-    gen_lamia_test "store_test" "let x = 4;let &y = alloc; let x = \"\"; store &y x; let x2 = get &y;;" "x2" [String_value (String_exact "")];
+    gen_lamia_test "store_test" "let x = 4;let &y = alloc; store &y x;;" "&y" [Integer_value Pos];
+    gen_lamia_test "get_test" "let x = 4;let &y = alloc; store &y x; let z = get &y;;" "z" [Integer_value Pos];
+    gen_lamia_test "store_rebind_test" "let x = 4;let &y = alloc; let x = \"foo\"; store &y x; let z = get &y;;" "z" [String_value (String_exact "foo")];
   ]
 
 let if_tests =
  [
-   gen_lamia_test "basic_if_test_x" "let x = True; let y = if x then {let x = False; ifresult x; } else {};;" "y" [Boolean_value false];
+   gen_lamia_test "if_true_x_test" "let x = True; let y = if x then {let z = 1; ifresult z;} else {let z = -1; ifresult z;};;" "y" [Integer_value Pos];
+   gen_lamia_test "if_false_x_test" "let x = False; let y = if x then {let z = 1; ifresult z; } else {let z = -1; ifresult z;};;" "y" [Integer_value Neg];
+
+   gen_lamia_test "if_true_y_test" "let x = True; let &y = if x then {let z = 1; let &w = alloc; store &w z; ifresult &w;} else {let z = -1; let &w = alloc; store &w z; ifresult &w;};;" "&y" [Integer_value Pos];
+   gen_lamia_test "if_false_y_test" "let x = False; let &y = if x then {let z = 1; let &w = alloc; store &w z; ifresult &w;} else {let z = -1; let &w = alloc; store &w z; ifresult &w;};;" "&y" [Integer_value Neg];
  ]
 ;;
 
 let while_tests =
   [
-    gen_lamia_test "skip_while_test" "let x = True; let x1 = \"\"; let &y = alloc; store &y x; @2:while &y {let x = False; let x1 = 3; @3:store &y x;};@1:let x2 = get &y;;" "x" [Boolean_value true];
-    gen_lamia_test "while_result_test" "let x = True; let x1 = \"\"; let &y = alloc; store &y x; @2:while &y {let x = False; let x1 = 3; @3:store &y x;};@1:let x2 = get &y;;" "x2" [Boolean_value true; Boolean_value false;];
+    gen_lamia_test "skip_while_test" "let x = True; let &y = alloc; store &y x; @2:while &y {let x = False; let x1 = 3; @3:store &y x;};@1:let x2 = get &y;;" "x" [Boolean_value true];
+    gen_lamia_test "skip_while_test_2" "let x = True; let &y = alloc; store &y x; @2:while &y {let x = False; let x1 = 3; @3:store &y x;};@1:let x2 = get &y;;" "x1" [];
+    gen_lamia_test "while_result_test" "let x = True; let &y = alloc; store &y x; @2:while &y {let x = False; let x1 = 3; @3:store &y x;};@1:let x2 = get &y;;" "x2" [Boolean_value true; Boolean_value false;];
   ]
 ;;
 
