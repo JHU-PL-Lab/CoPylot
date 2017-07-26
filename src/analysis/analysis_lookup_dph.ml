@@ -70,6 +70,8 @@ struct
       | Tdp_binop_1 of value_variable * binary_operator * value_variable * value_variable * Program_state.t * Program_state.t
       | Tdp_binop_2 of binary_operator
       | Tdp_binop_3 of binary_operator * value
+      | Tdp_trace_x of value_variable
+      | Tdp_trace_y of memory_variable
       (* | Tdp_conditional_value of value_variable *)
     [@@deriving eq, ord, show, to_yojson]
     ;;
@@ -79,8 +81,8 @@ struct
     type t =
       | Udp_result
       | Udp_jump
-      | Udp_ifresult_x of value_variable * State.t * Program_state.t
-      | Udp_ifresult_y of memory_variable * State.t * Program_state.t
+      (* | Udp_ifresult_x of value_variable * State.t * Program_state.t
+         | Udp_ifresult_y of memory_variable * State.t * Program_state.t *)
       | Udp_return of memory_variable * State.t * Program_state.t
       | Udp_raise of memory_variable * State.t * Program_state.t
       | Udp_advance of statement * State.t
@@ -343,6 +345,25 @@ struct
         let%bind v = pick_enum (binary_operation op v1 v2) in
         return [Push(Lookup_value v)]
       end;
+
+      begin
+        let%orzero Tdp_trace_x x = action in
+        match element with
+        | Lookup_answer ->
+          return [Push (Lookup_value_variable x)]
+        | _ ->
+          return [Push (element)]
+      end;
+
+      begin
+        let%orzero Tdp_trace_y y = action in
+        match element with
+        | Lookup_answer ->
+          return [Push (Lookup_memory_variable y)]
+        | _ ->
+          return [Push (element)]
+      end;
+
     ]
     |> List.enum
     |> Enum.map Nondeterminism_monad.enum
@@ -368,8 +389,8 @@ struct
           Enum.singleton ([], Static_terminus(Program_state state))
         | _ -> Enum.empty ()
       end
-    | Udp_ifresult_x (x,prev,skip) ->
-      begin
+    (* | Udp_ifresult_x (x,prev,skip) ->
+       begin
         match element with
         | Lookup_value_variable x' ->
           if equal_value_variable x x' then
@@ -379,9 +400,23 @@ struct
         | Lookup_answer ->
           Enum.singleton ([Push (element)], Static_terminus(prev))
         | _ -> Enum.empty ()
-      end
-    (* TODO: combine the following? *)
-    | Udp_ifresult_y (y,prev,skip) ->
+       end
+       (* TODO: combine the following? *)
+       | Udp_ifresult_y (y,prev,skip) ->
+       begin
+        match element with
+        | Lookup_memory_variable y' ->
+          if equal_memory_variable y y' then
+            Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
+          else
+            Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
+        | Lookup_answer ->
+          Enum.singleton ([Push (element)], Static_terminus(prev))
+        | _ -> Enum.empty ()
+       end *)
+    (* Return and raise stuff is at least partially obsolete, and should be
+       removed soon *)
+    | Udp_return (y,prev,skip) ->
       begin
         match element with
         | Lookup_memory_variable y' ->
@@ -393,23 +428,11 @@ struct
           Enum.singleton ([Push (element)], Static_terminus(prev))
         | _ -> Enum.empty ()
       end
-    | Udp_return (y,prev,skip) ->
-      begin
-        match element with
-        | Lookup_memory_variable y' ->
-          if y = y' then
-            Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
-          else
-            Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
-        | Lookup_answer ->
-          Enum.singleton ([Push (element)], Static_terminus(prev))
-        | _ -> Enum.empty ()
-      end
     | Udp_raise (y,prev,skip) ->
       begin
         match element with
         | Lookup_memory_variable y' ->
-          if y = y' then
+          if equal_memory_variable y y' then
             Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
           else
             Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
@@ -417,50 +440,61 @@ struct
           Enum.singleton ([Push (element)], Static_terminus(prev))
         | _ -> Enum.empty ()
       end
+    (* Udp_advance checks if we're about to enter a block, and either skips that block
+       or enters it based on what we're looking up. *)
     | Udp_advance (target, prev) ->
       begin
+        let skip_body = Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target))) in
+        let enter_body = Enum.singleton ([Push (element)], Static_terminus prev) in
+        let enter_body_and_change_target = Enum.singleton ([Push (Lookup_answer)], Static_terminus prev) in
         match target with
+        (* For while loops, we can't actually see inside the body from the
+           Advance(while) node, so just step back on to the while *)
+        | Statement(_, While _) ->
+          Enum.singleton ([Push (element)], Static_terminus prev)
+        (* For other blocks, we always enter them if we're looking up the contents of
+           a memory address, since the heap could change at any time *)
         | Statement(_, Try_except _) ->
           begin
             match element with
-            | Lookup_memory _ ->
-              Enum.singleton ([Push (element)], Static_terminus prev)
-            | _->
-              let () = logger `debug "skip try/except" in
-              Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
+            | Lookup_memory _ -> enter_body
+            | _-> skip_body
           end
-        | Statement(_, Let_call_function (y,_,_)) ->
+        (* If the block in question binds a variable, we also enter the block
+           if we're looking for the variable that was bound; in that case, we
+           start looking for the return (or ifresult, etc) value of the block *)
+        | Statement(_, Let_call_function (y,_,_))
+        | Statement(_, Let_conditional_memory (y,_,_,_)) ->
           begin
             match element with
-            | Lookup_memory _ ->
-              Enum.singleton ([Push (element)], Static_terminus prev)
-            | Lookup_memory_variable y' ->
-              if y = y' then
-                Enum.singleton ([Push (element)], Static_terminus prev)
-              else
-                let () = logger `debug "skip function call" in
-                Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
-            | _->
-              let () = logger `debug "skip function call" in
-              Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
-          end
-        (* | Statement(_, While (_,_)) ->
-           Enum.singleton ([Push (element)], Static_terminus (Program_state (Stmt target))) *)
-        | _ ->
-          Enum.singleton ([Push (element)], Static_terminus prev)
-          (* begin
-                      match element with
-                      | Lookup_memory _ ->
-                        Enum.singleton ([Push (element)], Static_terminus prev)
-                      | _ ->
-                        (* If advance does not point to a statement "under" the current statement---not in a while loop, then go to advance. Otherwise, don't proceed in that universe. *)
-                        if not is_parent then
-                          Enum.singleton ([Push (element)], Static_terminus prev)
-                        else
-                          Enum.empty ()
+            | Lookup_memory _ -> enter_body
 
-                    end *)
+            | Lookup_memory_variable y' ->
+              if equal_memory_variable y y' then
+                enter_body_and_change_target
+              else
+                skip_body
+
+            | _-> skip_body
+          end
+        | Statement(_, Let_conditional_value (x,_,_,_)) ->
+          begin
+            match element with
+            | Lookup_memory _ -> enter_body
+
+            | Lookup_value_variable x' ->
+              if equal_value_variable x x' then
+                enter_body_and_change_target
+              else
+                skip_body
+
+            | _-> skip_body
+
+          end
+        (* If the statement doesn't create a new block, then just step backwards *)
+        | _ -> Enum.singleton ([Push (element)], Static_terminus prev)
       end
+
     | Udp_advance_while (is_parent, prev)->
       begin
         match element with
