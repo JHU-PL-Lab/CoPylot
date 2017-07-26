@@ -77,7 +77,7 @@ let skip_tests =
     gen_lamia_test "don't_skip_test" "let x = 2; let x = -2;;" "x" [Integer_value Neg];
 
     gen_lamia_test "skip_operator_test" "let x = 1; let y = -1; let z = x int+ y;;" "x" [Integer_value Pos];
-    (* gen_lamia_test "don't_skip_operator_test" "let x = 1; let y = -1; let x = y int- x;;" "x" [Integer_value Neg]; *) (* Currently failing *)
+    gen_lamia_test "don't_skip_operator_test" "let x = 1; let y = -1; let x = y int- x;;" "x" [Integer_value Neg];
 
     gen_lamia_test "skip_if_test" "let x = 1; let y = True; let z = if y then {ifresult x;} else {ifresult y;};;" "x" [Integer_value Pos];
     gen_lamia_test "don't_skip_if_test" "let x = 1; let y = False; let x = if y then {ifresult x;} else {ifresult y;};;" "x" [Boolean_value false];

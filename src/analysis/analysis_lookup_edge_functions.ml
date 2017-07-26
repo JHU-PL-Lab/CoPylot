@@ -159,7 +159,7 @@ let per_cfg_edge_function rmr src dst state =
       (* Let x = x1 binop x2 *)
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_binop (x,x1,op,x2)))) = o1 in
-        return ([Pop_dynamic_targeted(Tdp_binop_1 (x,op,x1,x2,dst))], Static_terminus(o1))
+        return ([Pop_dynamic_targeted(Tdp_binop_1 (x,op,x1,x2,src,dst))], Static_terminus(o1))
         (* return ([], Dynamic_terminus(Udp_binop_1(op,x1,x2,dst,o0,o1))) *)
         (* return ([Pop (Lookup_value_variable x); Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_value_variable x1)], Static_terminus(o0)) *)
       end;

@@ -67,7 +67,7 @@ struct
       | Tdp_func_search of value_variable * value_variable list
       | Tdp_unop_1 of value_variable * unary_operator * value_variable * Program_state.t
       | Tdp_unop_2 of unary_operator
-      | Tdp_binop_1 of value_variable * binary_operator * value_variable * value_variable * Program_state.t
+      | Tdp_binop_1 of value_variable * binary_operator * value_variable * value_variable * Program_state.t * Program_state.t
       | Tdp_binop_2 of binary_operator
       | Tdp_binop_3 of binary_operator * value
       (* | Tdp_conditional_value of value_variable *)
@@ -323,11 +323,11 @@ struct
 
       (* Binop steps *)
       begin
-        let%orzero Tdp_binop_1 (x,op,x1,x2,dst) = action in
+        let%orzero Tdp_binop_1 (x,op,x1,x2,src,dst) = action in
         match element with
         | Lookup_value_variable id ->
           [%guard equal_value_variable id x];
-          return [Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push (Lookup_value_variable x1;)]
+          return [Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump src); Push (Lookup_capture 5); Push (Lookup_value_variable x1;)]
         | Lookup_binop ->
           return [Pop_dynamic_targeted(Tdp_binop_2 op)]
         | _ -> return []
