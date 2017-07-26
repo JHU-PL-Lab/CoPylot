@@ -171,37 +171,6 @@ let per_cfg_edge_function rmr src dst state =
         (* return ([Pop (Lookup_value_variable x); Push (Lookup_binop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_value_variable x1)], Static_terminus(o0)) *)
       end;
 
-      (* While top (m) *)
-      (* TODO check if left loop  *)
-      (* While top x *)
-      (* begin
-         let%orzero Program_state (Stmt (s)) = o1 in
-         let%orzero Statement(_, While (_,_)) = s in
-         let%orzero Program_state (Stmt _) = o0 in
-         return ([Pop_dynamic_targeted(Tdp_peek_x None)], Static_terminus(o1))
-         end;
-         (* While top y *)
-         begin
-         let%orzero Program_state (Stmt (s)) = o1 in
-         let%orzero Statement(_, While (_,_)) = s in
-         let%orzero Program_state (Stmt _) = o0 in
-         return ([Pop_dynamic_targeted(Tdp_peek_y None)], Static_terminus(o1))
-         end; *)
-
-      (* Ifresult x *)
-      (* begin
-         let%orzero Program_state (Ifresult _) = o1 in
-         let%orzero Advance (s) = dst in
-         let%orzero Statement(_, Let_conditional_value (x,_,_,_)) = s in
-         return ([], Dynamic_terminus(Udp_ifresult_x (x,o1,Stmt(s))))
-         end;
-         (* Ifresult y *)
-         begin
-         let%orzero Program_state (Ifresult _) = o1 in
-         let%orzero Advance (s) = dst in
-         let%orzero Statement(_, Let_conditional_memory (y,_,_,_)) = s in
-         return ([], Dynamic_terminus(Udp_ifresult_y (y,o1,Stmt(s))))
-         end; *)
       (* Function search *)
       begin
         let%orzero Program_state (Stmt (s)) = o1 in
