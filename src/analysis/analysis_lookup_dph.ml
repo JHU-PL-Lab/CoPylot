@@ -420,14 +420,28 @@ struct
     | Udp_advance (target, prev) ->
       begin
         match target with
-        | Statement(_, Try_except _)
-        | Statement(_, Let_call_function _) ->
+        | Statement(_, Try_except _) ->
           begin
             match element with
             | Lookup_memory _ ->
               Enum.singleton ([Push (element)], Static_terminus prev)
             | _->
               let () = logger `debug "skip try/except" in
+              Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
+          end
+        | Statement(_, Let_call_function (y,_,_)) ->
+          begin
+            match element with
+            | Lookup_memory _ ->
+              Enum.singleton ([Push (element)], Static_terminus prev)
+            | Lookup_memory_variable y' ->
+              if y = y' then
+                Enum.singleton ([Push (element)], Static_terminus prev)
+              else
+                let () = logger `debug "skip function call" in
+                Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
+            | _->
+              let () = logger `debug "skip function call" in
               Enum.singleton ([Push (element)], Static_terminus(Program_state (Stmt target)))
           end
         (* | Statement(_, While (_,_)) ->
