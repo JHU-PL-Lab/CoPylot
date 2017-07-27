@@ -19,6 +19,8 @@
 %token CLOSE_PAREN
 %token OPEN_BRACE
 %token CLOSE_BRACE
+%token OPEN_BRACKET
+%token CLOSE_BRACKET
 %token ARROW
 %token COMMA
 %token AT
@@ -117,6 +119,10 @@ directive:
   | LET memory_variable EQUAL value_variable
       OPEN_PAREN value_variable_list CLOSE_PAREN
     { Let_call_function($2,$4,$6) }
+  | LET memory_variable EQUAL value_variable OPEN_BRACKET value_variable CLOSE_BRACKET
+    { Let_list_access($2, $4, $6) }
+  | LET value_variable EQUAL value_variable OPEN_BRACKET value_variable COLON value_variable CLOSE_BRACKET
+    { Let_list_slice($2, $4, $6, $8) }
   | STORE memory_variable value_variable
     { Store($2,$3) }
   | LET value_variable EQUAL GET memory_variable
@@ -158,6 +164,10 @@ value_variable_list:
   | separated_list_trailing(COMMA, value_variable)
     { $1 }
 
+memory_variable_list:
+  | separated_list_trailing(COMMA, memory_variable)
+    { $1 }
+
 value_expression:
   | INTEGER
     { Integer_literal($1) }
@@ -171,6 +181,8 @@ value_expression:
     { None_literal }
   | OPEN_BRACE CLOSE_BRACE
     { Empty_binding }
+  | OPEN_BRACKET memory_variable_list CLOSE_BRACKET
+    { List_expression ($2)}
 
 %inline
 unary_operator:
