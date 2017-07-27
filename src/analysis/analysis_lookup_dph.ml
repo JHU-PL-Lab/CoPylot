@@ -308,6 +308,9 @@ struct
               let () = logger `debug "Func search: param" in
               return [Push(Lookup_value_variable (List.at lst n))]
           end
+        | Lookup_memory _ ->
+          let () = logger `debug "Func search: memory lookup" in
+          return [Push(element)]
         | _ ->
           let () = logger `debug @@ "Func search: non-value freevar" in
           return [Push (element); Push (Lookup_drop); Push(Lookup_capture 1); Push (Lookup_value_variable x)]

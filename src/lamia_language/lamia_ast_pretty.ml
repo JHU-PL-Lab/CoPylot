@@ -23,7 +23,7 @@ let rec pp_block indent fmt = function
 
 and pp_stmt indent fmt s =
   let Statement((u:uid), d) = s in
-  fprintf fmt "%s@%4d: %a\n" indent u
+  fprintf fmt "%s@%4d: %a;\n" indent u
     (pp_directive indent) d
 
 and pp_directive indent fmt d =
