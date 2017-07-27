@@ -22,6 +22,7 @@ rule token = parse
 
   | ';' { SEMICOLON }
   | ':' { COLON }
+  | "==" { ISEQUAL }
   | '=' { EQUAL }
   | '(' { OPEN_PAREN }
   | ')' { CLOSE_PAREN }
