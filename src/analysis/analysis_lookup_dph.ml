@@ -11,7 +11,6 @@ open Nondeterminism;;
 open Pds_reachability_types_stack;;
 
 let logger = make_logger "Analysis_lookup_dph";;
-set_default_logging_level `debug;;
 
 let print_value v =
   match v with
@@ -73,7 +72,6 @@ struct
       | Tdp_trace_x of value_variable
       | Tdp_trace_y of memory_variable
       | Tdp_drop
-      (* | Tdp_conditional_value of value_variable *)
     [@@deriving eq, ord, show, to_yojson]
     ;;
   end;;
@@ -82,9 +80,6 @@ struct
     type t =
       | Udp_result
       | Udp_jump
-      (* | Udp_ifresult_x of value_variable * State.t * Program_state.t
-         | Udp_ifresult_y of memory_variable * State.t * Program_state.t *)
-      (* | Udp_return of memory_variable * State.t * Program_state.t *)
       | Udp_raise of memory_variable * State.t * Program_state.t
       | Udp_advance of statement * State.t
       | Udp_advance_while of bool * State.t
@@ -148,20 +143,17 @@ struct
       (* Bind steps *)
       begin
         let%orzero Tdp_bind_1 = action in
-        let () = logger `debug "bind step 1" in
         let%orzero Lookup_value(Object_value v) = element in
         return [Pop_dynamic_targeted (Tdp_bind_2 v)]
       end;
       begin
         let%orzero Tdp_bind_2 v = action in
         let%orzero Lookup_value(String_value str) = element in
-        let () = logger `debug "bind step 2" in
         return [Pop_dynamic_targeted (Tdp_bind_3 (v,str))]
       end;
       begin
         let%orzero Tdp_bind_3 (v,str) = action in
         let%orzero Lookup_memory m = element in
-        let () = logger `debug "bind step 3" in
         let new_binding = AbstractStringMap.add str m v in
         return [Push(Lookup_value (Object_value new_binding))]
       end;
@@ -206,7 +198,6 @@ struct
       begin
         let%orzero Tdp_store (y,o0) = action in
         let%orzero Lookup_memory _ = element in
-        let () = logger `debug "store" in
         return [Pop(Lookup_dereference); Push(Lookup_dereference); Push (element); Push (Lookup_isalias); Push (Lookup_jump o0); Push (Lookup_capture 2); Push(Lookup_memory_variable y)]
       end;
 

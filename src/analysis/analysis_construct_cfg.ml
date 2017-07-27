@@ -10,7 +10,6 @@ open Logger_utils;;
 open Pp_utils;;
 
 let add_to_log = make_logger "Analysis cfg construction";;
-set_default_logging_level `debug;;
 
 type analysis_construction =
   {
@@ -87,7 +86,6 @@ let add_edge relations analysis edge =
       let%orzero Stmt(Statement(_, d)) = v2 in
       let%orzero Let_conditional_memory(_, test, Block(body), Block(orelse)) = d in
       let testvals, new_pds = lookup_value v2 test analysis.pds in
-      add_to_log `debug @@ "Number of testvals: " ^ string_of_int @@ Enum.count testvals;
       update_pds new_pds @@
       let%bind testval = pick_enum testvals in
       if testval = Boolean_value(true) then

@@ -6,6 +6,8 @@ open Lamia_parser;;
 
 open Analysis_types;;
 
+Logger_utils.set_default_logging_level `debug;;
+
 module Value_ord =
 struct
   type t = value
