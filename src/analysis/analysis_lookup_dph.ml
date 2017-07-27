@@ -111,47 +111,38 @@ struct
       begin
         let%orzero Tdp_capture_v_1 = action in
         let%orzero Lookup_value v = element in
-        (* let str = print_value v in *)
-        (* let () = logger `debug ("capture step 1: "^str) in *)
         return [Pop_dynamic_targeted (Tdp_capture_v_2 v)]
       end;
       begin
         let%orzero Tdp_capture_v_2 v = action in
         let%orzero Lookup_capture n = element in
-        (* let () = logger `debug "capture step 2" in *)
         return [Pop_dynamic_targeted (Tdp_capture_v_3 (v,n,[]))]
       end;
       begin
         let%orzero Tdp_capture_v_3 (v,n,lst) = action in
         if n > 1 then
-          (* let () = logger `debug ("capture "^(string_of_int n)) in *)
           return [Pop_dynamic_targeted (Tdp_capture_v_3 (v,n-1,element::lst))]
         else
           return @@ [Push (Lookup_value v); Push element] @ List.map (fun x -> Push x) (lst)
-          (* return @@ [Push element; Push (Lookup_value v)] @ List.map (fun x -> Push x) (lst) *)
       end;
 
       (* Capture steps m *)
       begin
         let%orzero Tdp_capture_m_1 = action in
-        (* let () = logger `debug "capture step 1" in *)
         let%orzero Lookup_memory m = element in
         return [Pop_dynamic_targeted (Tdp_capture_m_2 m)]
       end;
       begin
         let%orzero Tdp_capture_m_2 m = action in
         let%orzero Lookup_capture n = element in
-        (* let () = logger `debug "capture step 2" in *)
         return [Pop_dynamic_targeted (Tdp_capture_m_3 (m,n,[]))]
       end;
       begin
         let%orzero Tdp_capture_m_3 (m,n,lst) = action in
         if n > 1 then
-          (* let () = logger `debug ("capture "^(string_of_int n)) in *)
           return [Pop_dynamic_targeted (Tdp_capture_m_3 (m,n-1,element::lst))]
         else
           return @@ [Push (Lookup_memory m); Push element] @ List.map (fun x -> Push x) (lst)
-          (* return @@ [Push element; Push (Lookup_memory m)] @ List.map (fun x -> Push x) (lst) *)
       end;
 
       (* Bind steps *)
@@ -219,15 +210,6 @@ struct
         return [Pop(Lookup_dereference); Push(Lookup_dereference); Push (element); Push (Lookup_isalias); Push (Lookup_jump o0); Push (Lookup_capture 2); Push(Lookup_memory_variable y)]
       end;
 
-      (* begin
-         let%orzero Tdp_conditional_value x = action in
-         let%orzero Lookup_value_variable x' = element in
-         if x = x' then
-          return [Push (Lookup_answer)]
-         else
-          return [Push (Lookup_value_variable x')]
-         end; *)
-
       begin
         let%orzero Tdp_peek_x x = action in
         let%orzero Lookup_value_variable (Value_variable id) = element in
@@ -265,17 +247,14 @@ struct
       begin
         let%orzero Tdp_isalias_1 x = action in
         let%orzero Lookup_memory m = element in
-        let () = logger `debug "isalias step 1" in
         return [Pop_dynamic_targeted(Tdp_isalias_2 (x,m))]
       end;
       begin
         let%orzero Tdp_isalias_2 (x,m) = action in
         let%orzero Lookup_memory m' = element in
         if equal_memory_location m m' then
-          let () = logger `debug "isalias step 2: true" in
           return [Pop(Lookup_dereference); Push(Lookup_value_variable x)]
         else
-          let () = logger `debug "isalias step 2: false" in
           return [Pop(Lookup_dereference); Push(Lookup_dereference); Push(element)]
       end;
 
@@ -302,17 +281,13 @@ struct
           begin
             match List.index_of xi lst' with
             | None ->
-              let () = logger `debug "Func search: value freevar" in
               return [Push (element); Push (Lookup_drop); Push(Lookup_capture 1); Push (Lookup_value_variable x)]
             | Some n ->
-              let () = logger `debug "Func search: param" in
               return [Push(Lookup_value_variable (List.at lst n))]
           end
         | Lookup_memory _ ->
-          let () = logger `debug "Func search: memory lookup" in
           return [Push(element)]
         | _ ->
-          let () = logger `debug @@ "Func search: non-value freevar" in
           return [Push (element); Push (Lookup_drop); Push(Lookup_capture 1); Push (Lookup_value_variable x)]
       end;
 
@@ -331,7 +306,6 @@ struct
       begin
         let%orzero Tdp_unop_2 op = action in
         let%orzero Lookup_value v = element in
-        let () = logger `debug "unop step 2" in
         let%bind v' = pick_enum(unary_operation op v) in
         return [Push(Lookup_value v')]
       end;
@@ -404,45 +378,6 @@ struct
           Enum.singleton ([], Static_terminus(Program_state state))
         | _ -> Enum.empty ()
       end
-    (* | Udp_ifresult_x (x,prev,skip) ->
-       begin
-        match element with
-        | Lookup_value_variable x' ->
-          if equal_value_variable x x' then
-            Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
-          else
-            Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
-        | Lookup_answer ->
-          Enum.singleton ([Push (element)], Static_terminus(prev))
-        | _ -> Enum.empty ()
-       end
-       (* TODO: combine the following? *)
-       | Udp_ifresult_y (y,prev,skip) ->
-       begin
-        match element with
-        | Lookup_memory_variable y' ->
-          if equal_memory_variable y y' then
-            Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
-          else
-            Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
-        | Lookup_answer ->
-          Enum.singleton ([Push (element)], Static_terminus(prev))
-        | _ -> Enum.empty ()
-       end *)
-    (* Return and raise stuff is at least partially obsolete, and should be
-       removed soon *)
-    (* | Udp_return (y,prev,skip) ->
-       begin
-        match element with
-        | Lookup_memory_variable y' ->
-          if equal_memory_variable y y' then
-            Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
-          else
-            Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
-        | Lookup_answer ->
-          Enum.singleton ([Push (element)], Static_terminus(prev))
-        | _ -> Enum.empty ()
-       end *)
     | Udp_raise (y,prev,skip) ->
       begin
         match element with
@@ -519,9 +454,7 @@ struct
           (* If advance does not point to a statement "under" the current statement
              ---not in a while loop, then go to advance. Otherwise, don't proceed in that universe. *)
           if is_parent then
-            (* FIXME: Can this line just be Enum.empty () ? *)
             Enum.empty ()
-            (* Enum.singleton ([Pop (Lookup_value_variable (Value_variable "impossible"))], Static_terminus prev) *)
           else
             Enum.singleton ([Push (element)], Static_terminus prev)
 
