@@ -72,6 +72,7 @@ struct
       | Tdp_binop_3 of binary_operator * value
       | Tdp_trace_x of value_variable
       | Tdp_trace_y of memory_variable
+      | Tdp_drop
       (* | Tdp_conditional_value of value_variable *)
     [@@deriving eq, ord, show, to_yojson]
     ;;
@@ -83,7 +84,7 @@ struct
       | Udp_jump
       (* | Udp_ifresult_x of value_variable * State.t * Program_state.t
          | Udp_ifresult_y of memory_variable * State.t * Program_state.t *)
-      | Udp_return of memory_variable * State.t * Program_state.t
+      (* | Udp_return of memory_variable * State.t * Program_state.t *)
       | Udp_raise of memory_variable * State.t * Program_state.t
       | Udp_advance of statement * State.t
       | Udp_advance_while of bool * State.t
@@ -295,12 +296,18 @@ struct
 
       (* Function search *)
       begin
-        let%orzero Tdp_func_search (x0,lst') = action in
-        let%orzero Lookup_value_variable xi = element in
-        if List.mem xi lst' then
-          return [Push(Lookup_value_variable xi)]
-        else
-          return [Push (Lookup_value_variable xi); Push (Lookup_drop); Push (Lookup_value_variable x0)]
+        let%orzero Tdp_func_search (x,lst') = action in
+        match element with
+        | Lookup_value_variable xi ->
+          if List.mem xi lst' then
+            let () = logger `debug "Func search: param" in
+            return [Push(Lookup_value_variable xi)]
+          else
+            let () = logger `debug "Func search: value freevar" in
+            return [Push (element); Push (Lookup_drop); Push(Lookup_capture 1); Push (Lookup_value_variable x)]
+        | _ ->
+          let () = logger `debug @@ "Func search: non-value freevar: " ^ (let Value_variable s = x in s) in
+          return [Push (element); Push (Lookup_drop); Push(Lookup_capture 1); Push (Lookup_value_variable x)]
       end;
 
       (* Unop steps*)
@@ -359,11 +366,16 @@ struct
         let%orzero Tdp_trace_y y = action in
         match element with
         | Lookup_answer ->
+          let () = logger `debug "Tdp_trace_y lookup_answer" in
           return [Push (Lookup_memory_variable y)]
         | _ ->
           return [Push (element)]
       end;
 
+      begin
+        let%orzero Tdp_drop = action in
+        return []
+      end
     ]
     |> List.enum
     |> Enum.map Nondeterminism_monad.enum
@@ -416,8 +428,8 @@ struct
        end *)
     (* Return and raise stuff is at least partially obsolete, and should be
        removed soon *)
-    | Udp_return (y,prev,skip) ->
-      begin
+    (* | Udp_return (y,prev,skip) ->
+       begin
         match element with
         | Lookup_memory_variable y' ->
           if equal_memory_variable y y' then
@@ -427,7 +439,7 @@ struct
         | Lookup_answer ->
           Enum.singleton ([Push (element)], Static_terminus(prev))
         | _ -> Enum.empty ()
-      end
+       end *)
     | Udp_raise (y,prev,skip) ->
       begin
         match element with

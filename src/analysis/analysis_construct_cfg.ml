@@ -119,6 +119,7 @@ let add_edge relations analysis edge =
       let funcvals, new_pds = lookup_value v2 func analysis.pds in
       update_pds new_pds @@
       let%bind funcval = pick_enum funcvals in
+      (* FIXME: make sure right number of arguments *)
       let%orzero Function_value(_, Block(body)) = funcval in
       return @@ Edge(v2, Stmt(List.hd body))
     end

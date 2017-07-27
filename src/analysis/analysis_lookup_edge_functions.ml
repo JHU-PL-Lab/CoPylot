@@ -44,6 +44,8 @@ let global_edge_function state =
     return ([], Dynamic_terminus(Udp_result));
     (* Jump *)
     return ([], Dynamic_terminus(Udp_jump));
+    (* Drop *)
+    return ([Pop Lookup_drop; Pop_dynamic_targeted(Tdp_drop)], Static_terminus(state));
     (* Capture n *)
     return ([Pop_dynamic_targeted(Tdp_capture_v_1)], Static_terminus(state));
     return ([Pop_dynamic_targeted(Tdp_capture_m_1)], Static_terminus(state));
@@ -174,20 +176,20 @@ let per_cfg_edge_function rmr src dst state =
       (* Function search *)
       begin
         let%orzero Program_state (Stmt (s)) = o1 in
-        let%orzero Statement(_, Let_call_function (_,_,lst)) = s in
-        let%orzero Some Statement(_, Let_expression (x, Function_expression (lst',_))) = (Stmt_map.find s rmr.down) in
-        if List.length lst = List.length lst' then
-          return ([Pop_dynamic_targeted(Tdp_func_search (x,lst'))], Static_terminus(o1))
-        else
-          return ([], Static_terminus(o0)) (* FIXME *)
+        let%orzero Statement(_, Let_call_function (_,x,lst)) = s in
+        let%orzero Program_state (Stmt (s')) = o0 in
+        let%orzero Some Statement(_, Let_expression (_, Function_expression (lst',_))) = (Stmt_map.find s' rmr.down) in
+        [%guard List.length lst = List.length lst']; (* Should never fail, but technically needed to match rule *)
+        log_debug src dst "Function search";
+        return ([Pop_dynamic_targeted(Tdp_func_search (x,lst'))], Static_terminus(o1))
       end;
       (* Function return *)
-      begin
-        let%orzero Program_state (Return _) = o1 in
-        let%orzero Advance (s) = dst in
-        let%orzero Statement(_, Let_call_function (y,_,_)) = s in
-        return ([], Dynamic_terminus(Udp_return (y,o1,Stmt(s))))
-      end;
+      (* begin
+         let%orzero Program_state (Return _) = o1 in
+         let%orzero Advance (s) = dst in
+         let%orzero Statement(_, Let_call_function (y,_,_)) = s in
+         return ([], Dynamic_terminus(Udp_return (y,o1,Stmt(s))))
+         end; *)
       (* Try/Except top x *)
       begin
         let%orzero Program_state (Stmt (s)) = o1 in

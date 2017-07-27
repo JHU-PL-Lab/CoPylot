@@ -128,15 +128,17 @@ let if_tests =
 let while_tests =
   [
     gen_lamia_test "while_result_test" "let x = True; let &y = alloc; store &y x; @2:while &y {let x = False; let x1 = 3; @3:store &y x;};@1:let x2 = get &y;;" "x2" [Boolean_value true; Boolean_value false;];
+    gen_lamia_test "while_scope_test1" "let x = True; let &y = alloc; store &y x; let &z = alloc; @2:while &y {let x = False; let x1 = 3; store &z x1; @3:store &y x;};@1:let x2 = get &y;;" "&z" [Integer_value Pos];
+    gen_lamia_test "while_scope_test2" "let x = True; let &y = alloc; store &y x; let &z = alloc; let x1 = 3; @2:while &y {let x = False; store &z x1; @3:store &y x;};@1:let x2 = get &y;;" "&z" [Integer_value Pos];
   ]
 ;;
 
 let function_call_tests =
   [
     gen_lamia_test "simple_call_test" "let f = def () {let &y = alloc; let x = 1; store &y x; return &y}; let &z = f();;" "&z" [Integer_value Pos];
-    (* gen_lamia_test "free_var_test1" "let x = 1; let &y = alloc; store &y x; let f = def () {return &y}; let &z = f();;" "&z" [Integer_value Pos]; *)
-    (* gen_lamia_test "free_var_test2" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let &z = f();;" "&z" [Integer_value Pos]; *)
-    (* gen_lamia_test "free_var_test3" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let x = -1; let &z = f();;" "&z" [Integer_value Pos]; *)
+    gen_lamia_test "free_var_test1" "let x = 1; let &y = alloc; store &y x; let f = def () {return &y}; let &z = f();;" "&z" [Integer_value Pos];
+    gen_lamia_test "free_var_test2" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let &z = f();;" "&z" [Integer_value Pos];
+    gen_lamia_test "free_var_test3" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let x = -1; let &z = f();;" "&z" [Integer_value Pos];
     (* gen_lamia_test "arg_test" "let x = 1; let f = def (n) {let &y = alloc; store &y n; return &y}; let &z = f();;" "&z" [Integer_value Pos]; *)
   ]
 ;;
