@@ -33,7 +33,7 @@ let get_uid ps =
 let log_debug src dst str =
   let s1 = get_uid src in
   let s0 = get_uid dst in
-  logger `debug (s1 ^ " -> " ^ s0 ^ ": " ^ str)
+  logger `trace (s1 ^ " -> " ^ s0 ^ ": " ^ str)
 ;;
 
 let global_edge_function state =
@@ -123,7 +123,7 @@ let per_cfg_edge_function rmr src dst state =
       (* Let b = b'{x->y} *)
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_binding_update (b, b', x, y)))) = o1 in
-        let () = logger `debug "update binding" in
+        (* let () = logger `debug "update binding" in *)
         return ([Pop (Lookup_value_variable b); Push (Lookup_bind); Push (Lookup_jump dst); Push (Lookup_capture 4); Push(Lookup_memory_variable y); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 8); Push(Lookup_value_variable b')], Static_terminus(o1))
       end;
       (* Let y = b{x} *)
@@ -351,21 +351,8 @@ let per_cfg_edge_function rmr src dst state =
           match target_parent with
           | None -> false
           | Some tp -> equal_statement s tp in
-        let () = log_debug src dst ("is_parent: " ^ string_of_bool is_parent) in
         return ([], Dynamic_terminus(Udp_advance_while (is_parent, o1)))
       end;
-      (* begin
-         let%orzero Program_state (Advance target) = o0 in
-         return ([], Static_terminus(Program_state (Stmt target)))
-         end; *)
-      (* begin
-         let%orzero Program_state (Advance target) = o1 in
-         return ([Nop], Static_terminus(o1))
-         end; *)
-      (* begin
-         let%orzero Program_state End = o0 in
-         return ([], Static_terminus(o1))
-         end *)
     ]
     |> List.enum
     |> Enum.map Nondeterminism_monad.enum

@@ -372,7 +372,6 @@ struct
         let%orzero Tdp_trace_y y = action in
         match element with
         | Lookup_answer ->
-          let () = logger `debug "Tdp_trace_y lookup_answer" in
           return [Push (Lookup_memory_variable y)]
         | _ ->
           return [Push (element)]
@@ -395,7 +394,6 @@ struct
       begin
         match element with
         | Lookup_value v ->
-          let () = logger `debug ("value state: " ^ print_value v) in
           Enum.singleton ([Pop(Bottom)], Static_terminus(Answer_value v))
         | _ -> Enum.empty ()
       end
@@ -403,7 +401,6 @@ struct
       begin
         match element with
         | Lookup_jump state ->
-          let () = logger `debug "jump" in
           Enum.singleton ([], Static_terminus(Program_state state))
         | _ -> Enum.empty ()
       end
@@ -519,12 +516,13 @@ struct
         | Lookup_memory _ ->
           Enum.singleton ([Push (element)], Static_terminus prev)
         | _ ->
-          (* If advance does not point to a statement "under" the current statement---not in a while loop, then go to advance. Otherwise, don't proceed in that universe. *)
+          (* If advance does not point to a statement "under" the current statement
+             ---not in a while loop, then go to advance. Otherwise, don't proceed in that universe. *)
           if is_parent then
-            let () = logger `debug "is_parent" in
-            Enum.singleton ([Pop (Lookup_value_variable (Value_variable "impossible"))], Static_terminus prev)
+            (* FIXME: Can this line just be Enum.empty () ? *)
+            Enum.empty ()
+            (* Enum.singleton ([Pop (Lookup_value_variable (Value_variable "impossible"))], Static_terminus prev) *)
           else
-            let () = logger `debug "not_parent" in
             Enum.singleton ([Push (element)], Static_terminus prev)
 
 
