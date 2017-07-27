@@ -64,7 +64,7 @@ struct
       | Tdp_isalias_2 of value_variable * memory_location
       | Tdp_is_1
       | Tdp_is_2 of memory_location
-      | Tdp_func_search of value_variable * value_variable list
+      | Tdp_func_search of value_variable * value_variable list * value_variable list
       | Tdp_unop_1 of value_variable * unary_operator * value_variable * Program_state.t
       | Tdp_unop_2 of unary_operator
       | Tdp_binop_1 of value_variable * binary_operator * value_variable * value_variable * Program_state.t * Program_state.t
@@ -296,17 +296,20 @@ struct
 
       (* Function search *)
       begin
-        let%orzero Tdp_func_search (x,lst') = action in
+        let%orzero Tdp_func_search (x,lst,lst') = action in
         match element with
         | Lookup_value_variable xi ->
-          if List.mem xi lst' then
-            let () = logger `debug "Func search: param" in
-            return [Push(Lookup_value_variable xi)]
-          else
-            let () = logger `debug "Func search: value freevar" in
-            return [Push (element); Push (Lookup_drop); Push(Lookup_capture 1); Push (Lookup_value_variable x)]
+          begin
+            match List.index_of xi lst' with
+            | None ->
+              let () = logger `debug "Func search: value freevar" in
+              return [Push (element); Push (Lookup_drop); Push(Lookup_capture 1); Push (Lookup_value_variable x)]
+            | Some n ->
+              let () = logger `debug "Func search: param" in
+              return [Push(Lookup_value_variable (List.at lst n))]
+          end
         | _ ->
-          let () = logger `debug @@ "Func search: non-value freevar: " ^ (let Value_variable s = x in s) in
+          let () = logger `debug @@ "Func search: non-value freevar" in
           return [Push (element); Push (Lookup_drop); Push(Lookup_capture 1); Push (Lookup_value_variable x)]
       end;
 

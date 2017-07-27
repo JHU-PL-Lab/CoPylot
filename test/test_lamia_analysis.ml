@@ -139,7 +139,7 @@ let function_call_tests =
     gen_lamia_test "free_var_test1" "let x = 1; let &y = alloc; store &y x; let f = def () {return &y}; let &z = f();;" "&z" [Integer_value Pos];
     gen_lamia_test "free_var_test2" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let &z = f();;" "&z" [Integer_value Pos];
     gen_lamia_test "free_var_test3" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let x = -1; let &z = f();;" "&z" [Integer_value Pos];
-    (* gen_lamia_test "arg_test" "let x = 1; let f = def (n) {let &y = alloc; store &y n; return &y}; let &z = f();;" "&z" [Integer_value Pos]; *)
+    gen_lamia_test "arg_test" "let x = 1; let f = def (n) {let &y = alloc; store &y n; return &y}; let &z = f(x);;" "&z" [Integer_value Pos];
   ]
 ;;
 

@@ -181,7 +181,7 @@ let per_cfg_edge_function rmr src dst state =
         let%orzero Some Statement(_, Let_expression (_, Function_expression (lst',_))) = (Stmt_map.find s' rmr.down) in
         [%guard List.length lst = List.length lst']; (* Should never fail, but technically needed to match rule *)
         log_debug src dst "Function search";
-        return ([Pop_dynamic_targeted(Tdp_func_search (x,lst'))], Static_terminus(o1))
+        return ([Pop_dynamic_targeted(Tdp_func_search (x,lst,lst'))], Static_terminus(o1))
       end;
       (* Function return *)
       (* begin
