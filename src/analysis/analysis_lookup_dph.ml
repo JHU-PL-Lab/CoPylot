@@ -72,6 +72,7 @@ struct
       | Tdp_trace_x of value_variable
       | Tdp_trace_y of memory_variable
       | Tdp_drop
+      | Tdp_raise
     [@@deriving eq, ord, show, to_yojson]
     ;;
   end;;
@@ -345,7 +346,16 @@ struct
       begin
         let%orzero Tdp_drop = action in
         return []
-      end
+      end;
+
+      begin
+        let%orzero Tdp_raise = action in
+        match element with
+        | Lookup_memory_variable _ ->
+          return [Push (Lookup_answer)]
+        | _ ->
+          return [Push (element)]
+      end;
     ]
     |> List.enum
     |> Enum.map Nondeterminism_monad.enum
@@ -369,16 +379,11 @@ struct
           Enum.singleton ([], Static_terminus(Program_state state))
         | _ -> Enum.empty ()
       end
-    | Udp_raise (y,prev,skip) ->
+    | Udp_raise (_,prev,_) ->
       begin
         match element with
-        | Lookup_memory_variable y' ->
-          if equal_memory_variable y y' then
-            Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
-          else
-            Enum.singleton ([Push (element)], Static_terminus(Program_state skip))
-        | Lookup_answer ->
-          Enum.singleton ([Push (element)], Static_terminus(prev))
+        | Lookup_memory _ ->
+          Enum.singleton ([Push (Lookup_answer)], Static_terminus(prev))
         | _ -> Enum.empty ()
       end
     (* Udp_advance checks if we're about to enter a block, and either skips that block

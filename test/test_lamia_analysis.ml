@@ -116,6 +116,8 @@ let if_tests =
 
     gen_lamia_test "if_true_y_test" "let x = True; let &y = if x then {let z = 1; let &w = alloc; store &w z; ifresult &w;} else {let z = -1; let &w = alloc; store &w z; ifresult &w;};;" "&y" [Integer_value Pos];
     gen_lamia_test "if_false_y_test" "let x = False; let &y = if x then {let z = 1; let &w = alloc; store &w z; ifresult &w;} else {let z = -1; let &w = alloc; store &w z; ifresult &w;};;" "&y" [Integer_value Neg];
+    gen_lamia_test "if_parent_x_test" "let x = True; let y = if x then {ifresult x;} else {ifresult x;};;" "y" [Boolean_value true];
+    gen_lamia_test "if_else_parent_x_test" "let x = False; let y = if x then {ifresult x;} else {ifresult x;};;" "y" [Boolean_value false];
   ]
 ;;
 
@@ -137,6 +139,14 @@ let function_call_tests =
   ]
 ;;
 
+let try_tests =
+  [
+    gen_lamia_test "basic_try_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x;} except &z {let x = -1; store &y x;};;" "&y" [Integer_value Pos];
+    gen_lamia_test "basic_raise_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x; raise &y; } except &z {let x = -1; store &y x;};;" "&y" [Integer_value Neg];
+    gen_lamia_test "raise_value_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x; raise &y; } except &z {let x = -1; store &y x;};;" "&z" [];
+  ]
+;;
+
 let tests =
   "test_lamia_parser" >:::
   literal_tests @
@@ -146,6 +156,7 @@ let tests =
   if_tests @
   while_tests @
   function_call_tests @
+  try_tests @
   [
 
   ]
