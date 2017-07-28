@@ -237,14 +237,14 @@ let per_cfg_edge_function rmr src dst state =
         let () = log_debug src dst "start Raise" in
         return ([Pop_dynamic_targeted (Tdp_raise)], Static_terminus o1)
       end;
-
+(*
       (* Skip in except block*)
       begin
         let%orzero Stmt s = src in
         let%orzero Some parent = Stmt_map.find s rmr.down in
         let%orzero Statement(_, Try_except _) = parent in
         return ([Nop], Static_terminus o1)
-      end;
+      end; *)
 
       (* Go to block start (while, if, try) *)
       begin
