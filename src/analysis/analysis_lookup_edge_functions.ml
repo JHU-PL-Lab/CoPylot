@@ -17,7 +17,6 @@ open Untargeted_dynamic_pop_action;;
 open Targeted_dynamic_pop_action;;
 
 let logger = make_logger "Analysis_lookup_edge_functions";;
-set_default_logging_level `debug;;
 
 let get_uid ps =
   match ps with

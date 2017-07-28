@@ -6,6 +6,8 @@ open Lamia_parser;;
 
 open Analysis_types;;
 
+Logger_utils.set_default_logging_level `warn;;
+
 module Value_ord =
 struct
   type t = value
@@ -62,12 +64,6 @@ let literal_tests =
 
     gen_lamia_test "simple_func_test" "let f = def () {let &y = alloc; return &y};;" "f"
       [Function_value ([], Block [Statement (-1, Let_alloc (Memory_variable "&y")); Statement (-2, Return (Memory_variable "&y"));])];
-  ]
-;;
-
-let let_alloc_tests =
-  [
-    gen_lamia_test "basic_alloc_test" "let x = True; let &y = alloc; store &y x;;" "&y" [Boolean_value true];
   ]
 ;;
 
@@ -156,7 +152,6 @@ let try_tests =
 let tests =
   "test_lamia_parser" >:::
   literal_tests @
-  let_alloc_tests @
   skip_tests @
   operator_tests @
   store_tests @
