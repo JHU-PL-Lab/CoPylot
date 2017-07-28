@@ -142,7 +142,6 @@ let per_cfg_edge_function rmr src dst state =
       begin
         let%orzero Program_state (Stmt (Statement(_, Store (y,_)))) = o1 in
         return ([Pop_dynamic_targeted(Tdp_store(y,dst))], Static_terminus(o1))
-        (* return [Push (Lookup_isalias); Push (Lookup_jump dst); Push (Lookup_capture 2); Push(Lookup_memory_variable y)] *)
       end;
       (* Let x = get y *)
       begin
