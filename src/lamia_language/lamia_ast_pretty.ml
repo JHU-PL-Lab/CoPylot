@@ -84,12 +84,12 @@ and pp_directive indent fmt d =
       pp_memory_var y1
       pp_memory_var y2
   | Let_unop(x1, op, x2) ->
-    fprintf fmt "let %a = %a%a"
+    fprintf fmt "let %a = %a %a"
       pp_value_var x1
       pp_unop op
       pp_value_var x2
   | Let_binop(x1, x2, op, x3) ->
-    fprintf fmt "let %a = %a%a%a"
+    fprintf fmt "let %a = %a %a %a"
       pp_value_var x1
       pp_value_var x2
       pp_binop op
@@ -131,7 +131,7 @@ and pp_directive indent fmt d =
       (pp_block (increase_indent indent)) orelse
       indent
   | While(y, body) ->
-    fprintf fmt "while %a do {\n%a\n%s}"
+    fprintf fmt "while %a {\n%a\n%s}"
       pp_memory_var y
       (pp_block (increase_indent indent)) body
       indent
@@ -140,8 +140,8 @@ and pp_expr indent fmt e =
   match e with
   | Integer_literal n -> fprintf fmt "%d" n
   | String_literal s -> fprintf fmt "\"%s\"" (String.escaped s)
-  | Boolean_literal b -> pp_print_bool fmt b
-  | List_expression lst -> pp_list pp_memory_var fmt lst
+  | Boolean_literal b -> fprintf fmt (if b then "True" else "False")
+  | List_expression lst -> fprintf fmt "[%a]" (pp_list pp_memory_var) lst
   | Function_expression (args, body) ->
     fprintf fmt "def (%a) {\n%a\n%s}"
       (pp_list pp_value_var) args
@@ -152,17 +152,17 @@ and pp_expr indent fmt e =
 
 and pp_unop fmt op =
   match op with
-  | Unop_not -> fprintf fmt "not "
-  | Unop_is_function -> fprintf fmt "is_function?"
-  | Unop_is_int -> fprintf fmt "is_int?"
+  | Unop_not -> fprintf fmt "not"
+  | Unop_is_function -> fprintf fmt "isfunc"
+  | Unop_is_int -> fprintf fmt "isint"
 
 and pp_binop fmt op =
   match op with
-  | Binop_intplus -> fprintf fmt " int+ "
-  | Binop_intminus -> fprintf fmt " int- "
-  | Binop_haskey -> fprintf fmt " haskey "
-  | Binop_listconcat -> fprintf fmt " || "
-  | Binop_equals -> fprintf fmt " == "
+  | Binop_intplus -> fprintf fmt "int+"
+  | Binop_intminus -> fprintf fmt "int-"
+  | Binop_haskey -> fprintf fmt "haskey"
+  | Binop_listconcat -> fprintf fmt "||"
+  | Binop_equals -> fprintf fmt "=="
 
 and pp_value_var fmt x =
   let Value_variable(id) = x in

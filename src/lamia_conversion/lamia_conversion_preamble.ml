@@ -4,9 +4,30 @@ open Lamia_conversion_monad;;
 open Conversion_monad;;
 open Lamia_conversion_builtin_names;;
 open Lamia_conversion_builtin_defs;;
-(* open Lamia_conversion_object_defs;; *)
+open Lamia_conversion_object_defs;;
 
 let define_func_mem body_def func_loc =
+  let%bind arglist = fresh_value_var () in
+
+  let%bind _, func_body = listen @@ body_def arglist in
+
+  let%bind func_name = fresh_value_var () in
+  let func_val = Function_expression([arglist], Block(func_body)) in
+  let%bind _ = emit
+      [
+        Let_expression(func_name, func_val);
+      ]
+  in
+  let%bind wrapped_loc = wrap_func func_name in
+  emit
+    [
+      Let_alias_memory(func_loc, wrapped_loc)
+    ]
+;;
+
+(* TODO: Same as define_func_mem but doesn't wrap the result. Once we add
+   classes we should just be able to always use define_func_mem instead *)
+let define_method_mem body_def func_loc =
   let%bind arglist = fresh_value_var () in
 
   let%bind _, func_body = listen @@ body_def arglist in
@@ -74,32 +95,33 @@ let all_definitions =
     define_func_val get_from_scope_def get_from_scope;
     define_get_from_parent_scope;
 
-    (* define_obj_mem builtin_true fill_bool @@ Integer_literal 1;
+    define_obj_mem builtin_true fill_bool @@ Integer_literal 1;
     define_obj_mem builtin_false fill_bool @@ Integer_literal 0;
-    define_obj_mem builtin_none fill_none @@ None_literal; *)
+    define_obj_mem builtin_none fill_none @@ None_literal;
 
-    (* define_func_mem builtin_attribute_error_body builtin_AttributeError;
-       define_func_mem builtin_type_error_body builtin_TypeError;
-       define_func_mem builtin_name_error_body builtin_NameError;
-       define_func_mem builtin_stop_iteration_body builtin_StopIteration; *)
+    define_func_mem builtin_attribute_error_body builtin_AttributeError;
+    define_func_mem builtin_type_error_body builtin_TypeError;
+    define_func_mem builtin_name_error_body builtin_NameError;
+    define_func_mem builtin_stop_iteration_body builtin_ValueError;
+    define_func_mem builtin_stop_iteration_body builtin_StopIteration;
 
-    (* define_func_mem builtin_bool_body builtin_bool; *)
+    define_func_mem builtin_bool_body builtin_bool;
 
-    (* define_func_mem int_add_body int_add; *)
-    (* define_func_mem method_call_body method_call; *)
+    define_method_mem int_add_body int_add;
+    define_method_mem method_call_body method_call;
 
     (* Global builtin values *)
-    (* add_to_global_python_scope "*None" builtin_none;
+    add_to_global_python_scope "*None" builtin_none;
     add_to_global_python_scope "True" builtin_true;
-    add_to_global_python_scope "False" builtin_false; *)
+    add_to_global_python_scope "False" builtin_false;
     (* Global builtin functions *)
-    (* add_to_global_python_scope "bool" builtin_bool;
-    add_to_global_python_scope "slice" builtin_slice;
+    add_to_global_python_scope "bool" builtin_bool;
+    (* add_to_global_python_scope "slice" builtin_slice; *) (* Not_yet_implemented *)
     add_to_global_python_scope "NameError" builtin_NameError;
     add_to_global_python_scope "TypeError" builtin_TypeError;
     add_to_global_python_scope "AttributeError" builtin_AttributeError;
     add_to_global_python_scope "ValueError" builtin_ValueError;
-    add_to_global_python_scope "StopIteration" builtin_StopIteration; *)
+    add_to_global_python_scope "StopIteration" builtin_StopIteration;
 
   ]
 

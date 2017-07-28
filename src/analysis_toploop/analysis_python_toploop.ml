@@ -12,7 +12,11 @@ open Lamia_ast_pretty;;
 open Pp_utils;;
 
 let add_to_log = make_logger "Python Analysis Toploop";;
-set_default_logging_level `debug;;
+set_default_logging_level `warn;;
+let level = `debug;;
+set_logging_level_for "Analysis_lookup_edge_functions" level;;
+set_logging_level_for "Analysis_construct_cfg" level;;
+set_logging_level_for "Python Analysis Toploop" level;;
 
 type analysis =
   {
@@ -103,67 +107,14 @@ let get_starting_state analysis line =
     Program_state.Stmt(stmt)
 ;;
 
-let rec extract_value (analysis : analysis) starting_state target_str v =
-  let scopeval =
-    match v with
-    | Object_value bindings -> bindings
-    | _ -> raise @@ Utils.Invariant_failure "Python variable was not an object!"
-  in
-  (* See if the scope we got has the target variable bound *)
-  try
-    let obj_loc = AbstractStringMap.find (String_exact target_str) scopeval in
-    (* If so, look up the possible object values and return them *)
-    let obj_values, new_pds =
-      lookup_memory_location starting_state obj_loc analysis.pds
-    in
-    obj_values, {analysis with pds = new_pds}
-  with
-  | Not_found ->
-    (* The object wasn't in our local scope. *)
-    match starting_state with
-    | Program_state.Stmt(s) ->
-      begin
-        (* Try to move up in scope, and do another lookup from there. Do
-           this by looking at the first statement in our block, and starting our
-           second lookup from there (i.e. from right before it executed). *)
-        (* Note: this does some extra work since we walk back to the beginning
-           of our block, and only function blocks create a new python scope.
-           So if we're inside, e.g. a while inside a function, we'll lookup
-           from the starting point, then from just before the while, then
-           from just before the function call: only the last one will return
-           a new value for the scope. This isn't too bad because the pds
-           automatically caches lookups for a variable from a given point, so
-           the lookup from the beginning of the while won't cost much *)
-        match Stmt_map.find s analysis.relations.double_left with
-        | None ->
-          Enum.empty (), analysis
-        | Some(prev) ->
-          make_query analysis (Program_state.Stmt(prev)) target_str
-      end
-    | _ -> Enum.empty (), analysis
-
-and make_query analysis starting_state target_str =
-  let target = Memory_variable("&scope") in
-  add_to_log `debug @@ "Performing lookup for " ^
-                       pp_to_string pp_memory_variable target ^
-                       " from " ^
+let make_query (analysis : analysis) starting_state target_str =
+  add_to_log `debug @@ "Performing lookup for " ^ target_str ^ " from " ^
                        pp_to_string Program_state.pp starting_state;
   let results, new_pds =
-    lookup_memory starting_state target analysis.pds
+    lookup_to_starvalue starting_state target_str analysis.pds
   in
-  let analysis = {analysis with pds = new_pds} in
-  let all_possible_values, final_analysis =
-    Enum.fold
-      (fun (old_values, analysis) value ->
-         let new_values, new_analysis =
-           extract_value analysis starting_state target_str value
-         in
-         (Enum.append new_values old_values, new_analysis)
-      )
-      (Enum.empty (), analysis)
-      results
-  in
-  all_possible_values, final_analysis
+  let new_analysis = {analysis with pds = new_pds} in
+  results, new_analysis
 ;;
 
 let main () =
