@@ -286,7 +286,6 @@ struct
       (* Unop steps*)
       begin
         let%orzero Tdp_unop_1 (x,op,x',dst) = action in
-        (* return [Push (Lookup_unop); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable x')] *)
         match element with
         | Lookup_value_variable id ->
           [%guard equal_value_variable id x];
