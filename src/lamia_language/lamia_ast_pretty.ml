@@ -84,12 +84,12 @@ and pp_directive indent fmt d =
       pp_memory_var y1
       pp_memory_var y2
   | Let_unop(x1, op, x2) ->
-    fprintf fmt "let %a = %a%a"
+    fprintf fmt "let %a = %a %a"
       pp_value_var x1
       pp_unop op
       pp_value_var x2
   | Let_binop(x1, x2, op, x3) ->
-    fprintf fmt "let %a = %a%a%a"
+    fprintf fmt "let %a = %a %a %a"
       pp_value_var x1
       pp_value_var x2
       pp_binop op
@@ -152,17 +152,17 @@ and pp_expr indent fmt e =
 
 and pp_unop fmt op =
   match op with
-  | Unop_not -> fprintf fmt "not "
+  | Unop_not -> fprintf fmt "not"
   | Unop_is_function -> fprintf fmt "isfunc"
   | Unop_is_int -> fprintf fmt "isint"
 
 and pp_binop fmt op =
   match op with
-  | Binop_intplus -> fprintf fmt " int+ "
-  | Binop_intminus -> fprintf fmt " int- "
-  | Binop_haskey -> fprintf fmt " haskey "
-  | Binop_listconcat -> fprintf fmt " || "
-  | Binop_equals -> fprintf fmt " == "
+  | Binop_intplus -> fprintf fmt "int+"
+  | Binop_intminus -> fprintf fmt "int-"
+  | Binop_haskey -> fprintf fmt "haskey"
+  | Binop_listconcat -> fprintf fmt "||"
+  | Binop_equals -> fprintf fmt "=="
 
 and pp_value_var fmt x =
   let Value_variable(id) = x in

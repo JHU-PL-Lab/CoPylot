@@ -143,26 +143,26 @@ let binary_operation op v1 v2 =
     begin
       match v1,v2 with
       | Integer_value n1,Integer_value n2 -> int_plus n1 n2
-      | _ -> raise @@ Utils.Invariant_failure "Wrong type in Binop_intplus"
+      | _ -> raise @@ Utils.Invariant_failure ("Wrong type in Binop_intplus: " ^ show_value v1 ^ ", " ^ show_value v2)
     end
   | Binop_intminus ->
     begin
       match v1,v2 with
       | Integer_value n1,Integer_value n2 -> int_minus n1 n2
-      | _ -> raise @@ Utils.Invariant_failure "Wrong type in Binop_intminus"
+      | _ -> raise @@ Utils.Invariant_failure ("Wrong type in Binop_intminus: " ^ show_value v1 ^ ", " ^ show_value v2)
     end
   | Binop_haskey ->
     begin
       match v1,v2 with
       | Object_value obj, String_value str -> has_key obj str
       (* | Object_value obj, String_value (String_lossy) -> Enum.singleton (Boolean_value (if AbstractStringMap.is_empty obj then false else true)) *)
-      | _ -> raise @@ Utils.Invariant_failure "Wrong type in Binop_haskey"
+      | _ -> raise @@ Utils.Invariant_failure ("Wrong type in Binop_haskey: " ^ show_value v1 ^ ", " ^ show_value v2)
     end
   | Binop_listconcat ->
     begin
       match v1,v2 with
       | List_value lst_1, List_value lst_2 -> list_concat lst_1 lst_2
-      | _ -> raise @@ Utils.Invariant_failure "Wrong type in Binop_listconcat"
+      | _ -> raise @@ Utils.Invariant_failure ("Wrong type in Binop_listconcat: " ^ show_value v1 ^ ", " ^ show_value v2)
     end
   | Binop_equals ->
-    Enum.singleton (if v1 = v2 then Boolean_value true else Boolean_value false)
+    Enum.singleton (if equal_value v1 v2 then Boolean_value true else Boolean_value false)

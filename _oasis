@@ -184,6 +184,7 @@ Executable "analysis_toploop"
   BuildDepends:
     batteries,
     jhupllib,
+    CoPylot.utils,
     CoPylot.lamia_parser,
     CoPylot.analysis
 

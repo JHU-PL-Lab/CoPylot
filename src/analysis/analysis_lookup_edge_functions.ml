@@ -78,11 +78,13 @@ let per_cfg_edge_function rmr src dst state =
           let () = log_debug src dst "let x = int" in
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Integer_value sgn))], Static_terminus(o1))
         | String_literal str ->
+          let () = log_debug src dst @@ "let x = str: " ^ show_abstract_str str in
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (String_value str))], Static_terminus(o1))
         | Boolean_literal b ->
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Boolean_value b))], Static_terminus(o1))
         | List_expression _ -> raise @@ Utils.Not_yet_implemented "per_cfg_edge_function: list_value"
         | Function_expression (args, block) ->
+          let () = log_debug src dst @@ "let x = func: " ^ show_value (Function_value (args, block)) in
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Function_value (args, block)))], Static_terminus(o1))
         | None_literal ->
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (None_value))], Static_terminus(o1))
