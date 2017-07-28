@@ -65,12 +65,6 @@ let literal_tests =
   ]
 ;;
 
-let let_alloc_tests =
-  [
-    gen_lamia_test "basic_alloc_test" "let x = True; let &y = alloc; store &y x;;" "&y" [Boolean_value true];
-  ]
-;;
-
 let skip_tests =
   [
     gen_lamia_test "basic_skip_test" "let x = 2; let y = -2;;" "x" [Integer_value Pos];
@@ -146,7 +140,6 @@ let function_call_tests =
 let tests =
   "test_lamia_parser" >:::
   literal_tests @
-  let_alloc_tests @
   skip_tests @
   operator_tests @
   store_tests @
