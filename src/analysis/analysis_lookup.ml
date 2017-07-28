@@ -88,10 +88,44 @@ let lookup_in_scope ps target pds =
       Push (Lookup_value (String_value (String_exact target)));
       Push (Lookup_project);
       Push (Lookup_capture 1);
-      Push Lookup_dereference;
 
+      Push (Lookup_dereference);
       Push (Lookup_jump ps);
       Push (Lookup_capture 1);
+
+      Push (Lookup_memory_variable (Memory_variable "&scope"));
+    ]
+  in
+  perform_lookup start_state start_actions pds
+;;
+
+let lookup_to_starvalue ps target pds =
+  let open Analysis_types in
+  let start_state = Program_state ps in
+  let start_actions =
+    [
+      Push Bottom;
+
+      Push (Lookup_dereference);
+      Push (Lookup_jump ps);
+      Push (Lookup_capture 1);
+
+      Push (Lookup_value (String_value (String_exact "*value")));
+      Push (Lookup_project);
+      Push (Lookup_capture 1);
+
+      Push (Lookup_dereference);
+      Push (Lookup_jump ps);
+      Push (Lookup_capture 1);
+
+      Push (Lookup_value (String_value (String_exact target)));
+      Push (Lookup_project);
+      Push (Lookup_capture 1);
+
+      Push (Lookup_dereference);
+      Push (Lookup_jump ps);
+      Push (Lookup_capture 1);
+
       Push (Lookup_memory_variable (Memory_variable "&scope"));
     ]
   in

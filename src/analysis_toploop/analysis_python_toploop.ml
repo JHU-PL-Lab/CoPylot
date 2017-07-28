@@ -111,7 +111,7 @@ let make_query (analysis : analysis) starting_state target_str =
   add_to_log `debug @@ "Performing lookup for " ^ target_str ^ " from " ^
                        pp_to_string Program_state.pp starting_state;
   let results, new_pds =
-    lookup_in_scope starting_state target_str analysis.pds
+    lookup_to_starvalue starting_state target_str analysis.pds
   in
   let new_analysis = {analysis with pds = new_pds} in
   results, new_analysis
