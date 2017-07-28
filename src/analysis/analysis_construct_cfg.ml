@@ -54,46 +54,46 @@ let add_edge relations analysis edge =
     (* While loop *)
     begin
       let%orzero Stmt(s) = v2 in
-      let%orzero Statement(_, While(y, Block(body))) = s in
+      let%orzero Statement(u, While(y, Block(body))) = s in
       let yvals, new_pds = lookup_memory v2 y analysis.pds in
       update_pds new_pds @@
       let%bind yval = pick_enum yvals in
-      if yval = Boolean_value(true) then
+      if equal_value yval @@ Boolean_value(true) then
         return @@ Edge(v2, Stmt(List.hd body))
-      else if yval = Boolean_value(false) then
+      else if equal_value yval @@ Boolean_value(false) then
         return @@ Edge(v2, Advance(s))
       else
-        raise @@ Jhupllib.Utils.Invariant_failure "While loop got non-boolean lamia value"
+        raise @@ Jhupllib.Utils.Invariant_failure ("While loop got non-boolean lamia value at line " ^ string_of_int u)
     end
     ;
     (* If stmt (value) *)
     begin
-      let%orzero Stmt(Statement(_, d)) = v2 in
+      let%orzero Stmt(Statement(u, d)) = v2 in
       let%orzero Let_conditional_value(_, test, Block(body), Block(orelse)) = d in
       let testvals, new_pds = lookup_value v2 test analysis.pds in
       update_pds new_pds @@
       let%bind testval = pick_enum testvals in
-      if testval = Boolean_value(true) then
+      if equal_value testval @@ Boolean_value(true) then
         return @@ Edge(v2, Stmt(List.hd body))
-      else if testval = Boolean_value(false) then
+      else if equal_value testval @@ Boolean_value(false) then
         return @@ Edge(v2, Stmt(List.hd orelse))
       else
-        raise @@ Jhupllib.Utils.Invariant_failure "If stmt got non-boolean lamia value"
+        raise @@ Jhupllib.Utils.Invariant_failure ("If stmt got non-boolean lamia value at line " ^ string_of_int u)
     end
     ;
     (* If stmt (memory) *)
     begin
-      let%orzero Stmt(Statement(_, d)) = v2 in
+      let%orzero Stmt(Statement(u, d)) = v2 in
       let%orzero Let_conditional_memory(_, test, Block(body), Block(orelse)) = d in
       let testvals, new_pds = lookup_value v2 test analysis.pds in
       update_pds new_pds @@
       let%bind testval = pick_enum testvals in
-      if testval = Boolean_value(true) then
+      if equal_value testval @@ Boolean_value(true) then
         return @@ Edge(v2, Stmt(List.hd body))
-      else if testval = Boolean_value(false) then
+      else if equal_value testval @@ Boolean_value(false) then
         return @@ Edge(v2, Stmt(List.hd orelse))
       else
-        raise @@ Jhupllib.Utils.Invariant_failure "If stmt got non-boolean lamia value"
+        raise @@ Jhupllib.Utils.Invariant_failure ("If stmt got non-boolean lamia value at line " ^ string_of_int u)
     end
     ;
     (* If result (value) *)
@@ -117,9 +117,8 @@ let add_edge relations analysis edge =
       let funcvals, new_pds = lookup_value v2 func analysis.pds in
       update_pds new_pds @@
       let%bind funcval = pick_enum funcvals in
-      let%orzero Function_value(def_args, _) = funcval in
+      let%orzero Function_value(def_args, Block(body)) = funcval in
       [%guard List.length def_args = List.length call_args];
-      let%orzero Function_value(_, Block(body)) = funcval in
       return @@ Edge(v2, Stmt(List.hd body))
     end
     ;
@@ -305,7 +304,7 @@ let simple_pp_edge fmt edge =
 let construct_analysis (prog : block) : pds * relation_map_record =
   let relations = construct_all_relation_maps prog in
   let Block(stmts) = prog in
-  (* TODO: Throw useful error if prog is empty *)
+  (* TODO: Well-formedness checks: no unbound variables, all blocks nonempty, etc. *)
   let base_cfg =
     Cfg.empty
     |> Cfg.add_edge @@ Cfg.Edge(Program_state.Start, Program_state.Stmt(List.hd stmts))
