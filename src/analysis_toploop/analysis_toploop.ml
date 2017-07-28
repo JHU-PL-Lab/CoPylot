@@ -4,8 +4,13 @@ open Analysis_construct_cfg;;
 open Analysis_lookup;;
 open Analysis_grammar;;
 open Analysis_types;;
+open Jhupllib_logger_utils;;
 
-Jhupllib_logger_utils.set_default_logging_level `debug;;
+set_default_logging_level `warn;;
+let level = `debug;;
+set_logging_level_for "Analysis_lookup_edge_functions" level;;
+set_logging_level_for "Analysis_construct_cfg" level;;
+set_logging_level_for "Python Analysis Toploop" level;;
 
 let parse_and_analyze lexbuf =
   let block = Lamia_parser.parse_from_lexbuf lexbuf in
