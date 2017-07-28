@@ -12,8 +12,11 @@ open Lamia_ast_pretty;;
 open Pp_utils;;
 
 let add_to_log = make_logger "Python Analysis Toploop";;
-set_default_logging_level `debug;;
-set_logging_level_for "Analysis_lookup_edge_functions" `debug;;
+set_default_logging_level `warn;;
+let level = `debug;;
+set_logging_level_for "Analysis_lookup_edge_functions" level;;
+set_logging_level_for "Analysis_construct_cfg" level;;
+set_logging_level_for "Python Analysis Toploop" level;;
 
 type analysis =
   {

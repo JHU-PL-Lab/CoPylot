@@ -9,7 +9,7 @@ open Jhupllib;;
 open Logger_utils;;
 open Pp_utils;;
 
-let add_to_log = make_logger "Analysis cfg construction";;
+let add_to_log = make_logger "Analysis_construct_cfg";;
 
 type analysis_construction =
   {
