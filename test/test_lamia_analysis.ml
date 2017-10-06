@@ -64,6 +64,7 @@ let literal_tests =
 
     gen_lamia_test "simple_func_test" "let f = def () {let &y = alloc; return &y};;" "f"
       [Function_value ([], Block [Statement (-1, Let_alloc (Memory_variable "&y")); Statement (-2, Return (Memory_variable "&y"));])];
+    gen_lamia_test "simple_func_test2" "let f = def (x){let &y = alloc; store &y x; return &y;};;" "f" [Function_value ([Value_variable "x"],Block[Statement (-1,Let_alloc (Memory_variable "&y"));Statement (-2, Store (Memory_variable "&y", Value_variable "x")); Statement (-3, (Return (Memory_variable "&y")))])];
   ]
 ;;
 
@@ -137,7 +138,10 @@ let function_call_tests =
     gen_lamia_test "free_var_test1" "let x = 1; let &y = alloc; store &y x; let f = def () {return &y}; let &z = f();;" "&z" [Integer_value Pos];
     gen_lamia_test "free_var_test2" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let &z = f();;" "&z" [Integer_value Pos];
     gen_lamia_test "free_var_test3" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let x = -1; let &z = f();;" "&z" [Integer_value Pos];
-    gen_lamia_test "arg_test" "let x = 1; let f = def (n) {let &y = alloc; store &y n; return &y}; let &z = f(x);;" "&z" [Integer_value Pos];
+    gen_lamia_test "arg_list_test" "let x = 1; let y = True; let f = def (m,n) {let &y = alloc; store &y n; return &y}; let &z = f(x,y);;" "&z" [Boolean_value true];
+    gen_lamia_test "call_within_call_test" "let f = def () {let &y = alloc; let x = 1; store &y x; return &y}; let g = def () {let &y = f(); return &y}; let &z = g();;" "&z" [Integer_value Pos];
+    (* TODO *)
+    (* gen_lamia_test "recursive_call_test" "let f = def (x) {let &y = if x then {let &y = f(x); ifresult &y} else {let x2 = not x; let &y = alloc; store &y x; return &y}; return &y}; let x = True; let &z = f(x);;" "&z" [Boolean_value false]; *)
   ]
 ;;
 
