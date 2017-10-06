@@ -41,9 +41,6 @@ and 'a expr =
   | FunctionVal of identifier list (* args *) * 'a stmt list (* body *) * 'a
 [@@deriving eq, ord, show]
 
-and boolop = And | Or
-[@@deriving eq, ord, show]
-
 and binop = Is
 [@@deriving eq, ord, show]
 

@@ -18,7 +18,8 @@ let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
 let add_return stmts annot =
   let rec needs_return = function
     (* Returns true iff we can't guarantee that the function will explicitly
-       return. Not super efficient or important: Could just always return true,
+       return. This implementation is not super efficient or important;
+       it would also be acceptable to just always return true
        in which case we'd generate dead code sometimes. Oh well. *)
     | [] -> true
     | [Concrete.Return _] -> false
@@ -854,11 +855,6 @@ and simplify_slice ctx
     )
   | Concrete.Index (value) ->
     simplify_expr ctx value
-
-and simplify_boolop b =
-  match b with
-  | Concrete.And -> Simplified.And
-  | Concrete.Or -> Simplified.Or
 
 and simplify_operator o =
   match o with
