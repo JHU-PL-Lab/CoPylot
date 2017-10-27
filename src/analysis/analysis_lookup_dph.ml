@@ -220,13 +220,41 @@ struct
         return [Pop_dynamic_targeted (Tdp_slice_3 (lst,v1))]
       end;
       begin
-        let%orzero Tdp_slice_3 (lst,_) = action in
-        let%orzero Lookup_value(Integer_value _) = element in
+        let%orzero Tdp_slice_3 (lst,v1) = action in
+        let%orzero Lookup_value(Integer_value v2) = element in
+        (* [%guard (equal_sign v1 Pos && equal_sign v2 Pos)
+                || (equal_sign v1 Zero && equal_sign v2 Pos)
+                || (equal_sign v1 Zero && equal_sign v2 Zero)]; *)
         match lst with
-        | List_exact _ ->
-          return [Push element] (* TODO *)
-        | List_lossy _ ->
-          return [Push element] (* TODO *)
+        | List_exact (le,n) ->
+          begin
+            match v1,v2 with
+            | Pos,Pos ->
+              let bound = List.length le in
+              let range = List.of_enum (0--(bound-1))in
+              let%bind i = pick_enum (List.enum range) in
+              let%bind j = pick_enum (List.enum range) in
+              let slice =
+                if i <= j then List.enum(le) |> Enum.skip i |> Enum.take (j+1-i) else List.enum(le) |> Enum.skip j |> Enum.take (i+1-j)
+              in
+              return [Push (Lookup_value(List_value (List_exact(List.of_enum slice, n))))]
+            | Zero,Zero ->
+              return [Push (Lookup_value(List_value (List_exact([List.hd le], n))))]
+            | Zero,Pos ->
+              let bound = List.length le in
+              let range = List.of_enum (0--(bound-1))in
+              let%bind i = pick_enum (List.enum range) in
+              let slice = List.take i le in
+              return [Push (Lookup_value(List_value (List_exact (slice,n))))]
+            | _ -> return []
+          end
+
+        | List_lossy ll ->
+          let bound = List.length ll in
+          let range = List.of_enum (0--(bound-1))in
+          let%bind i = pick_enum (List.enum range) in
+          let slice = List.take i ll in
+          return [Push (Lookup_value(List_value (List_lossy slice)))] (* TODO *)
       end;
 
       (* Store *)
