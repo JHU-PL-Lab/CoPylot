@@ -127,7 +127,6 @@ let per_cfg_edge_function rmr src dst state =
         let%orzero Program_state (Stmt (Statement(_, Let_list_slice (x,lst,m,n)))) = o1 in
         return ([Pop (Lookup_value_variable x); Push (Lookup_slice); Push (Lookup_jump dst); Push (Lookup_capture 4); Push(Lookup_value_variable n); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_value_variable m); Push (Lookup_jump dst); Push (Lookup_capture 8); Push(Lookup_value_variable lst)], Static_terminus(o1))
       end;
-      (* TODO: list slicing *)
       (* Store y x *)
       begin
         let%orzero Program_state (Stmt (Statement(_, Store (y,_)))) = o1 in

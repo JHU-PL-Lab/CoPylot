@@ -186,7 +186,7 @@ struct
         | _ ->
           begin
             match lst with
-            | List_exact le ->
+            | List_exact (le,_) ->
               let m = List.hd le in
               return [Push(Lookup_memory m)]
             | List_lossy ll ->
