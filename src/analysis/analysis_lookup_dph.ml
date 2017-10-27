@@ -58,6 +58,9 @@ struct
       | Tdp_project_2 of memory_location AbstractStringMap.t
       | Tdp_index_1
       | Tdp_index_2 of abstract_memloc_list
+      | Tdp_slice_1
+      | Tdp_slice_2 of abstract_memloc_list
+      | Tdp_slice_3 of abstract_memloc_list * sign
       | Tdp_store of memory_variable * Program_state.t
       | Tdp_isalias_1 of value_variable
       | Tdp_isalias_2 of value_variable * memory_location
@@ -183,7 +186,7 @@ struct
         let%orzero Lookup_value(Integer_value i) = element in
         match i with
         | Neg -> return []
-        | _ ->
+        | Zero ->
           begin
             match lst with
             | List_exact (le,_) ->
@@ -193,6 +196,37 @@ struct
               let m = List.hd ll in
               return [Push(Lookup_memory m)]
           end
+        | Pos ->
+          begin
+            match lst with
+            | List_exact (le,_) ->
+              let%bind m = pick_enum (List.enum le) in
+              return [Push(Lookup_memory m)]
+            | List_lossy ll ->
+              let%bind m = pick_enum (List.enum ll) in
+              return [Push(Lookup_memory m)]
+          end
+      end;
+
+      (* Slice steps *)
+      begin
+        let%orzero Tdp_slice_1 = action in
+        let%orzero Lookup_value(List_value lst) = element in
+        return [Pop_dynamic_targeted (Tdp_index_2 lst)]
+      end;
+      begin
+        let%orzero Tdp_slice_2 lst = action in
+        let%orzero Lookup_value(Integer_value v1) = element in
+        return [Pop_dynamic_targeted (Tdp_slice_3 (lst,v1))]
+      end;
+      begin
+        let%orzero Tdp_slice_3 (lst,_) = action in
+        let%orzero Lookup_value(Integer_value _) = element in
+        match lst with
+        | List_exact _ ->
+          return [Push element] (* TODO *)
+        | List_lossy _ ->
+          return [Push element] (* TODO *)
       end;
 
       (* Store *)

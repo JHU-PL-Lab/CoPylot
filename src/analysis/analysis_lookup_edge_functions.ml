@@ -54,6 +54,8 @@ let global_edge_function state =
     return ([Pop(Lookup_project); Pop_dynamic_targeted(Tdp_project_1)], Static_terminus(state));
     (* Index *)
     return ([Pop(Lookup_index); Pop_dynamic_targeted(Tdp_index_1)], Static_terminus(state));
+    (* Slice *)
+    return ([Pop(Lookup_slice); Pop_dynamic_targeted(Tdp_slice_1)], Static_terminus(state));
     (* Is *)
     return ([Pop(Lookup_is); Pop_dynamic_targeted(Tdp_is_1)], Static_terminus(state));
 
