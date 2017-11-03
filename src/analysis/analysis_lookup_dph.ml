@@ -56,6 +56,8 @@ struct
       | Tdp_bind_3 of memory_location AbstractStringMap.t * abstract_str
       | Tdp_project_1
       | Tdp_project_2 of memory_location AbstractStringMap.t
+      | Tdp_list_1
+      | Tdp_list_2 of int * memory_location list
       | Tdp_index_1
       | Tdp_index_2 of abstract_memloc_list
       | Tdp_slice_1
@@ -175,6 +177,21 @@ struct
         return [Push(Lookup_memory m)]
       end;
 
+      (* List steps *)
+      begin
+        let%orzero Tdp_list_1 = action in
+        let%orzero Lookup_list n = element in
+        return [Pop_dynamic_targeted (Tdp_list_2 (n,[]))]
+      end;
+      begin
+        let%orzero Tdp_list_2 (n,lst) = action in
+        let%orzero Lookup_memory m = element in
+        if n > 1 then
+          return [Pop_dynamic_targeted (Tdp_list_2 (n-1,m::lst))]
+        else
+          return @@ [Push (Lookup_value (List_value (List_exact (lst,List.length lst))))]
+      end;
+
       (* Index steps *)
       begin
         let%orzero Tdp_index_1 = action in
@@ -209,11 +226,23 @@ struct
       end;
 
       (* Slice steps *)
-      begin
+      (* Note: in real life, only the first tdp is in use *)
+      (* begin
         let%orzero Tdp_slice_1 = action in
         let%orzero Lookup_value(List_value lst) = element in
         return [Pop_dynamic_targeted (Tdp_index_2 lst)]
+         end; *)
+      begin
+        let%orzero Tdp_slice_1 = action in
+        let%orzero Lookup_value(List_value lst) = element in
+        match lst with
+        | List_exact (le,_) ->
+          return [Push(Lookup_value (List_value (List_lossy le)))]
+        | List_lossy _ ->
+          return [Push(Lookup_value (List_value lst))]
       end;
+
+      (* Obsolete from here *)
       begin
         let%orzero Tdp_slice_2 lst = action in
         let%orzero Lookup_value(Integer_value v1) = element in
