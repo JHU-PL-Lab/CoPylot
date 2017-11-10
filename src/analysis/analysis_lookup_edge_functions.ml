@@ -88,7 +88,7 @@ let per_cfg_edge_function rmr src dst state =
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Boolean_value b))], Static_terminus(o1))
         | List_expression lst ->
           let n = List.length lst in
-          let () = log_debug src dst (String.concat "" (List.map Yojson.Safe.to_string (List.map memory_variable_to_yojson lst))) in
+          let () = log_debug src dst (String.concat "" (List.map (fun j -> Yojson.Safe.to_string j) (List.map memory_variable_to_yojson lst))) in
           let%orzero Program_state (tgt) = o1 in
           let range = List.of_enum(1--n) in
           return ([Pop (Lookup_value_variable x); Push (Lookup_list n)] @ List.concat @@ List.map2 (fun y i -> [Push (Lookup_jump tgt); Push (Lookup_capture (3*i-1)); Push (Lookup_memory_variable y)]) lst range, Static_terminus(o1))
