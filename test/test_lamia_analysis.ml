@@ -61,7 +61,8 @@ let literal_tests =
     gen_lamia_test "empty_binding_test" "let x = {};;" "x" [Object_value AbstractStringMap.empty];
     gen_lamia_test "none_test" "let x = None;;" "x" [None_value];
 
-    gen_lamia_test "list_test" "let &y = alloc; let x = [&y];;" "x" [List_value(List_exact ([],0))];
+    gen_lamia_test "list_test_empty" "let x = [];;" "x" [List_value(List_exact ([],0))];
+    (* gen_lamia_test "list_test_singleton" "let x = 4; let &y = alloc; store &y x; let x = [&y,&y];;" "x" [List_value(List_exact ([],0))]; *)
 
     gen_lamia_test "simple_func_test" "let f = def () {let &y = alloc; return &y};;" "f"
       [Function_value ([], Block [Statement (-1, Let_alloc (Memory_variable "&y")); Statement (-2, Return (Memory_variable "&y"));])];
@@ -111,6 +112,8 @@ let store_tests =
     gen_lamia_test "store_test" "let x = 4;let &y = alloc; store &y x;;" "&y" [Integer_value Pos];
     gen_lamia_test "get_test" "let x = 4;let &y = alloc; store &y x; let z = get &y;;" "z" [Integer_value Pos];
     gen_lamia_test "store_rebind_test" "let x = 4;let &y = alloc; let x = \"foo\"; store &y x; let z = get &y;;" "z" [String_value (String_exact "foo")];
+    gen_lamia_test "is_test_true" "let x = 4;let &y1 = alloc; store &y1 x; let &y2 = &y1; let z = &y1 is &y2;;" "z" [Boolean_value true];
+    gen_lamia_test "is_test_false" "let &y1 = alloc; let &y2 = alloc; let z = &y1 is &y2;;" "z" [Boolean_value false];
   ]
 
 let if_tests =

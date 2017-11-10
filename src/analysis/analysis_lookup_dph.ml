@@ -185,11 +185,12 @@ struct
       end;
       begin
         let%orzero Tdp_list_2 (n,lst) = action in
-        let%orzero Lookup_memory m = element in
-        if n > 1 then
+        let () = logger `debug (string_of_int n) in
+        if n > 0 then
+          let%orzero Lookup_memory m = element in
           return [Pop_dynamic_targeted (Tdp_list_2 (n-1,m::lst))]
         else
-          return @@ [Push (Lookup_value (List_value (List_exact (lst,List.length lst))))]
+          return [Push (Lookup_value (List_value (List_exact (lst,List.length lst))))]
       end;
 
       (* Index steps *)

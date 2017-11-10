@@ -88,12 +88,16 @@ let per_cfg_edge_function rmr src dst state =
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Boolean_value b))], Static_terminus(o1))
         | List_expression lst ->
           let n = List.length lst in
-          let () = log_debug src dst (String.concat "" (List.map (fun j -> Yojson.Safe.to_string j) (List.map memory_variable_to_yojson lst))) in
+          (* let () = log_debug src dst (String.concat "" (List.map (fun j -> Yojson.Safe.to_string j) (List.map memory_variable_to_yojson lst))) in *)
           let%orzero Program_state (tgt) = o1 in
-          let range = List.of_enum(1--n) in
-          return ([Pop (Lookup_value_variable x); Push (Lookup_list n)] @ List.concat @@ List.map2 (fun y i -> [Push (Lookup_jump tgt); Push (Lookup_capture (3*i-1)); Push (Lookup_memory_variable y)]) lst range, Static_terminus(o1))
+          if n == 0 then
+            return ([Pop (Lookup_value_variable x); Push (Lookup_value (List_value (List_exact ([],0))))], Static_terminus(o1))
+          else
+            let range = List.of_enum(1--n) in
+            let () = logger `debug (string_of_int n) in
+            return ([Pop (Lookup_value_variable x); Push (Lookup_list n)] @ List.concat @@ List.map2 (fun y i -> [Push (Lookup_jump tgt); Push (Lookup_capture (3*i-1)); Push (Lookup_memory_variable y)]) lst range, Static_terminus(o1))
+
         (* raise @@ Utils.Not_yet_implemented "per_cfg_edge_function: list_value" *)
-        (* This is sadness. *)
         | Function_expression (args, block) ->
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Function_value (args, block)))], Static_terminus(o1))
         | None_literal ->
@@ -140,6 +144,7 @@ let per_cfg_edge_function rmr src dst state =
       end;
       (* Store y x *)
       begin
+        let () = log_debug src dst "store" in
         let%orzero Program_state (Stmt (Statement(_, Store (y,_)))) = o1 in
         return ([Pop_dynamic_targeted(Tdp_store(y,dst))], Static_terminus(o1))
       end;
