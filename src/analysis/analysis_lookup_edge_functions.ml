@@ -52,7 +52,7 @@ let global_edge_function state =
     return ([Pop(Lookup_bind); Pop_dynamic_targeted(Tdp_bind_1)], Static_terminus(state));
     (* Project *)
     return ([Pop(Lookup_project); Pop_dynamic_targeted(Tdp_project_1)], Static_terminus(state));
-    (* List *)
+    (* List n *)
     return ([Pop_dynamic_targeted(Tdp_list_1)], Static_terminus(state));
     (* Index *)
     return ([Pop(Lookup_index); Pop_dynamic_targeted(Tdp_index_1)], Static_terminus(state));
@@ -88,9 +88,10 @@ let per_cfg_edge_function rmr src dst state =
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Boolean_value b))], Static_terminus(o1))
         | List_expression lst ->
           let n = List.length lst in
+          let () = log_debug src dst (String.concat "" (List.map Yojson.Safe.to_string (List.map memory_variable_to_yojson lst))) in
           let%orzero Program_state (tgt) = o1 in
-          let range = List.of_enum(1--(n+1)) in
-          return ([Pop (Lookup_value_variable x); Push (Lookup_list n)] @ List.concat @@ List.map2 (fun y i -> [Push (Lookup_jump tgt); Push (Lookup_capture (2*i)); Push (Lookup_memory_variable y)]) lst range, Static_terminus(o1))
+          let range = List.of_enum(1--n) in
+          return ([Pop (Lookup_value_variable x); Push (Lookup_list n)] @ List.concat @@ List.map2 (fun y i -> [Push (Lookup_jump tgt); Push (Lookup_capture (3*i-1)); Push (Lookup_memory_variable y)]) lst range, Static_terminus(o1))
         (* raise @@ Utils.Not_yet_implemented "per_cfg_edge_function: list_value" *)
         (* This is sadness. *)
         | Function_expression (args, block) ->

@@ -60,7 +60,8 @@ let literal_tests =
     gen_lamia_test "bool_false_test" "let x = False;;" "x" [Boolean_value false];
     gen_lamia_test "empty_binding_test" "let x = {};;" "x" [Object_value AbstractStringMap.empty];
     gen_lamia_test "none_test" "let x = None;;" "x" [None_value];
-    (* TODO: List_value *)
+
+    gen_lamia_test "list_test" "let &y = alloc; let x = [&y];;" "x" [List_value(List_exact ([],0))];
 
     gen_lamia_test "simple_func_test" "let f = def () {let &y = alloc; return &y};;" "f"
       [Function_value ([], Block [Statement (-1, Let_alloc (Memory_variable "&y")); Statement (-2, Return (Memory_variable "&y"));])];
