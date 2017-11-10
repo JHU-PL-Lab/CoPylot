@@ -181,16 +181,20 @@ struct
       begin
         let%orzero Tdp_list_1 = action in
         let%orzero Lookup_list n = element in
+        let () = logger `debug "list n" in
         return [Pop_dynamic_targeted (Tdp_list_2 (n,[]))]
       end;
       begin
         let%orzero Tdp_list_2 (n,lst) = action in
         let () = logger `debug (string_of_int n) in
-        if n > 0 then
-          let%orzero Lookup_memory m = element in
+        let%orzero Lookup_memory m = element in
+        if n > 1 then
           return [Pop_dynamic_targeted (Tdp_list_2 (n-1,m::lst))]
         else
-          return [Push (Lookup_value (List_value (List_exact (lst,List.length lst))))]
+          begin
+            (* let () = logger `debug ("result:"^(string_of_int @@ List.length lst)) in *)
+            return [Push (Lookup_value (List_value (List_exact (m::lst,(List.length lst)+1))))]
+          end
       end;
 
       (* Index steps *)
@@ -460,6 +464,7 @@ struct
       begin
         match element with
         | Lookup_value v ->
+          let () = logger `debug (Pp_utils.pp_to_string pp_value v) in
           Enum.singleton ([Pop(Bottom)], Static_terminus(Answer_value v))
         | _ -> Enum.empty ()
       end

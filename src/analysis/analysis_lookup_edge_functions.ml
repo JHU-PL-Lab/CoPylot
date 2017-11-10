@@ -95,7 +95,15 @@ let per_cfg_edge_function rmr src dst state =
           else
             let range = List.of_enum(1--n) in
             let () = logger `debug (string_of_int n) in
-            return ([Pop (Lookup_value_variable x); Push (Lookup_list n)] @ List.concat @@ List.map2 (fun y i -> [Push (Lookup_jump tgt); Push (Lookup_capture (3*i-1)); Push (Lookup_memory_variable y)]) lst range, Static_terminus(o1))
+            return
+              ([Pop (Lookup_value_variable x); Push (Lookup_list n)] @ List.concat @@
+               List.map2
+                 (fun y i ->
+                   [Push (Lookup_jump tgt);
+                    Push (Lookup_capture (3*i-1));
+                    Push (Lookup_memory_variable y)])
+                 lst
+                 range, Static_terminus(o1))
 
         (* raise @@ Utils.Not_yet_implemented "per_cfg_edge_function: list_value" *)
         | Function_expression (args, block) ->
@@ -144,7 +152,7 @@ let per_cfg_edge_function rmr src dst state =
       end;
       (* Store y x *)
       begin
-        let () = log_debug src dst "store" in
+        (* let () = log_debug src dst "store" in *)
         let%orzero Program_state (Stmt (Statement(_, Store (y,_)))) = o1 in
         return ([Pop_dynamic_targeted(Tdp_store(y,dst))], Static_terminus(o1))
       end;

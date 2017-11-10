@@ -62,7 +62,7 @@ let literal_tests =
     gen_lamia_test "none_test" "let x = None;;" "x" [None_value];
 
     gen_lamia_test "list_test_empty" "let x = [];;" "x" [List_value(List_exact ([],0))];
-    (* gen_lamia_test "list_test_singleton" "let x = 4; let &y = alloc; store &y x; let x = [&y,&y];;" "x" [List_value(List_exact ([],0))]; *)
+    gen_lamia_test "list_test_singleton" "let x = 4; let &y = alloc; store &y x; let z = [&y,&y];;" "z" [(List_value(List_exact ([Memloc(Statement (-2,(Let_alloc (Memory_variable "&y"))));(Memloc(Statement (-2,(Let_alloc (Memory_variable "&y")))))],2)))];
 
     gen_lamia_test "simple_func_test" "let f = def () {let &y = alloc; return &y};;" "f"
       [Function_value ([], Block [Statement (-1, Let_alloc (Memory_variable "&y")); Statement (-2, Return (Memory_variable "&y"));])];
