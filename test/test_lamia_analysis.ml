@@ -126,7 +126,11 @@ let operator_tests =
 let store_tests =
   [
     gen_lamia_test "store_test" "let x = 4;let &y = alloc; store &y x;;" "&y" [Integer_value Pos];
-    gen_lamia_test "get_test" "let x = 4;let &y = alloc; store &y x; let z = get &y;;" "z" [Integer_value Pos];
+    gen_lamia_test "store_fun_test" "let f = def (x) {let &y = alloc; store &y x; return &y}; let &y = alloc; store &y f;;" "&y" [Function_value ([Value_variable "x"],
+    Block [Statement (-1, Let_alloc (Memory_variable "&y"));
+           Statement (-2, Store ((Memory_variable "&y"),(Value_variable "x")));
+           Statement (-3, Return (Memory_variable "&y"));])];
+    gen_lamia_test "get_test" "let x = 4; let &y = alloc; store &y x; let z = get &y;;" "z" [Integer_value Pos];
     gen_lamia_test "store_rebind_test" "let x = 4;let &y = alloc; let x = \"foo\"; store &y x; let z = get &y;;" "z" [String_value (String_exact "foo")];
     gen_lamia_test "is_test_true" "let x = 4;let &y1 = alloc; store &y1 x; let &y2 = &y1; let z = &y1 is &y2;;" "z" [Boolean_value true];
     gen_lamia_test "is_test_false" "let &y1 = alloc; let &y2 = alloc; let z = &y1 is &y2;;" "z" [Boolean_value false];
@@ -160,8 +164,11 @@ let function_call_tests =
     gen_lamia_test "free_var_test3" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let x = -1; let &z = f();;" "&z" [Integer_value Pos];
     gen_lamia_test "arg_list_test" "let x = 1; let y = True; let f = def (m,n) {let &y = alloc; store &y n; return &y}; let &z = f(x,y);;" "&z" [Boolean_value true];
     gen_lamia_test "call_within_call_test" "let f = def () {let &y = alloc; let x = 1; store &y x; return &y}; let g = def () {let &y = f(); return &y}; let &z = g();;" "&z" [Integer_value Pos];
+    gen_lamia_test "return_in_if_test" "let f = def (x) {let &y = if x then {let u = 4; let &y = alloc; store &y u; return &y} else {let &y = alloc; store &y x; return &y};}; let x = True; let &z = f(x);;" "&z" [Integer_value Pos];
+    (* gen_lamia_test "return_self_test" "let f = def (x) {let &y = alloc; store &y f; return &y;}; let x = True; let &z = f(x);;" "&z" [Integer_value Pos]; *)
+
     (* TODO *)
-    (* gen_lamia_test "recursive_call_test" "let f = def (x) {let &y = if x then {let x2 = not x; let &y = f(x2); ifresult &y} else {let &y = alloc; store &y x; ifresult &y}; return &y}; let x = True; let &z = f(x);;" "&z" [Boolean_value false]; *)
+    (* gen_lamia_test "recursive_call_test" "let f = def (x) {let &y = if x then {let x2 = not x; let &y = f(x2); return &y} else {let &y = alloc; store &y x; return &y};}; let x = True; let &z = f(x);;" "&z" [Boolean_value false]; *)
   ]
 ;;
 
