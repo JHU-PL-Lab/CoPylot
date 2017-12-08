@@ -127,8 +127,8 @@ let has_key obj str =
 let list_concat lst_1 lst_2 =
   [
     (let%orzero List_exact (l1,n1), List_exact (l2,n2) = lst_1,lst_2 in
-     [%guard n1 == n2];
-     return @@ (if List.length l1 + List.length l2 <= n1 then List_value(List_exact (l1 @ l2, n2)) else List_value(List_lossy (l1 @ l2))));
+     let c = max n1 n2 in
+     return @@ (if List.length l1 + List.length l2 <= c then List_value(List_exact (l1 @ l2, c)) else List_value(List_lossy (l1 @ l2))));
     (let%orzero List_exact (l1,_), List_lossy l2 = lst_1,lst_2 in return @@ List_value(List_lossy (l1 @ l2)));
     (let%orzero List_lossy l1, List_exact (l2,_) = lst_1,lst_2 in return @@ List_value(List_lossy (l1 @ l2)));
     (let%orzero List_lossy l1, List_lossy l2 = lst_1,lst_2 in return @@ List_value(List_lossy (l1 @ l2)));
