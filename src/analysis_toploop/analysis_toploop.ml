@@ -6,7 +6,7 @@ open Analysis_grammar;;
 open Analysis_types;;
 open Jhupllib_logger_utils;;
 
-set_default_logging_level `warn;;
+set_default_logging_level `debug;;
 let level = `debug;;
 set_logging_level_for "Analysis_lookup_edge_functions" level;;
 set_logging_level_for "Analysis_construct_cfg" level;;

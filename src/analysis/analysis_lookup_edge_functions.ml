@@ -52,8 +52,12 @@ let global_edge_function state =
     return ([Pop(Lookup_bind); Pop_dynamic_targeted(Tdp_bind_1)], Static_terminus(state));
     (* Project *)
     return ([Pop(Lookup_project); Pop_dynamic_targeted(Tdp_project_1)], Static_terminus(state));
+    (* List n *)
+    return ([Pop_dynamic_targeted(Tdp_list_1)], Static_terminus(state));
     (* Index *)
     return ([Pop(Lookup_index); Pop_dynamic_targeted(Tdp_index_1)], Static_terminus(state));
+    (* Slice *)
+    return ([Pop(Lookup_slice); Pop_dynamic_targeted(Tdp_slice_1)], Static_terminus(state));
     (* Is *)
     return ([Pop(Lookup_is); Pop_dynamic_targeted(Tdp_is_1)], Static_terminus(state));
 
@@ -66,7 +70,7 @@ let global_edge_function state =
 let per_cfg_edge_function rmr src dst state =
   if State.equal state (Program_state dst) then
     let open Nondeterminism_monad in
-    log_debug src dst @@ "Begin";
+    (* log_debug src dst @@ "Begin"; *)
     let o0 = Program_state(dst) in
     let o1 = Program_state(src) in
     [
@@ -75,14 +79,33 @@ let per_cfg_edge_function rmr src dst state =
         let%orzero Program_state (Stmt (Statement(_, Let_expression (x,e)))) = o1 in
         match e with
         | Integer_literal sgn ->
-          let () = log_debug src dst "let x = int" in
+          (* let () = log_debug src dst "let x = int" in *)
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Integer_value sgn))], Static_terminus(o1))
         | String_literal str ->
-          let () = log_debug src dst @@ "let x = str: " ^ show_abstract_str str in
+          (* let () = log_debug src dst @@ "let x = str: " ^ show_abstract_str str in *)
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (String_value str))], Static_terminus(o1))
         | Boolean_literal b ->
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Boolean_value b))], Static_terminus(o1))
-        | List_expression _ -> raise @@ Utils.Not_yet_implemented "per_cfg_edge_function: list_value"
+        | List_expression lst ->
+          let n = List.length lst in
+          (* let () = log_debug src dst (String.concat "" (List.map (fun j -> Yojson.Safe.to_string j) (List.map memory_variable_to_yojson lst))) in *)
+          let%orzero Program_state (tgt) = o1 in
+          if n == 0 then
+            return ([Pop (Lookup_value_variable x); Push (Lookup_value (List_value (List_exact ([],0))))], Static_terminus(o1))
+          else
+            let range = List.of_enum(1--n) in
+            let () = logger `debug (string_of_int n) in
+            return
+              ([Pop (Lookup_value_variable x); Push (Lookup_list n)] @ List.concat @@
+               List.map2
+                 (fun y i ->
+                   [Push (Lookup_jump tgt);
+                    Push (Lookup_capture (3*i-1));
+                    Push (Lookup_memory_variable y)])
+                 lst
+                 range, Static_terminus(o1))
+
+        (* raise @@ Utils.Not_yet_implemented "per_cfg_edge_function: list_value" *)
         | Function_expression (args, block) ->
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Function_value (args, block)))], Static_terminus(o1))
         | None_literal ->
@@ -109,7 +132,7 @@ let per_cfg_edge_function rmr src dst state =
       (* Let b = b'{x->y} *)
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_binding_update (b, b', x, y)))) = o1 in
-        let () = logger `debug "update binding" in
+        (* let () = logger `debug "update binding" in *)
         return ([Pop (Lookup_value_variable b); Push (Lookup_bind); Push (Lookup_jump dst); Push (Lookup_capture 4); Push(Lookup_memory_variable y); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_value_variable x); Push (Lookup_jump dst); Push (Lookup_capture 8); Push(Lookup_value_variable b')], Static_terminus(o1))
       end;
       (* Let y = b{x} *)
@@ -123,22 +146,26 @@ let per_cfg_edge_function rmr src dst state =
         return ([Pop (Lookup_memory_variable y); Push (Lookup_index); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_value_variable i); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_value_variable lst)], Static_terminus(o1))
       end;
       (* Let y = lst[m:n] *)
-      (* TODO: list slicing *)
+      begin
+        let%orzero Program_state (Stmt (Statement(_, Let_list_slice (x,lst,m,n)))) = o1 in
+        return ([Pop (Lookup_value_variable x); Push (Lookup_slice); Push (Lookup_jump dst); Push (Lookup_capture 4); Push(Lookup_value_variable n); Push (Lookup_jump dst); Push (Lookup_capture 6); Push(Lookup_value_variable m); Push (Lookup_jump dst); Push (Lookup_capture 8); Push(Lookup_value_variable lst)], Static_terminus(o1))
+      end;
       (* Store y x *)
       begin
+        (* let () = log_debug src dst "store" in *)
         let%orzero Program_state (Stmt (Statement(_, Store (y,_)))) = o1 in
         return ([Pop_dynamic_targeted(Tdp_store(y,dst))], Static_terminus(o1))
       end;
       (* Let x = get y *)
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_get (x,y)))) = o1 in
-        let () = log_debug src dst "get" in
+        (* let () = log_debug src dst "get" in *)
         return ([Pop (Lookup_value_variable x); Push (Lookup_dereference); Push (Lookup_jump dst); Push (Lookup_capture 1); Push(Lookup_memory_variable y)], Static_terminus(o1))
       end;
       (* Let x = y1 is y2 *)
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_is (x,y1,y2)))) = o1 in
-        let () = log_debug src dst "let is" in
+        (* let () = log_debug src dst "let is" in *)
         return ([Pop (Lookup_value_variable x); Push (Lookup_is); Push (Lookup_jump dst); Push (Lookup_capture 3); Push(Lookup_memory_variable y2); Push (Lookup_jump dst); Push (Lookup_capture 5); Push(Lookup_memory_variable y1)], Static_terminus(o1))
       end;
       (* Let x = unop x' *)
@@ -159,7 +186,7 @@ let per_cfg_edge_function rmr src dst state =
         let%orzero Program_state (Stmt (s')) = o0 in
         let%orzero Some Statement(_, Let_expression (_, Function_expression (lst',_))) = (Stmt_map.find s' rmr.down) in
         [%guard List.length lst = List.length lst']; (* Should never fail, but technically needed to match rule *)
-        log_debug src dst "Function search";
+        (* log_debug src dst "Function search"; *)
         return ([Pop_dynamic_targeted(Tdp_func_search (x,lst,lst'))], Static_terminus(o1))
       end;
       (* Try/Except top x *)
@@ -180,14 +207,14 @@ let per_cfg_edge_function rmr src dst state =
       (* Is Alias *)
       begin
         let%orzero Program_state (Stmt (Statement(_, Store (_,x)))) = o1 in
-        let () = log_debug src dst "is alias" in
+        (* let () = log_debug src dst "is alias" in *)
         return ([Pop Lookup_isalias; Pop_dynamic_targeted(Tdp_isalias_1 x)], Static_terminus(o1))
       end;
 
       (* Trace and get Answer (value) *)
       begin
         let%orzero Stmt (Statement(_, If_result_value x)) = src in
-        let () = log_debug src dst "Trace end (value)" in
+        (* let () = log_debug src dst "Trace end (value)" in *)
         return ([Pop_dynamic_targeted(Tdp_trace_x x)], Static_terminus o1)
       end;
 
@@ -198,7 +225,7 @@ let per_cfg_edge_function rmr src dst state =
         | Stmt (Statement(_, If_result_memory y))
         | Stmt (Statement(_, Analysis_types.Raise y)))
           = src in
-        let () = log_debug src dst "Trace end (memory)" in
+        (* let () = log_debug src dst "Trace end (memory)" in *)
         return ([Pop_dynamic_targeted(Tdp_trace_y y)], Static_terminus o1)
       end;
 
@@ -206,7 +233,7 @@ let per_cfg_edge_function rmr src dst state =
       begin
         let%orzero Raise _ = src in
         let%orzero Stmt _ = dst in
-        let () = log_debug src dst "start Raise" in
+        (* let () = log_debug src dst "start Raise" in *)
         return ([Pop_dynamic_targeted (Tdp_raise)], Static_terminus o1)
       end;
 
@@ -219,7 +246,7 @@ let per_cfg_edge_function rmr src dst state =
         | Let_conditional_memory _
         | Try_except _)
           = d in
-        let () = log_debug src dst "go to while/if/try" in
+        (* let () = log_debug src dst "go to while/if/try" in *)
         return ([Nop], Static_terminus(o1))
       end;
 
@@ -230,7 +257,7 @@ let per_cfg_edge_function rmr src dst state =
         | Program_state.Ifresult _
         | Program_state.Raise _)
           = src in
-        let () = log_debug src dst "go to return/ifresult/raise" in
+        (* let () = log_debug src dst "go to return/ifresult/raise" in *)
         return ([Nop], Static_terminus(o1))
       end;
 
@@ -319,7 +346,7 @@ let per_cfg_edge_function rmr src dst state =
           match target_parent with
           | None -> false
           | Some tp -> equal_statement s tp in
-        let () = log_debug src dst ("is_parent: " ^ string_of_bool is_parent) in
+        (* let () = log_debug src dst ("is_parent: " ^ string_of_bool is_parent) in *)
         return ([], Dynamic_terminus(Udp_advance_while (is_parent, o1)))
       end;
 
@@ -333,7 +360,7 @@ let per_cfg_edge_function rmr src dst state =
           match target_parent with
           | None -> false
           | Some tp -> equal_statement s tp in
-        let () = log_debug src dst ("is_parent: " ^ string_of_bool is_parent) in
+        (* let () = log_debug src dst ("is_parent: " ^ string_of_bool is_parent) in *)
         return ([], Dynamic_terminus(Udp_advance_while (is_parent, o1)))
       end;
     ]

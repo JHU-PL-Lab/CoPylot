@@ -33,6 +33,7 @@ struct
     | Lookup_answer
     | Lookup_is
     | Lookup_drop
+    | Lookup_list of int
     (* | Lookup_except *)
   [@@deriving eq, ord, show, to_yojson]
   ;;

@@ -32,6 +32,12 @@ type abstract_str =
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
+(* type abstract_memvar_list =
+  | List_exact of memory_variable list * int
+  | List_lossy of memory_variable list
+[@@deriving eq, ord, show, to_yojson]
+;; *)
+
 type value_expression =
   | Integer_literal of sign
   | String_literal of abstract_str
@@ -88,15 +94,15 @@ and statement =
 and block =
     | Block of statement list
 [@@deriving eq, ord, show, to_yojson]
-;;
+(* ;; *)
 
-type memory_location =
+and memory_location =
   | Memloc of statement
 [@@deriving eq, ord, show, to_yojson]
-;;
+(* ;; *)
 
-type abstract_memloc_list =
-  | List_exact of memory_location list
+and abstract_memloc_list =
+  | List_exact of memory_location list * int
   | List_lossy of memory_location list
 [@@deriving eq, ord, show, to_yojson]
 ;;

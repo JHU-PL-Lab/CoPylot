@@ -56,8 +56,13 @@ struct
       | Tdp_bind_3 of memory_location AbstractStringMap.t * abstract_str
       | Tdp_project_1
       | Tdp_project_2 of memory_location AbstractStringMap.t
+      | Tdp_list_1
+      | Tdp_list_2 of int * memory_location list
       | Tdp_index_1
       | Tdp_index_2 of abstract_memloc_list
+      | Tdp_slice_1
+      | Tdp_slice_2 of abstract_memloc_list
+      | Tdp_slice_3 of abstract_memloc_list * sign
       | Tdp_store of memory_variable * Program_state.t
       | Tdp_isalias_1 of value_variable
       | Tdp_isalias_2 of value_variable * memory_location
@@ -172,6 +177,26 @@ struct
         return [Push(Lookup_memory m)]
       end;
 
+      (* List steps *)
+      begin
+        let%orzero Tdp_list_1 = action in
+        let%orzero Lookup_list n = element in
+        let () = logger `debug "list n" in
+        return [Pop_dynamic_targeted (Tdp_list_2 (n,[]))]
+      end;
+      begin
+        let%orzero Tdp_list_2 (n,lst) = action in
+        let () = logger `debug (string_of_int n) in
+        let%orzero Lookup_memory m = element in
+        if n > 1 then
+          return [Pop_dynamic_targeted (Tdp_list_2 (n-1,m::lst))]
+        else
+          begin
+            (* let () = logger `debug ("result:"^(string_of_int @@ List.length lst)) in *)
+            return [Push (Lookup_value (List_value (List_exact (List.rev (m::lst),(List.length lst)+1))))]
+          end
+      end;
+
       (* Index steps *)
       begin
         let%orzero Tdp_index_1 = action in
@@ -183,17 +208,119 @@ struct
         let%orzero Lookup_value(Integer_value i) = element in
         match i with
         | Neg -> return []
-        | _ ->
+        | Zero ->
           begin
             match lst with
-            | List_exact le ->
-              let m = List.hd le in
+            | List_exact (m::_,_) ->
+              (* let m = List.hd le in *)
+              return [Push(Lookup_memory m)]
+            | List_lossy (m::_) ->
+              (* let m = List.hd ll in *)
+              return [Push(Lookup_memory m)]
+            | List_exact ([],_) -> return []
+            | List_lossy [] -> return []
+          end
+        | Pos ->
+          begin
+            match lst with
+            | List_exact (le,_) ->
+              let%bind m = pick_enum (List.enum le) in
               return [Push(Lookup_memory m)]
             | List_lossy ll ->
-              let m = List.hd ll in
+              let%bind m = pick_enum (List.enum ll) in
               return [Push(Lookup_memory m)]
+            (* | List_exact ([],_) -> return [] *)
           end
       end;
+
+      (* Slice steps *)
+      (* Note: in real life, only the first tdp is in use *)
+      (* begin
+        let%orzero Tdp_slice_1 = action in
+        let%orzero Lookup_value(List_value lst) = element in
+        return [Pop_dynamic_targeted (Tdp_index_2 lst)]
+         end; *)
+      begin
+        let%orzero Tdp_slice_1 = action in
+        let%orzero Lookup_value(List_value lst) = element in
+        (* match lst with
+        | List_exact (le,_) ->
+          return [Push(Lookup_value (List_value (List_lossy le)))]
+        | List_lossy _ ->
+           return [Push(Lookup_value (List_value lst))] *)
+        return [Pop_dynamic_targeted (Tdp_slice_2 lst)]
+      end;
+      begin
+        let%orzero Tdp_slice_2 lst = action in
+        let%orzero Lookup_value(Integer_value v1) = element in
+        return [Pop_dynamic_targeted (Tdp_slice_3 (lst,v1))]
+      end;
+      begin
+        let%orzero Tdp_slice_3 (lst,v1) = action in
+        let%orzero Lookup_value(Integer_value v2) = element in
+        (* [%guard (equal_sign v1 Pos && equal_sign v2 Pos)
+                || (equal_sign v1 Zero && equal_sign v2 Pos)
+                || (equal_sign v1 Zero && equal_sign v2 Zero)]; *)
+        match lst with
+        | List_exact (hd::le,_) ->
+          begin
+            match v1,v2 with
+            | Pos,Pos ->
+              return [Push (Lookup_value(List_value (List_lossy le)))]
+            | Zero,Zero ->
+              return [Push (Lookup_value(List_value (List_lossy[hd])))]
+            | Zero,Pos ->
+              return [Push (Lookup_value(List_value (List_lossy (hd::le))))]
+            | _ -> return []
+          end
+        | List_exact ([],_) -> return []
+        | List_lossy ll ->
+          return [Push (Lookup_value(List_value (List_lossy ll)))] (* TODO *)
+      end;
+
+      (* Obsolete from here *)
+      (* begin
+        let%orzero Tdp_slice_2 lst = action in
+        let%orzero Lookup_value(Integer_value v1) = element in
+        return [Pop_dynamic_targeted (Tdp_slice_3 (lst,v1))]
+      end;
+      begin
+        let%orzero Tdp_slice_3 (lst,v1) = action in
+        let%orzero Lookup_value(Integer_value v2) = element in
+        (* [%guard (equal_sign v1 Pos && equal_sign v2 Pos)
+                || (equal_sign v1 Zero && equal_sign v2 Pos)
+                || (equal_sign v1 Zero && equal_sign v2 Zero)]; *)
+        match lst with
+        | List_exact (le,n) ->
+          begin
+            match v1,v2 with
+            | Pos,Pos ->
+              let bound = List.length le in
+              let range = List.of_enum (0--(bound-1))in
+              let%bind i = pick_enum (List.enum range) in
+              let%bind j = pick_enum (List.enum range) in
+              let slice =
+                if i <= j then List.enum(le) |> Enum.skip i |> Enum.take (j+1-i) else List.enum(le) |> Enum.skip j |> Enum.take (i+1-j)
+              in
+              return [Push (Lookup_value(List_value (List_exact(List.of_enum slice, n))))]
+            | Zero,Zero ->
+              return [Push (Lookup_value(List_value (List_exact([List.hd le], n))))]
+            | Zero,Pos ->
+              let bound = List.length le in
+              let range = List.of_enum (0--(bound-1))in
+              let%bind i = pick_enum (List.enum range) in
+              let slice = List.take i le in
+              return [Push (Lookup_value(List_value (List_exact (slice,n))))]
+            | _ -> return []
+          end
+
+        | List_lossy ll ->
+          let bound = List.length ll in
+          let range = List.of_enum (0--(bound-1))in
+          let%bind i = pick_enum (List.enum range) in
+          let slice = List.take i ll in
+          return [Push (Lookup_value(List_value (List_lossy slice)))] (* TODO *)
+      end; *)
 
       (* Store *)
       begin
@@ -368,6 +495,7 @@ struct
       begin
         match element with
         | Lookup_value v ->
+          let () = logger `debug (Pp_utils.pp_to_string pp_value v) in
           Enum.singleton ([Pop(Bottom)], Static_terminus(Answer_value v))
         | _ -> Enum.empty ()
       end

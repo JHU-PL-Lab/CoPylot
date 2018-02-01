@@ -51,6 +51,7 @@
 %token INTPLUS
 %token INTMINUS
 %token ISEQUAL
+%token LISTCONCAT
 
 /* other */
 %token EOF
@@ -204,6 +205,8 @@ binary_operator:
     { Binop_haskey }
   | ISEQUAL
     { Binop_equals }
+  | LISTCONCAT
+    { Binop_listconcat }
 
 %inline
 separated_list_trailing(sep,item):
