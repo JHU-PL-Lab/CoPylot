@@ -315,7 +315,9 @@ and simplify_stmt ctx
          | Concrete.Builtin _
            -> raise @@ Invalid_assignment "Can't assign to builtin. How did you even do that?"
 
-      ) in
+      )
+      (* End of simplify_assignment *)
+    in
     value_bindings @ (map_and_concat simplify_assignment targets)
 
   | Concrete.AugAssign (target, op, value, annot) ->

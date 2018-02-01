@@ -65,7 +65,7 @@ let lookup (id : string) =
   return retval
 ;;
 
-let get_attr_error target bindings on_failure =
+let get_or_error target bindings on_failure =
   let%bind target_result = store_value @@ String_literal(target) in
   get_from_binding target_result bindings on_failure
 ;;
@@ -83,7 +83,7 @@ let get_attr target bindings =
         Raise(exn_obj);
       ]
   in
-  get_attr_error target bindings throw_exn
+  get_or_error target bindings throw_exn
 ;;
 
 let lookup_and_get_attr varname attr =
@@ -190,7 +190,7 @@ let get_call target =
           Raise(exn_obj);
         ]
     in
-    let%bind new_tmp = get_attr_error "__call__" tmp_bindings throw_exn in
+    let%bind new_tmp = get_or_error "__call__" tmp_bindings throw_exn in
     emit
       [
         Let_alias_memory(tmp_loc, new_tmp);

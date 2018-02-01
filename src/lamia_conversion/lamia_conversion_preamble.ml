@@ -92,8 +92,8 @@ let add_to_global_python_scope varname memloc =
 let all_definitions =
   [
     define_scope;
-    define_func_val get_from_scope_def get_from_scope;
     define_get_from_parent_scope;
+    define_func_val get_from_scope_def get_from_scope;
 
     define_obj_mem builtin_true fill_bool @@ Integer_literal 1;
     define_obj_mem builtin_false fill_bool @@ Integer_literal 0;
@@ -102,7 +102,7 @@ let all_definitions =
     define_func_mem builtin_attribute_error_body builtin_AttributeError;
     define_func_mem builtin_type_error_body builtin_TypeError;
     define_func_mem builtin_name_error_body builtin_NameError;
-    define_func_mem builtin_stop_iteration_body builtin_ValueError;
+    (* define_func_mem builtin_value_error_body builtin_ValueError; *)
     define_func_mem builtin_stop_iteration_body builtin_StopIteration;
 
     define_func_mem builtin_bool_body builtin_bool;

@@ -64,7 +64,7 @@ and convert_stmt
     (* Work to figure out if test is True or False. Needs to be
        appended to the while loop body as well *)
     let value_bindings =
-      (* Turn value_bindings back into directives *)
+      (* Turn value_stmts back into directives *)
       List.map (fun s -> let Statement(_, d) = s in d) value_stmts
     in
     let%bind _, while_body =
@@ -291,6 +291,9 @@ and convert_expr
     let%bind obj_result = wrap_bool value in
     return obj_result
 
+  | Name (id) ->
+    lookup id
+
   | Builtin (b) ->
     begin
       match b with
@@ -361,9 +364,6 @@ and convert_expr
         ]
     in
     return funcval_loc
-
-  | Name (id) ->
-    lookup id
 ;;
 
 let annot_to_uid
