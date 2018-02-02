@@ -1,6 +1,7 @@
 open Batteries;;
 module Lamia = Lamia_ast;;
-module Macros = Lamia_macro_ast;;
+module Macros = Lybie_ast;;
+(* TODO: Probably gonna want lamia_conversion_monad *)
 
 let rec expand_macros_block (m : 'a Macros.block) : 'a Lamia.block =
   let Macros.Block(stmts) = m in

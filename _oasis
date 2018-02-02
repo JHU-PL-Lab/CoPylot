@@ -89,12 +89,12 @@ Library "lamia_language"
     ppx_deriving_yojson,
     CoPylot.ast_simplification
 
-Library "lamia_macros"
+Library "Lybie"
   FindlibParent: CoPylot
-  Path: src/lamia_macros
+  Path: src/lybie
   Modules:
-    Lamia_macro_ast,
-    Lamia_macro_expander
+    Lybie_ast,
+    Lybie_expander
   BuildDepends:
     batteries,
     jhupllib,
