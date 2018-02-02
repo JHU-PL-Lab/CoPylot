@@ -12,12 +12,15 @@ and expand_macros_stmt
   match stmt with
   | Macros.Lamia_statement (annot, d) ->
     [Lamia.Statement(annot, d)]
-  | Macros.Stmt_Macro(macro) ->
-    expand_macro macro
+  | Macros.Stmt_Macro(annot, macro) ->
+    expand_macro annot macro
 
 and expand_macro
-    (m : 'a Macros.stmt_macro)
+    (annot : 'a)
+    (m : Macros.stmt_macro)
   : 'a Lamia.statement list =
+  ignore @@ annot;
   match m with
-  | Macros.TODO _ -> failwith "Don't have any macros yet"
+  | Macros.Python_function_preamble(args) ->
+    ignore args; failwith "NYI"
 ;;
