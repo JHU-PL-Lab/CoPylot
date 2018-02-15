@@ -29,43 +29,57 @@ let unary_operation op v =
 let int_plus n1 n2 =
   [
     begin
-      let%orzero Pos,Pos = n1,n2 in
-      return (Integer_value Pos)
+      let%orzero Int_lossy Pos, Int_lossy Pos = n1,n2 in
+      return (Integer_value n1)
     end;
     begin
-      let%orzero Pos,Neg = n1,n2 in
-      let%bind n = pick_enum (List.enum [Pos;Neg;Zero]) in
+      let%orzero Int_lossy Pos, Int_lossy Neg = n1,n2 in
+      let%bind n =
+        pick_enum (List.enum [Int_lossy Pos;Int_lossy Neg;Int_exact 0]) in
       return (Integer_value n)
     end;
     begin
-      let%orzero Pos,Zero = n1,n2 in
-      return (Integer_value Pos)
+      let%orzero Int_lossy Pos, Int_exact n = n1,n2 in
+      if n >= 0 then return (Integer_value n1)
+      else let%bind sum =
+             pick_enum (List.enum [Int_lossy Pos;Int_lossy Neg;Int_exact 0]) in
+        return (Integer_value sum)
     end;
     begin
-      let%orzero Neg,Pos = n1,n2 in
-      let%bind n = pick_enum (List.enum [Pos;Neg;Zero]) in
+      let%orzero Int_lossy Neg, Int_lossy Pos = n1,n2 in
+      let%bind n =
+        pick_enum (List.enum [Int_lossy Pos;Int_lossy Neg;Int_exact 0]) in
       return (Integer_value n)
     end;
     begin
-      let%orzero Neg,Neg = n1,n2 in
-      return (Integer_value Neg)
+      let%orzero Int_lossy Neg, Int_lossy Neg = n1,n2 in
+      return (Integer_value n1)
     end;
     begin
-      let%orzero Neg,Zero = n1,n2 in
-      return (Integer_value Neg)
+      let%orzero Int_lossy Neg, Int_exact n = n1,n2 in
+      if n <= 0 then return (Integer_value n1)
+      else let%bind sum =
+             pick_enum (List.enum [Int_lossy Pos;Int_lossy Neg;Int_exact 0]) in
+        return (Integer_value sum)
     end;
     begin
-      let%orzero Zero,Zero = n1,n2 in
-      return (Integer_value Zero)
+      let%orzero Int_exact x, Int_exact y = n1,n2 in
+      if x + y > 0 then return (Integer_value (Int_lossy Pos))
+      else if x + y = 0 then return (Integer_value (Int_exact 0))
+      else return (Integer_value (Int_lossy Neg))
     end;
-    begin
-      let%orzero Zero,Pos = n1,n2 in
-      return (Integer_value Pos)
-    end;
-    begin
-      let%orzero Zero,Neg = n1,n2 in
-      return (Integer_value Neg)
-    end;
+    (* begin
+       let%orzero Zero,Zero = n1,n2 in
+       return (Integer_value Zero)
+       end;
+       begin
+       let%orzero Zero,Pos = n1,n2 in
+       return (Integer_value Pos)
+       end;
+       begin
+       let%orzero Zero,Neg = n1,n2 in
+       return (Integer_value Neg)
+       end; *)
   ]
   |> List.enum
   |> Enum.map Nondeterminism_monad.enum
@@ -75,43 +89,57 @@ let int_plus n1 n2 =
 let int_minus n1 n2 =
   [
     begin
-      let%orzero Pos,Pos = n1,n2 in
-      let%bind n = pick_enum (List.enum [Pos;Neg;Zero]) in
+      let%orzero Int_lossy Pos, Int_lossy Pos = n1,n2 in
+      let%bind n =
+        pick_enum (List.enum [Int_lossy Pos;Int_lossy Neg;Int_exact 0]) in
       return (Integer_value n)
     end;
     begin
-      let%orzero Pos,Neg = n1,n2 in
-      return (Integer_value Pos)
+      let%orzero Int_lossy Pos, Int_lossy Neg = n1,n2 in
+      return (Integer_value n1)
     end;
     begin
-      let%orzero Pos,Zero = n1,n2 in
-      return (Integer_value Pos)
+      let%orzero Int_lossy Pos, Int_exact n = n1,n2 in
+      if n <= 0 then return (Integer_value n1)
+      else let%bind diff =
+             pick_enum (List.enum [Int_lossy Pos;Int_lossy Neg;Int_exact 0]) in
+        return (Integer_value diff)
     end;
     begin
-      let%orzero Neg,Pos = n1,n2 in
-      return (Integer_value Neg)
+      let%orzero Int_lossy Neg, Int_lossy Pos = n1,n2 in
+      return (Integer_value n1)
     end;
     begin
-      let%orzero Neg,Neg = n1,n2 in
-      let%bind n = pick_enum (List.enum [Pos;Neg;Zero]) in
+      let%orzero Int_lossy Neg, Int_lossy Neg = n1,n2 in
+      let%bind n =
+        pick_enum (List.enum [Int_lossy Pos;Int_lossy Neg;Int_exact 0]) in
       return (Integer_value n)
     end;
     begin
-      let%orzero Neg,Zero = n1,n2 in
-      return (Integer_value Neg)
+      let%orzero Int_lossy Neg, Int_exact n = n1,n2 in
+      if n >= 0 then return (Integer_value n1)
+      else let%bind diff =
+             pick_enum (List.enum [Int_lossy Pos;Int_lossy Neg;Int_exact 0]) in
+        return (Integer_value diff)
     end;
     begin
-      let%orzero Zero,Zero = n1,n2 in
-      return (Integer_value Zero)
+      let%orzero Int_exact x, Int_exact y = n1,n2 in
+      if x - y > 0 then return (Integer_value (Int_lossy Pos))
+      else if x - y = 0 then return (Integer_value (Int_exact 0))
+      else return (Integer_value (Int_lossy Neg))
     end;
-    begin
-      let%orzero Zero,Pos = n1,n2 in
-      return (Integer_value Neg)
-    end;
-    begin
-      let%orzero Zero,Neg = n1,n2 in
-      return (Integer_value Pos)
-    end;
+    (* begin
+       let%orzero Zero,Zero = n1,n2 in
+       return (Integer_value Zero)
+       end;
+       begin
+       let%orzero Zero,Pos = n1,n2 in
+       return (Integer_value Neg)
+       end;
+       begin
+       let%orzero Zero,Neg = n1,n2 in
+       return (Integer_value Pos)
+       end; *)
   ]
   |> List.enum
   |> Enum.map Nondeterminism_monad.enum
@@ -168,3 +196,5 @@ let binary_operation op v1 v2 =
     end
   | Binop_equals ->
     Enum.singleton (if equal_value v1 v2 then Boolean_value true else Boolean_value false)
+    (* TODO: int, string, list behave differently *)
+;;

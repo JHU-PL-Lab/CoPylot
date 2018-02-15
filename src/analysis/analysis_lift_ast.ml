@@ -62,12 +62,13 @@ and lift_directive tbl d =
 and lift_value_expression tbl e =
   match e with
   | Lamia.Integer_literal n ->
-    let sign =
+    (* let sign =
       if n > 0 then Abstract.Pos else
       if n < 0 then Abstract.Neg else
         Abstract.Zero
     in
-    Abstract.Integer_literal sign
+       Abstract.Integer_literal sign *)
+    Abstract.Integer_literal (Abstract.Int_exact n)
   | Lamia.String_literal s -> Abstract.String_literal(Abstract.String_exact s)
   | Lamia.Boolean_literal b -> Abstract.Boolean_literal b
   | Lamia.List_expression lst -> Abstract.List_expression(List.map lift_memory_var lst)

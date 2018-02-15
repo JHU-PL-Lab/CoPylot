@@ -22,7 +22,13 @@ type memory_variable =
 type sign =
   | Pos
   | Neg
-  | Zero
+  (* | Zero *)
+[@@deriving eq, ord, show, to_yojson]
+;;
+
+type abstract_int =
+  | Int_exact of int
+  | Int_lossy of sign
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
@@ -39,7 +45,7 @@ type abstract_str =
 ;; *)
 
 type value_expression =
-  | Integer_literal of sign
+  | Integer_literal of abstract_int
   | String_literal of abstract_str
   | Boolean_literal of bool
   | List_expression of memory_variable list
@@ -129,7 +135,7 @@ struct
 end;;
 
 type value =
-  | Integer_value of sign
+  | Integer_value of abstract_int
   | String_value of abstract_str
   | Boolean_value of bool
   | List_value of abstract_memloc_list

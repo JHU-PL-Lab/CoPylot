@@ -78,9 +78,9 @@ let per_cfg_edge_function rmr src dst state =
       begin
         let%orzero Program_state (Stmt (Statement(_, Let_expression (x,e)))) = o1 in
         match e with
-        | Integer_literal sgn ->
+        | Integer_literal num ->
           (* let () = log_debug src dst "let x = int" in *)
-          return ([Pop (Lookup_value_variable x); Push (Lookup_value (Integer_value sgn))], Static_terminus(o1))
+          return ([Pop (Lookup_value_variable x); Push (Lookup_value (Integer_value num))], Static_terminus(o1))
         | String_literal str ->
           (* let () = log_debug src dst @@ "let x = str: " ^ show_abstract_str str in *)
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (String_value str))], Static_terminus(o1))
