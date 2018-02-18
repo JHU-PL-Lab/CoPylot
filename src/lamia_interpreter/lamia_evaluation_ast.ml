@@ -1,55 +1,55 @@
 open Batteries;;
 
-type identifier = Lamia_ast.identifier;;
-let equal_identifier = Lamia_ast.equal_identifier;;
-let compare_identifier = Lamia_ast.compare_identifier;;
-let pp_identifier = Lamia_ast.pp_identifier;;
-let show_identifier = Lamia_ast.show_identifier;;
+type identifier = Lamia_ast_types.identifier;;
+let equal_identifier = Lamia_ast_types.equal_identifier;;
+let compare_identifier = Lamia_ast_types.compare_identifier;;
+let pp_identifier = Lamia_ast_types.pp_identifier;;
+let show_identifier = Lamia_ast_types.show_identifier;;
 module Identifier =
 struct
-  type t = Lamia_ast.identifier;;
+  type t = Lamia_ast_types.identifier;;
   let equal = equal_identifier;;
   let compare = compare_identifier;;
   let pp = pp_identifier;;
   let show = show_identifier;;
 end;;
 
-type number = Lamia_ast.number;;
-let equal_number = Lamia_ast.equal_number;;
-let compare_number = Lamia_ast.compare_number;;
-let pp_number = Lamia_ast.pp_number;;
-let show_number = Lamia_ast.show_number;;
+type number = Lamia_ast_types.number;;
+let equal_number = Lamia_ast_types.equal_number;;
+let compare_number = Lamia_ast_types.compare_number;;
+let pp_number = Lamia_ast_types.pp_number;;
+let show_number = Lamia_ast_types.show_number;;
 module Number =
 struct
-  type t = Lamia_ast.number;;
+  type t = Lamia_ast_types.number;;
   let equal = equal_number;;
   let compare = compare_number;;
   let pp = pp_number;;
   let show = show_number;;
 end;;
 
-type value_variable = Lamia_ast.value_variable;;
-let equal_value_variable = Lamia_ast.equal_value_variable;;
-let compare_value_variable = Lamia_ast.compare_value_variable;;
-let pp_value_variable = Lamia_ast.pp_value_variable;;
-let show_value_variable = Lamia_ast.show_value_variable;;
+type value_variable = Lamia_ast_types.value_variable;;
+let equal_value_variable = Lamia_ast_types.equal_value_variable;;
+let compare_value_variable = Lamia_ast_types.compare_value_variable;;
+let pp_value_variable = Lamia_ast_types.pp_value_variable;;
+let show_value_variable = Lamia_ast_types.show_value_variable;;
 module Value_variable =
 struct
-  type t = Lamia_ast.value_variable;;
+  type t = Lamia_ast_types.value_variable;;
   let equal = equal_value_variable;;
   let compare = compare_value_variable;;
   let pp = pp_value_variable;;
   let show = show_value_variable;;
 end;;
 
-type memory_variable = Lamia_ast.memory_variable;;
-let equal_memory_variable = Lamia_ast.equal_memory_variable;;
-let compare_memory_variable = Lamia_ast.compare_memory_variable;;
-let pp_memory_variable = Lamia_ast.pp_memory_variable;;
-let show_memory_variable = Lamia_ast.show_memory_variable;;
+type memory_variable = Lamia_ast_types.memory_variable;;
+let equal_memory_variable = Lamia_ast_types.equal_memory_variable;;
+let compare_memory_variable = Lamia_ast_types.compare_memory_variable;;
+let pp_memory_variable = Lamia_ast_types.pp_memory_variable;;
+let show_memory_variable = Lamia_ast_types.show_memory_variable;;
 module Memory_variable =
 struct
-  type t = Lamia_ast.memory_variable;;
+  type t = Lamia_ast_types.memory_variable;;
   let equal = equal_memory_variable;;
   let compare = compare_memory_variable;;
   let pp = pp_memory_variable;;
@@ -66,9 +66,9 @@ type value_expression =
   | Empty_binding
 [@@deriving eq, ord, show]
 
-and binary_operator = Lamia_ast.binary_operator
+and binary_operator = Lamia_ast_types.binary_operator
 
-and unary_operator = Lamia_ast.unary_operator
+and unary_operator = Lamia_ast_types.unary_operator
 
 and directive =
     | Let_expression of value_variable * value_expression

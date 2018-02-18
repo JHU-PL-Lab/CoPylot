@@ -10,8 +10,8 @@ open Logger_utils;;
 let add_to_log = make_logger "Lamia_interpreter";;
 set_default_logging_level `warn;;
 
-type unary_operator = Lamia_ast.unary_operator;;
-type binary_operator = Lamia_ast.binary_operator;;
+type unary_operator = Lamia_ast_types.unary_operator;;
+type binary_operator = Lamia_ast_types.binary_operator;;
 
 type evaluation_result =
   | Evaluated_successfully
@@ -235,17 +235,17 @@ let rec eval_step_directive (d : directive)
     let%bind v =
       begin
         match unop, v' with
-        | Lamia_ast.Unop_not, Boolean_value b -> return @@ Boolean_value(not b)
-        | Lamia_ast.Unop_not, _ ->
+        | Lamia_ast_types.Unop_not, Boolean_value b -> return @@ Boolean_value(not b)
+        | Lamia_ast_types.Unop_not, _ ->
           force_error @@ Printf.sprintf "Invalid argument for \"not\": %s"
             (show_value v')
-        | Lamia_ast.Unop_is_function, Function_value _ ->
+        | Lamia_ast_types.Unop_is_function, Function_value _ ->
           return @@ Boolean_value true
-        | Lamia_ast.Unop_is_function, _ ->
+        | Lamia_ast_types.Unop_is_function, _ ->
           return @@ Boolean_value false
-        | Lamia_ast.Unop_is_int, Integer_value _ ->
+        | Lamia_ast_types.Unop_is_int, Integer_value _ ->
           return @@ Boolean_value true
-        | Lamia_ast.Unop_is_int, _ ->
+        | Lamia_ast_types.Unop_is_int, _ ->
           return @@ Boolean_value false
       end
     in
@@ -257,7 +257,7 @@ let rec eval_step_directive (d : directive)
     let%bind v0 =
       begin
         match binop with
-        | Lamia_ast.Binop_intplus ->
+        | Lamia_ast_types.Binop_intplus ->
           let%bind n1 =
             assert_integer v1 "Invalid first argument to integer addition:"
           in
@@ -265,7 +265,7 @@ let rec eval_step_directive (d : directive)
             assert_integer v2 "Invalid second argument to integer addition:"
           in
           return @@ Integer_value(n1+n2)
-        | Lamia_ast.Binop_intminus ->
+        | Lamia_ast_types.Binop_intminus ->
           let%bind n1 =
             assert_integer v1 "Invalid first argument to integer subtraction:"
           in
@@ -273,12 +273,12 @@ let rec eval_step_directive (d : directive)
             assert_integer v2 "Invalid second argument to integer subtraction:"
           in
           return @@ Integer_value(n1+n2)
-        | Lamia_ast.Binop_haskey ->
+        | Lamia_ast_types.Binop_haskey ->
           let%bind dict,keystr =
             assert_object_and_string v1 v2 "\"haskey\" for"
           in
           return @@ Boolean_value(StringMap.mem keystr dict)
-        | Lamia_ast.Binop_listconcat ->
+        | Lamia_ast_types.Binop_listconcat ->
           let%bind m1 =
             assert_list v1 "Invalid first argument to list concatenation:"
           in
@@ -286,7 +286,7 @@ let rec eval_step_directive (d : directive)
             assert_list v2 "Invalid second argument to list concatenation:"
           in
           return @@ Lamia_evaluation_grammar.List_value(m1 @ m2)
-        | Lamia_ast.Binop_equals ->
+        | Lamia_ast_types.Binop_equals ->
           let is_equal = equal_value v1 v2 in
           return @@ Lamia_evaluation_grammar.Boolean_value(is_equal)
       end

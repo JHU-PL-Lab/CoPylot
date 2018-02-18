@@ -1,5 +1,6 @@
-open Format
-open Lamia_ast
+open Format;;
+open Lamia_ast;;
+open Lamia_ast_types;;
 
 (* Default pretty printing *)
 

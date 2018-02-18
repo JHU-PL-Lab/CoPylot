@@ -1,5 +1,6 @@
 open Batteries;;
 open Lamia_ast;;
+open Lamia_ast_types;;
 open Python2_normalized_ast;;
 open Python2_ast_types;;
 open Unique_name_ctx;;

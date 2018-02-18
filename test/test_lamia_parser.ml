@@ -3,6 +3,7 @@ open Jhupllib;;
 open OUnit2;;
 
 open Lamia_ast;;
+open Lamia_ast_types;;
 open Lamia_parser;;
 
 let make_value_expression_test

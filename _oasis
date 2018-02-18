@@ -80,6 +80,7 @@ Library "lamia_language"
   FindlibParent: CoPylot
   Path: src/lamia_language
   Modules:
+    Lamia_ast_types,
     Lamia_ast,
     Lamia_ast_pretty
   BuildDepends:
@@ -89,7 +90,7 @@ Library "lamia_language"
     ppx_deriving_yojson,
     CoPylot.ast_simplification
 
-Library "Lybie"
+Library "lybie"
   FindlibParent: CoPylot
   Path: src/lybie
   Modules:

@@ -1,4 +1,4 @@
-open Lamia_ast;;
+open Lamia_ast_types;;
 
 (* This file holds names of lamia variables that can be expected to always
    be in scope. Some (like the python scope) may be shadowed at some points,

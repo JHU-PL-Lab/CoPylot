@@ -1,4 +1,5 @@
 module Lamia = Lamia_ast;;
+module Lamia_types = Lamia_ast_types;;
 module Abstract = Analysis_types;;
 open Counter_hashtbl;;
 
@@ -79,28 +80,28 @@ and lift_value_expression tbl e =
 
 and lift_unop op =
   match op with
-  | Lamia.Unop_not -> Abstract.Unop_not
-  | Lamia.Unop_is_function -> Abstract.Unop_is_function
-  | Lamia.Unop_is_int -> Abstract.Unop_is_int
+  | Lamia_types.Unop_not -> Abstract.Unop_not
+  | Lamia_types.Unop_is_function -> Abstract.Unop_is_function
+  | Lamia_types.Unop_is_int -> Abstract.Unop_is_int
 
 and lift_binop op =
   match op with
-  | Lamia.Binop_intplus -> Abstract.Binop_intplus
-  | Lamia.Binop_intminus -> Abstract.Binop_intminus
-  | Lamia.Binop_haskey -> Abstract.Binop_haskey
-  | Lamia.Binop_listconcat -> Abstract.Binop_listconcat
-  | Lamia.Binop_equals -> Abstract.Binop_equals
+  | Lamia_types.Binop_intplus -> Abstract.Binop_intplus
+  | Lamia_types.Binop_intminus -> Abstract.Binop_intminus
+  | Lamia_types.Binop_haskey -> Abstract.Binop_haskey
+  | Lamia_types.Binop_listconcat -> Abstract.Binop_listconcat
+  | Lamia_types.Binop_equals -> Abstract.Binop_equals
 
 and lift_value_var x =
-  let Lamia.Value_variable(id) = x in
+  let Lamia_types.Value_variable(id) = x in
   Abstract.Value_variable(id)
 
 and lift_memory_var x =
-  let Lamia.Memory_variable(id) = x in
+  let Lamia_types.Memory_variable(id) = x in
   Abstract.Memory_variable(id)
 ;;
 
-let lift_block_top (b : Lamia.uid Lamia.block) =
+let lift_block_top (b : Lamia_types.uid Lamia.block) =
   let empty_tbl = Counter_hashtbl.create 10 in
   let lifted_block = lift_block empty_tbl b in
   lifted_block, empty_tbl

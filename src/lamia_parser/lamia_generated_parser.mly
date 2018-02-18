@@ -1,5 +1,6 @@
 %{
   open Lamia_ast;;
+  open Lamia_ast_types;;
   open Lamia_generated_parser_utils;;
 %}
 
@@ -58,13 +59,13 @@
 
 /* starting ponts */
 %start file_input
-%type <Lamia_ast.uid Lamia_ast.block> file_input
+%type <Lamia_ast_types.uid Lamia_ast.block> file_input
 
 %start statement_input
-%type <Lamia_ast.uid Lamia_ast.statement> statement_input
+%type <Lamia_ast_types.uid Lamia_ast.statement> statement_input
 
 %start value_expression_input
-%type <Lamia_ast.uid Lamia_ast.value_expression> value_expression_input
+%type <Lamia_ast_types.uid Lamia_ast.value_expression> value_expression_input
 
 %%
 file_input:

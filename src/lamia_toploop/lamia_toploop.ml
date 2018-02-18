@@ -1,4 +1,4 @@
-open Lamia_ast;;
+open Lamia_ast_types;;
 open Lamia_heap;;
 open Lamia_interpreter;;
 

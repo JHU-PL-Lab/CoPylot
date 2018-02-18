@@ -1,4 +1,4 @@
-open Batteries;;
+(* open Batteries;;
 module Lamia = Lamia_ast;;
 module Macros = Lybie_ast;;
 (* TODO: Probably gonna want lamia_conversion_monad *)
@@ -24,4 +24,4 @@ and expand_macro
   match m with
   | Macros.Python_function_preamble(args) ->
     ignore args; failwith "NYI"
-;;
+;; *)

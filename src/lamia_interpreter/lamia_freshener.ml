@@ -71,11 +71,11 @@ struct
   ;;
 
   let make_value_variable_freshening
-      ((Lamia_ast.Value_variable str) as x : value_variable)
+      ((Lamia_ast_types.Value_variable str) as x : value_variable)
     : value_variable m =
     fun pstate sstate ->
       let (str',pstate',sstate') = fresh_str str pstate sstate in
-      let x' = Lamia_ast.Value_variable str' in
+      let x' = Lamia_ast_types.Value_variable str' in
       let sstate'' =
         { sstate' with
           bound_value_variables =
@@ -86,11 +86,11 @@ struct
   ;;
 
   let make_memory_variable_freshening
-      ((Lamia_ast.Memory_variable str) as y : memory_variable)
+      ((Lamia_ast_types.Memory_variable str) as y : memory_variable)
     : memory_variable m =
     fun pstate sstate ->
       let (str',pstate',sstate') = fresh_str str pstate sstate in
-      let y' = Lamia_ast.Memory_variable str' in
+      let y' = Lamia_ast_types.Memory_variable str' in
       let sstate'' =
         { sstate' with
           bound_memory_variables =

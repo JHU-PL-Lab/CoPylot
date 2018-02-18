@@ -75,7 +75,7 @@ end
 type 'a m = 'a Conversion_monad.t;;
 
 (* Useful functions to make use of this *)
-open Lamia_ast;;
+open Lamia_ast_types;;
 open Conversion_monad;;
 
 let fresh_value_var () : value_variable m =
