@@ -18,15 +18,6 @@ and expand_macros_stmt
   | Macros.Stmt_macro(annot, macro) ->
     expand_macro annot macro
 
-and expand_macro
-    (annot : 'a)
-    (m : Macros.stmt_macro)
-  : 'a Lamia.statement list =
-  ignore @@ annot;
-  match m with
-  | Macros.Python_function_preamble(args) ->
-    ignore args; failwith "NYI"
-
 and expand_macros_directive
     (d : 'a Macros.directive)
   : 'a Lamia.directive =
@@ -94,4 +85,45 @@ and expand_macros_valexp
     Lamia.None_literal
   | Macros.Empty_binding ->
     Lamia.Empty_binding
+
+(* The real stuff starts here *)
+and expand_macro
+    (annot : 'a)
+    (m : Macros.stmt_macro)
+  : 'a Lamia.statement list =
+  (* let open Lamia_conversion_monad in *)
+  ignore annot;
+  match m with
+  | Macros.Unpack_python_args(args) ->
+    ignore args; failwith "NYI"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ;;

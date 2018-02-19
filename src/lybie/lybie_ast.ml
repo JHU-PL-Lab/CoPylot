@@ -45,7 +45,7 @@ and stmt_macro =
     (* For the moment we only handle functions with constant arg number *)
     (* Unpacks the arguments to a lamia function which is modeling a python
        function *)
-    | Python_function_preamble of identifier list (* args *)
+    | Unpack_python_args of identifier list (* args *)
 [@@deriving eq, ord, show]
 
 and 'a block =

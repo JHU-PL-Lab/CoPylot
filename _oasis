@@ -90,6 +90,18 @@ Library "lamia_language"
     ppx_deriving_yojson,
     CoPylot.ast_simplification
 
+Library "lamia_conversion_monad"
+  FindlibParent: CoPylot
+  Path: src/lamia_conversion_monad
+  Modules:
+    Lamia_conversion_monad
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std,
+    ppx_deriving_yojson,
+    CoPylot.lamia_language
+
 Library "lybie"
   FindlibParent: CoPylot
   Path: src/lybie
@@ -101,13 +113,13 @@ Library "lybie"
     jhupllib,
     ppx_deriving.std,
     ppx_deriving_yojson,
-    CoPylot.lamia_language
+    CoPylot.lamia_language,
+    CoPylot.lamia_conversion_monad
 
 Library "lamia_conversion"
   FindlibParent: CoPylot
   Path: src/lamia_conversion
   Modules:
-    Lamia_conversion_monad,
     Lamia_conversion_builtin_names,
     Lamia_conversion_utils,
     Lamia_conversion_object_defs,
@@ -121,7 +133,8 @@ Library "lamia_conversion"
     ppx_deriving.std,
     ppx_deriving_yojson,
     CoPylot.ast_simplification,
-    CoPylot.lamia_language
+    CoPylot.lamia_language,
+    CoPylot.lamia_conversion_monad
 
 Library "lamia_parser"
   FindlibParent: CoPylot
