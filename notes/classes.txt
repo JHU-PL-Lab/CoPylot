@@ -1,0 +1,177 @@
+Some sort of concept of a "type" in Simplified Python.
+  Have built-in types (int, etc) and user-defined types (classes). 
+    But there's really no difference, just where in the program they're defined
+  Class keyword creates a new type object, assigns it to a variable.
+
+There exists a special singleton object known as "type".
+A type is an object (i.e. a dictionary) with a field "__class__" whose value is "type". Type itself is a type.
+
+Definitions:
+
+An object A is a type if:
+A.__type__ is type (TODO: Metaclasses)
+
+An object A is a subclass of an object B if:
+A and B are types, and
+A is B, OR
+any member of the tuple contained in A.__bases__ is a subclass of B
+
+An object A is an instance of an object B if:
+B is a type, and
+A.__class__ is a subclass of B
+
+
+Things types have:
+__bases__: a tuple of the type's superclasses
+__new__ or __init__(???): Makes an instance
+__mro__: Tuple telling you how to look things up
+
+Attribute retrieval:
+Use getattr(ibute) and __mro__ to find the thing
+Then call its __get__ method if it exists, or just return the thing if not
+
+When creating a class:
+set __type__ to type
+set __bases__ to its arguments
+compute the mro and set __mro__ to that
+???
+Profit
+Add user-defined stuff
+
+
+User-defined stuff: They can just put arbitrary code in the class definition.
+The class functions _kind of_ like the scope for the things inside it, with
+the exception that functions do not look inside it; they skip straight to the
+enclosing scope.
+
+Thus
+x = 5
+class Foo():
+  print (x)
+
+and
+
+class Foo():
+  x = 5
+  print (x)
+
+and
+
+x = 5
+class Foo():
+  def f(self):
+    print(x)
+Foo().f()
+
+will all print 5. However,
+
+class Foo():
+  x = 5
+  def f(self):
+    print(x)
+Foo().f()
+
+will throw an error, since it can't find x.
+
+
+So it seems like we need to define some concept of the "active scopelike object"for purposes of storage and lookup. Newly-defined python objects are stored there, and lookup checks there first. The weird thing is that function lookup doesn't; it's as if the function was defined in the exterior scope, then added.
+
+Concepts:
+The active scope is the scope where newly-defined variables are stored, and 
+where lookup checks first
+The Inherited scope is the scope where lookup checks if it can't find anything 
+in the active scope.
+
+The IS should be accessed by calling the lamia function get_from_parent_scope()
+The IS will have its own implementaiton of get_from_parent_scope which will
+continue lookup in its own parent scope, etc.
+
+Question: How do we track these things?
+
+Two problems: Making sure inheritance is right, and making sure storage is right
+
+Storage: Need to be able to run arbitrary code and store the result in whatever
+the active scope is. Sometimes, the active scope will be a class object.
+It would be abusive to name the class object "&scope" temporarily, so we won't
+do that. Sigh.
+So we need some variable that's being passed around which tracks the currently
+active scope.
+It doesn't seem like this can be a lamia variable...But maybe it can?
+
+Solution: Here's what we're gonna do. When we're making a class, we do an 
+"if true" in lamia. Then inside that if, we create a new lamia scope variable,
+and run the code inside the class as usual. At the end of the if, we ifresult
+the scope object. The else branch of the if just ifresults a dummy value.
+
+This approach is a little bit goofy because of the "if true". It's equivalent
+to a zero-argument function, but less overhead. Also the analysis will 
+immediately figure out the the else branch is dead code, so we don't really 
+lose anything.
+
+Interitance:
+Observation: Only function scopes (and the top level one) can be interited.
+Equvalently, class scopes are NEVER inherited.
+So solution:
+Begin the program with a variable called "get_from_inherit_scope" which is 
+just "get_from_scope".
+Whenever we make a new function, set "get_from_inherit scope" to be the new
+value of "get from scope"; that is, get from [the function's] scope
+When we make a new class, we do NOT make a new get_from_inherit_scpoe variable.
+So its value will flal down according to lamia scoping rules.
+Whenever we make a new python scope, we set get_from_parent_scope to just be
+get_from_inherit_scope (before possibly redefining the latter)
+
+Approximate code:
+[preamble]
+get_from_parent_scope = whatever (throws an error)
+get_from_scope = whatever (regular lookup)
+get_from_inherit_scope = get_from_scope
+
+[function body]
+get_from_parent_scope = get_from_inherit_scope
+get_from_scope = whatever (redefinition)
+get_from_inherit_scope = get_from_scope
+
+[class body]
+get_from_parent_scope = get_from_inherit_scope
+get_from_scope = whatever
+!!!Do NOT change get_from_inherit_scope!!!
+
+Instantiation:
+First call __new__, which will create a new instance (or return an old one as appropriate); then we call __init__ on the result of New if it's not None.
+
+Here's roughly what type.__call__ does:
+
+def __call__(cls, *args, **kwargs):
+  try:
+    new = cls.__new__
+  except AttributeError:
+    throw TypeError "Cannot create [cls] instances"
+
+  obj = new(cls, args, kwargs)
+  # Check if this call was of the form type(whatever)
+  if cls == type and len(args) == 1 and len(kwargs) == 0:
+    return obj
+  # Check if we got a subtype of the original type
+  if not (is_subtype(obj.__class__, cls)):
+    return obj
+
+  cls = obj.__class__
+  try:
+    init = cls.__init__
+  except AttributeError:
+    return obj
+
+  init(obj, args, kwargs)
+  return obj
+
+ 
+
+ATTRIBUTE PROJECTION:
+Questions: In what order do we do lookup? Seems like we usually start at the object's dictionary, but implicit call might skip that. If so ned to deal with it.
+
+When do we call __get__ during lookup and when don't we? The answer seems to be:
+we call __get__ whenever we found the target somewhere other than the base object's dictionary. That is, if we had to go looking in a superclass to find it.
+
+quote from the manual:
+The implementation works through a precedence chain that gives data descriptors priority over instance variables, instance variables priority over non-data descriptors, and assigns lowest priority to getattr() if provided.

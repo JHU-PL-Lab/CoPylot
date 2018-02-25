@@ -1,0 +1,35 @@
+TODO: Gonna need some regressions tests for the lamia conversion.
+TODO: We seem to be lacking a conversion between annot lamia and uid lamia
+TODO: Rejigger the python conversion to convert to Macro lamia (trivial for now)
+TODO: Come up with some macros
+
+Macro ideas
+
+
+Creating builtin functions (e.g. int.__add__):
+Steps:
+Extract args to lamia variables
+Typecheck them (* TODO: HOW TF DOES THIS WORK? *)
+Operate on them (Extract *value, do the stuff)
+Wrap the result appropriately and return it
+
+Extraction is pretty easy, as is the operation (provided lamia supports it).
+Wrapping shouldn't be too hard, though I'm not sure what state that code is in.
+The tricky part is typechecking:
+What do we need to check, exactly?
+How do we check if a type is appropriate?
+  Pretty sure we need to be able to check subtypes, and I don't think we _can_.
+  At least not yet.
+
+For the moment: We will typecheck by examining the builtin *value field.
+We operate under the assumption that an object will have a *value field
+containing an integer if and only if it is a subclass of int, etc.
+This lets us get around looking at e.g. the __class__ field
+
+We need to figure out how stuff like radd works. From the python docs about
+the data model, we see that
+__add__ is looked for & called first; __radd__ is called if either __add__
+does not exists, or it returns the special value NotImplemented.
+__radd__ is never called if the operands are the same type; if they are and
+__add__ fails, then it is assumed that addition is not supported at all.
+
