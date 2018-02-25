@@ -1,0 +1,13 @@
+Template for builtin methods:
+
+Example: integer addition
+
+2 args: arg0, arg1
+extract args
+get *value of arg0
+If not an int, complain
+get *value of arg1
+If not an int, return NotImplemented
+add *value fields
+wrap in a new int
+return that new int

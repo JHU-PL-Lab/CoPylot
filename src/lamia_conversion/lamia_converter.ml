@@ -13,7 +13,7 @@ open Lamia_conversion_utils;;
 open Lamia_conversion_object_defs;;
 open Lamia_conversion_add_uids;;
 
-open Conversion_monad;;
+open Lamia_monad;;
 
 let rec convert_module
     (ctx : name_context)

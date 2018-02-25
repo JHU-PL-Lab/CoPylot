@@ -43,9 +43,8 @@ and 'a statement =
 
 and stmt_macro =
     (* For the moment we only handle functions with constant arg number *)
-    (* Unpacks the arguments to a lamia function which is modeling a python
-       function *)
-    | Unpack_python_args of identifier list (* args *)
+    (* Binds the given memory variable to the given identifier in the python scope *)
+    | Assign_python_variable of identifier * memory_variable
 [@@deriving eq, ord, show]
 
 and 'a block =

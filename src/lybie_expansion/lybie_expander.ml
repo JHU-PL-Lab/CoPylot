@@ -1,29 +1,32 @@
 open Batteries;;
+open Unique_name_ctx;;
+open Lybie_macro_expansion;;
 module Lamia = Lamia_ast;;
 module Macros = Lybie_ast;;
-(* TODO: Probably gonna want lamia_conversion_monad *)
 
 let map_and_concat f lst = List.concat @@ List.map f lst;;
 
-let rec expand_macros_block (m : 'a Macros.block) : 'a Lamia.block =
+let rec expand_macros_block (ctx : name_context) (m : 'a Macros.block) : 'a Lamia.block =
   let Macros.Block(stmts) = m in
-  Lamia.Block(map_and_concat expand_macros_stmt stmts)
+  Lamia.Block(map_and_concat (expand_macros_stmt ctx) stmts)
 
 and expand_macros_stmt
+    (ctx : name_context)
     (stmt : 'a Macros.statement)
   : 'a Lamia.statement list =
   match stmt with
   | Macros.Statement (annot, d) ->
-    [Lamia.Statement(annot, expand_macros_directive d)]
+    [Lamia.Statement(annot, expand_macros_directive ctx d)]
   | Macros.Stmt_macro(annot, macro) ->
-    expand_macro annot macro
+    map_and_concat (expand_macros_stmt ctx) (expand_macro ctx annot macro)
 
 and expand_macros_directive
+    (ctx : name_context)
     (d : 'a Macros.directive)
   : 'a Lamia.directive =
   match d with
   | Macros.Let_expression (x,e) ->
-    Lamia.Let_expression(x, expand_macros_valexp e)
+    Lamia.Let_expression(x, expand_macros_valexp ctx e)
   | Macros.Let_alloc y ->
     Lamia.Let_alloc y
   | Macros.Let_alias_value (x1,x2) ->
@@ -59,15 +62,16 @@ and expand_macros_directive
   | Macros.Raise y ->
     Lamia.Raise y
   | Macros.Try_except (body,y,handler) ->
-    Lamia.Try_except (expand_macros_block body, y, expand_macros_block handler)
+    Lamia.Try_except (expand_macros_block ctx body, y, expand_macros_block ctx handler)
   | Macros.Let_conditional_value (x1,x2,body,orelse) ->
-    Lamia.Let_conditional_value (x1, x2, expand_macros_block body, expand_macros_block orelse)
+    Lamia.Let_conditional_value (x1, x2, expand_macros_block ctx body, expand_macros_block ctx orelse)
   | Macros.Let_conditional_memory (y1,y2,body,orelse) ->
-    Lamia.Let_conditional_memory (y1, y2, expand_macros_block body, expand_macros_block orelse)
+    Lamia.Let_conditional_memory (y1, y2, expand_macros_block ctx body, expand_macros_block ctx orelse)
   | Macros.While (test, body) ->
-    Lamia.While (test, expand_macros_block body)
+    Lamia.While (test, expand_macros_block ctx body)
 
 and expand_macros_valexp
+    (ctx : name_context)
     (v : 'a Macros.value_expression)
   : 'a Lamia.value_expression =
   match v with
@@ -80,23 +84,11 @@ and expand_macros_valexp
   | Macros.List_expression lst ->
     Lamia.List_expression lst
   | Macros.Function_expression (args,body) ->
-    Lamia.Function_expression(args, expand_macros_block body)
+    Lamia.Function_expression(args, expand_macros_block ctx body)
   | Macros.None_literal ->
     Lamia.None_literal
   | Macros.Empty_binding ->
     Lamia.Empty_binding
-
-(* The real stuff starts here *)
-and expand_macro
-    (annot : 'a)
-    (m : Macros.stmt_macro)
-  : 'a Lamia.statement list =
-  (* let open Lamia_conversion_monad in *)
-  ignore annot;
-  match m with
-  | Macros.Unpack_python_args(args) ->
-    ignore args; failwith "NYI"
-
 
 
 

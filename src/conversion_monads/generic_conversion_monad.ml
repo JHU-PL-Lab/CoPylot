@@ -1,20 +1,26 @@
 open Batteries;;
-open Lamia_ast;;
 open Unique_name_ctx;;
 
 type annot = Python2_ast.Pos.t;;
 
-module Conversion_monad :
+module type Language =
+sig
+  type statement
+  type directive
+  val annotate: annot -> directive -> statement
+end;;
+
+module Conversion_monad(Lang : Language):
 sig
   type 'a t
 
   val return: 'a -> 'a t
   val bind: 'a t -> ('a -> 'b t) -> 'b t
-  val emit: annot directive list -> unit t
-  val listen: 'a t -> ('a * annot statement list) t
+  val emit: Lang.directive list -> unit t
+  val listen: 'a t -> ('a * Lang.statement list) t
   val sequence: ('a t) list -> ('a list) t
 
-  val run: name_context -> annot -> 'a t -> 'a * annot statement list
+  val run: name_context -> annot -> 'a t -> 'a * Lang.statement list
 
   val local_annot: annot -> 'a t -> 'a t
   val fresh_name: unit -> string t
@@ -23,7 +29,7 @@ sig
 end =
 struct
   (* TODO: Change to not use a list for performance reasons *)
-  type 'a t = name_context -> annot -> 'a * annot statement list;;
+  type 'a t = name_context -> annot -> 'a * Lang.statement list;;
 
   let return x = fun _ _ -> (x, []);;
 
@@ -55,7 +61,7 @@ struct
 
   let emit directives =
     fun _ annot ->
-      let stmts = List.map (fun d -> Statement(annot, d)) directives in
+      let stmts = List.map (Lang.annotate annot) directives in
       (), stmts
   ;;
 
@@ -71,19 +77,3 @@ struct
 
   let empty = return ();;
 end
-
-type 'a m = 'a Conversion_monad.t;;
-
-(* Useful functions to make use of this *)
-open Lamia_ast_types;;
-open Conversion_monad;;
-
-let fresh_value_var () : value_variable m =
-  let%bind name = fresh_name () in
-  return @@ Value_variable(name)
-;;
-
-let fresh_memory_var () : memory_variable m =
-  let%bind name = fresh_name () in
-  return @@ Memory_variable("&" ^ name)
-;;
