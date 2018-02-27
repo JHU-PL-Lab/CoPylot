@@ -296,29 +296,60 @@ struct
             (* | Int_lossy (Zero), Int_lossy(Pos) ->
               return [Push (Lookup_value(List_value (List_lossy (hd::le))))] *)
             | Int_exact n, Int_lossy(Pos) ->
-              if n > 0 && n < size then
+              if n > 0 && n <= size then
                 return [Push (Lookup_value(List_value (List_lossy le)))]
               else if n = 0 then
                 return [Push (Lookup_value(List_value (List_lossy (hd::le))))]
               else
                 return []
             | Int_lossy (Pos), Int_exact n ->
-              if n >= 1 && n < size then
+              if n > 1 && n <= size then
                 return [Push (Lookup_value(List_value (List_lossy le)))]
               else
                 return []
             | Int_exact n1, Int_exact n2 ->
-              if n1 >= 0 && n1 < n2 && n2 < size
+              if n1 >= 0 && n1 < n2 && n2 <= size
               then let _,s = List.split_at n1 (hd::le) in
                 let f,_ = List.split_at (n2-n1) s in
+                (* let () = logger `debug ("result: we reach here") in *)
                 return [Push (Lookup_value(List_value (List_lossy f)))]
               else
                 return []
             | _ -> return []
           end
         | List_exact ([],_) -> return []
-        | List_lossy ll ->
-          return [Push (Lookup_value(List_value (List_lossy ll)))] (* TODO *)
+        | List_lossy (hd::ll) ->
+          begin
+            match v1,v2 with
+            | Int_lossy (Pos), Int_lossy(Pos) ->
+              return [Push (Lookup_value(List_value (List_lossy ll)))]
+            (* | Int_lossy (Zero), Int_lossy(Zero) ->
+               return [Push (Lookup_value(List_value (List_lossy[hd])))] *)
+            (* | Int_lossy (Zero), Int_lossy(Pos) ->
+               return [Push (Lookup_value(List_value (List_lossy (hd::le))))] *)
+            | Int_exact n, Int_lossy(Pos) ->
+              if n > 0 then
+                return [Push (Lookup_value(List_value (List_lossy ll)))]
+              else if n = 0 then
+                return [Push (Lookup_value(List_value (List_lossy (hd::ll))))]
+              else
+                return []
+            | Int_lossy (Pos), Int_exact n ->
+              if n > 1 then
+                return [Push (Lookup_value(List_value (List_lossy ll)))]
+              else
+                return []
+            | Int_exact n1, Int_exact _ ->
+              if n1 = 0 then
+                return [Push (Lookup_value(List_value (List_lossy (hd::ll))))]
+              else if n1 > 0 then
+                return [Push (Lookup_value(List_value (List_lossy ll)))]
+              else
+                return []
+            | _ -> return []
+          end
+        | List_lossy [] -> return []
+          (* return [Push (Lookup_value(List_value (List_lossy ll)))] (* TODO *) *)
       end;
 
       (* Obsolete from here *)
