@@ -19,14 +19,33 @@ let parse_to_normalized_safe prog short_names =
 
 let lamia_to_string prog = Pp_utils.pp_to_string pp_block_top prog;;
 
-let gen_module_test (name : string) (prog : string)
-    (expected : string) =
-  name>::
+let file_to_string filename =
+  let lines = File.lines_of filename in
+  let str =
+    Enum.fold (fun lines line -> lines ^ "\n" ^ line) "" lines
+  in
+  String.trim str
+;;
+
+let gen_module_test (filename : string) =
+  let name = ("conversion_test:"^filename) in
+  name >::
   ( fun _ ->
+      let prog = file_to_string ("./test/regression/tests/"^filename^".test") in
+      let expected = file_to_string ("./test/regression/expected/"^filename^".lamia") in
+
       let actual = parse_to_normalized_safe prog 1 true in
       let ctx = Unique_name_ctx.create_new_name_ctx 0 "lamia$" in
       let lamia_prog = convert_module ctx actual in
-      let lamia_str = lamia_to_string lamia_prog in
+      let lamia_uid_prog, _ = annot_to_uid lamia_prog in
+      let lamia_str = String.trim @@ lamia_to_string lamia_uid_prog in
+
+      (* If our output changed, write to a file for inspection *)
+      begin
+        if not (String.equal expected lamia_str) then
+          let outfile = "./test/regression/output/"^filename^".lamia" in
+          File.write_lines outfile (Enum.singleton lamia_str)
+      end;
 
       assert_equal ~printer:(fun x -> x) ~cmp:String.equal expected lamia_str;
   )
@@ -35,5 +54,5 @@ let gen_module_test (name : string) (prog : string)
 let tests =
   "test_lamia_converter">:::
   [
-    gen_module_test "int_add_test" "1+2" ""
+    gen_module_test "int_add_test"
   ]
