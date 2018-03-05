@@ -33,6 +33,7 @@ let print_value v =
   | Object_value _ -> "object"
   | List_value _ -> "list"
   | Function_value _ -> "function"
+  | Not_Implemented_value -> "not implemented"
 ;;
 
 module Dph =

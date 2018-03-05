@@ -112,6 +112,7 @@ let per_cfg_edge_function rmr src dst state =
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (None_value))], Static_terminus(o1))
         | Empty_binding ->
           return ([Pop (Lookup_value_variable x); Push (Lookup_value (Object_value AbstractStringMap.empty))], Static_terminus(o1))
+        | Not_Implemented -> return ([Pop (Lookup_value_variable x); Push (Lookup_value (Not_Implemented_value))], Static_terminus(o1))
 
       end;
       (* Let y = alloc *)
