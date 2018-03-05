@@ -1,0 +1,11 @@
+Class TestClass:
+  def __init__(self, val):
+    self.value = val
+  def __call__(self):
+    return self.val
+  def increment(self):
+    self.val += 1
+
+x = TestClass(5)
+x.increment()
+x()

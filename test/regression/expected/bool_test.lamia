@@ -1,0 +1,685 @@
+@   0: let preamble$0 = {};
+@   1: let &scope = alloc;
+@   2: store &scope preamble$0;
+@   3: let get_from_parent_scope = def (preamble$1) {
+    @   4: let preamble$2 = "name is not defined";
+    @   5: let &preamble$3 = alloc;
+    @   6: store &preamble$3 preamble$2;
+    @   7: let preamble$4 = "*value";
+    @   8: let preamble$5 = {};
+    @   9: let preamble$6 = preamble$5{preamble$4 -> &preamble$3};
+    @  10: let &preamble$7 = alloc;
+    @  11: store &preamble$7 preamble$6;
+    @  12: raise &preamble$7;
+
+};
+@  13: let get_from_scope = def (preamble$8) {
+    @  14: let preamble$9 = get &scope;
+    @  15: let preamble$10 = preamble$9 haskey preamble$8;
+    @  16: let &preamble$11 = if preamble$10 then {
+        @  19: let &preamble$12 = preamble$9{preamble$8};
+        @  20: ifresult &preamble$12;
+
+    } else {
+        @  17: let &preamble$13 = get_from_parent_scope(preamble$8);
+        @  18: ifresult &preamble$13;
+
+    };
+    @  21: return &preamble$11;
+
+};
+@  22: let &preamble$15 = alloc;
+@  23: let preamble$14 = 1;
+@  24: store &preamble$15 preamble$14;
+@  25: let preamble$16 = {};
+@  26: let preamble$17 = "*value";
+@  27: let preamble$18 = preamble$16{preamble$17 -> &preamble$15};
+@  28: let &True = alloc;
+@  29: store &True preamble$18;
+@  30: let &preamble$20 = alloc;
+@  31: let preamble$19 = 0;
+@  32: store &preamble$20 preamble$19;
+@  33: let preamble$21 = {};
+@  34: let preamble$22 = "*value";
+@  35: let preamble$23 = preamble$21{preamble$22 -> &preamble$20};
+@  36: let &False = alloc;
+@  37: store &False preamble$23;
+@  38: let &preamble$25 = alloc;
+@  39: let preamble$24 = None;
+@  40: store &preamble$25 preamble$24;
+@  41: let preamble$26 = {};
+@  42: let preamble$27 = "*value";
+@  43: let preamble$28 = preamble$26{preamble$27 -> &preamble$25};
+@  44: let &None = alloc;
+@  45: store &None preamble$28;
+@  46: let preamble$49 = def (preamble$29) {
+    @  47: let preamble$30 = 0;
+    @  48: let &preamble$31 = preamble$29[preamble$30];
+    @  49: let preamble$32 = get &preamble$31;
+    @  50: let preamble$33 = "*value";
+    @  51: let preamble$34 = preamble$32 haskey preamble$33;
+    @  52: let &preamble$35 = if preamble$34 then {
+        @  62: let &preamble$36 = preamble$32{preamble$33};
+        @  63: ifresult &preamble$36;
+
+    } else {
+        @  53: let preamble$37 = "Object has no attribute *value";
+        @  54: let &preamble$38 = alloc;
+        @  55: store &preamble$38 preamble$37;
+        @  56: let preamble$39 = "*value";
+        @  57: let preamble$40 = {};
+        @  58: let preamble$41 = preamble$40{preamble$39 -> &preamble$38};
+        @  59: let &preamble$42 = alloc;
+        @  60: store &preamble$42 preamble$41;
+        @  61: raise &preamble$42;
+
+    };
+    @  64: let preamble$43 = get &preamble$35;
+    @  65: let &preamble$44 = alloc;
+    @  66: store &preamble$44 preamble$43;
+    @  67: let preamble$45 = "*value";
+    @  68: let preamble$46 = {};
+    @  69: let preamble$47 = preamble$46{preamble$45 -> &preamble$44};
+    @  70: let &preamble$48 = alloc;
+    @  71: store &preamble$48 preamble$47;
+
+};
+@  72: let &preamble$50 = alloc;
+@  73: store &preamble$50 preamble$49;
+@  74: let preamble$51 = "*value";
+@  75: let preamble$52 = {};
+@  76: let preamble$53 = preamble$52{preamble$51 -> &preamble$50};
+@  77: let &preamble$54 = alloc;
+@  78: store &preamble$54 preamble$53;
+@  79: let &AttributeError = &preamble$54;
+@  80: let preamble$75 = def (preamble$55) {
+    @  81: let preamble$56 = 0;
+    @  82: let &preamble$57 = preamble$55[preamble$56];
+    @  83: let preamble$58 = get &preamble$57;
+    @  84: let preamble$59 = "*value";
+    @  85: let preamble$60 = preamble$58 haskey preamble$59;
+    @  86: let &preamble$61 = if preamble$60 then {
+        @  96: let &preamble$62 = preamble$58{preamble$59};
+        @  97: ifresult &preamble$62;
+
+    } else {
+        @  87: let preamble$63 = "Object has no attribute *value";
+        @  88: let &preamble$64 = alloc;
+        @  89: store &preamble$64 preamble$63;
+        @  90: let preamble$65 = "*value";
+        @  91: let preamble$66 = {};
+        @  92: let preamble$67 = preamble$66{preamble$65 -> &preamble$64};
+        @  93: let &preamble$68 = alloc;
+        @  94: store &preamble$68 preamble$67;
+        @  95: raise &preamble$68;
+
+    };
+    @  98: let preamble$69 = get &preamble$61;
+    @  99: let &preamble$70 = alloc;
+    @ 100: store &preamble$70 preamble$69;
+    @ 101: let preamble$71 = "*value";
+    @ 102: let preamble$72 = {};
+    @ 103: let preamble$73 = preamble$72{preamble$71 -> &preamble$70};
+    @ 104: let &preamble$74 = alloc;
+    @ 105: store &preamble$74 preamble$73;
+
+};
+@ 106: let &preamble$76 = alloc;
+@ 107: store &preamble$76 preamble$75;
+@ 108: let preamble$77 = "*value";
+@ 109: let preamble$78 = {};
+@ 110: let preamble$79 = preamble$78{preamble$77 -> &preamble$76};
+@ 111: let &preamble$80 = alloc;
+@ 112: store &preamble$80 preamble$79;
+@ 113: let &TypeError = &preamble$80;
+@ 114: let preamble$101 = def (preamble$81) {
+    @ 115: let preamble$82 = 0;
+    @ 116: let &preamble$83 = preamble$81[preamble$82];
+    @ 117: let preamble$84 = get &preamble$83;
+    @ 118: let preamble$85 = "*value";
+    @ 119: let preamble$86 = preamble$84 haskey preamble$85;
+    @ 120: let &preamble$87 = if preamble$86 then {
+        @ 130: let &preamble$88 = preamble$84{preamble$85};
+        @ 131: ifresult &preamble$88;
+
+    } else {
+        @ 121: let preamble$89 = "Object has no attribute *value";
+        @ 122: let &preamble$90 = alloc;
+        @ 123: store &preamble$90 preamble$89;
+        @ 124: let preamble$91 = "*value";
+        @ 125: let preamble$92 = {};
+        @ 126: let preamble$93 = preamble$92{preamble$91 -> &preamble$90};
+        @ 127: let &preamble$94 = alloc;
+        @ 128: store &preamble$94 preamble$93;
+        @ 129: raise &preamble$94;
+
+    };
+    @ 132: let preamble$95 = get &preamble$87;
+    @ 133: let &preamble$96 = alloc;
+    @ 134: store &preamble$96 preamble$95;
+    @ 135: let preamble$97 = "*value";
+    @ 136: let preamble$98 = {};
+    @ 137: let preamble$99 = preamble$98{preamble$97 -> &preamble$96};
+    @ 138: let &preamble$100 = alloc;
+    @ 139: store &preamble$100 preamble$99;
+
+};
+@ 140: let &preamble$102 = alloc;
+@ 141: store &preamble$102 preamble$101;
+@ 142: let preamble$103 = "*value";
+@ 143: let preamble$104 = {};
+@ 144: let preamble$105 = preamble$104{preamble$103 -> &preamble$102};
+@ 145: let &preamble$106 = alloc;
+@ 146: store &preamble$106 preamble$105;
+@ 147: let &NameError = &preamble$106;
+@ 148: let preamble$127 = def (preamble$107) {
+    @ 149: let preamble$108 = 0;
+    @ 150: let &preamble$109 = preamble$107[preamble$108];
+    @ 151: let preamble$110 = get &preamble$109;
+    @ 152: let preamble$111 = "*value";
+    @ 153: let preamble$112 = preamble$110 haskey preamble$111;
+    @ 154: let &preamble$113 = if preamble$112 then {
+        @ 164: let &preamble$114 = preamble$110{preamble$111};
+        @ 165: ifresult &preamble$114;
+
+    } else {
+        @ 155: let preamble$115 = "Object has no attribute *value";
+        @ 156: let &preamble$116 = alloc;
+        @ 157: store &preamble$116 preamble$115;
+        @ 158: let preamble$117 = "*value";
+        @ 159: let preamble$118 = {};
+        @ 160: let preamble$119 = preamble$118{preamble$117 -> &preamble$116};
+        @ 161: let &preamble$120 = alloc;
+        @ 162: store &preamble$120 preamble$119;
+        @ 163: raise &preamble$120;
+
+    };
+    @ 166: let preamble$121 = get &preamble$113;
+    @ 167: let &preamble$122 = alloc;
+    @ 168: store &preamble$122 preamble$121;
+    @ 169: let preamble$123 = "*value";
+    @ 170: let preamble$124 = {};
+    @ 171: let preamble$125 = preamble$124{preamble$123 -> &preamble$122};
+    @ 172: let &preamble$126 = alloc;
+    @ 173: store &preamble$126 preamble$125;
+
+};
+@ 174: let &preamble$128 = alloc;
+@ 175: store &preamble$128 preamble$127;
+@ 176: let preamble$129 = "*value";
+@ 177: let preamble$130 = {};
+@ 178: let preamble$131 = preamble$130{preamble$129 -> &preamble$128};
+@ 179: let &preamble$132 = alloc;
+@ 180: store &preamble$132 preamble$131;
+@ 181: let &StopIteration = &preamble$132;
+@ 182: let preamble$258 = def (preamble$133) {
+    @ 183: let preamble$134 = 0;
+    @ 184: let &preamble$135 = preamble$133[preamble$134];
+    @ 185: let preamble$136 = get &preamble$135;
+    @ 186: let preamble$137 = "*value";
+    @ 187: let preamble$138 = preamble$136 haskey preamble$137;
+    @ 188: let &preamble$139 = if preamble$138 then {
+        @ 198: let &preamble$140 = preamble$136{preamble$137};
+        @ 199: ifresult &preamble$140;
+
+    } else {
+        @ 189: let preamble$141 = "Object has no attribute *value";
+        @ 190: let &preamble$142 = alloc;
+        @ 191: store &preamble$142 preamble$141;
+        @ 192: let preamble$143 = "*value";
+        @ 193: let preamble$144 = {};
+        @ 194: let preamble$145 = preamble$144{preamble$143 -> &preamble$142};
+        @ 195: let &preamble$146 = alloc;
+        @ 196: store &preamble$146 preamble$145;
+        @ 197: raise &preamble$146;
+
+    };
+    @ 200: let preamble$147 = get &preamble$139;
+    @ 201: let preamble$254 = None;
+    @ 202: let preamble$253 = preamble$254 == preamble$147;
+    @ 203: let preamble$255 = if preamble$253 then {
+        @ 387: let preamble$256 = False;
+        @ 388: ifresult preamble$256;
+
+    } else {
+        @ 204: let preamble$250 = False;
+        @ 205: let preamble$249 = preamble$250 == preamble$147;
+        @ 206: let preamble$251 = if preamble$249 then {
+            @ 385: let preamble$252 = False;
+            @ 386: ifresult preamble$252;
+
+        } else {
+            @ 207: let preamble$246 = 0;
+            @ 208: let preamble$245 = preamble$246 == preamble$147;
+            @ 209: let preamble$247 = if preamble$245 then {
+                @ 383: let preamble$248 = False;
+                @ 384: ifresult preamble$248;
+
+            } else {
+                @ 210: let preamble$242 = "";
+                @ 211: let preamble$241 = preamble$242 == preamble$147;
+                @ 212: let preamble$243 = if preamble$241 then {
+                    @ 381: let preamble$244 = False;
+                    @ 382: ifresult preamble$244;
+
+                } else {
+                    @ 213: let preamble$238 = [];
+                    @ 214: let preamble$237 = preamble$238 == preamble$147;
+                    @ 215: let preamble$239 = if preamble$237 then {
+                        @ 379: let preamble$240 = False;
+                        @ 380: ifresult preamble$240;
+
+                    } else {
+                        @ 216: let preamble$234 = {};
+                        @ 217: let preamble$233 = preamble$234 == preamble$147;
+                        @ 218: let preamble$235 = if preamble$233 then {
+                            @ 377: let preamble$236 = False;
+                            @ 378: ifresult preamble$236;
+
+                        } else {
+                            @ 219: let preamble$148 = "__bool__";
+                            @ 220: let preamble$231 = preamble$136 haskey preamble$148;
+                            @ 221: let preamble$232 = if preamble$231 then {
+                                @ 314: let &preamble$150 = preamble$136{preamble$148};
+                                @ 315: let &preamble$151 = &preamble$150;
+                                @ 316: let preamble$153 = get &preamble$151;
+                                @ 317: let preamble$155 = "*value";
+                                @ 318: let preamble$156 = preamble$153 haskey preamble$155;
+                                @ 319: let &preamble$157 = if preamble$156 then {
+                                    @ 329: let &preamble$158 = preamble$153{preamble$155};
+                                    @ 330: ifresult &preamble$158;
+
+                                } else {
+                                    @ 320: let preamble$159 = "Object has no attribute *value";
+                                    @ 321: let &preamble$160 = alloc;
+                                    @ 322: store &preamble$160 preamble$159;
+                                    @ 323: let preamble$161 = "*value";
+                                    @ 324: let preamble$162 = {};
+                                    @ 325: let preamble$163 = preamble$162{preamble$161 -> &preamble$160};
+                                    @ 326: let &preamble$164 = alloc;
+                                    @ 327: store &preamble$164 preamble$163;
+                                    @ 328: raise &preamble$164;
+
+                                };
+                                @ 331: let preamble$154 = get &preamble$157;
+                                @ 332: let preamble$165 = isfunc preamble$154;
+                                @ 333: let preamble$166 = not preamble$165;
+                                @ 334: let &preamble$152 = alloc;
+                                @ 335: store &preamble$152 preamble$166;
+                                @ 336: while &preamble$152 {
+                                    @ 337: let preamble$167 = "__call__";
+                                    @ 338: let preamble$168 = preamble$153 haskey preamble$167;
+                                    @ 339: let &preamble$169 = if preamble$168 then {
+                                        @ 349: let &preamble$170 = preamble$153{preamble$167};
+                                        @ 350: ifresult &preamble$170;
+
+                                    } else {
+                                        @ 340: let preamble$171 = "Object is not callable";
+                                        @ 341: let &preamble$172 = alloc;
+                                        @ 342: store &preamble$172 preamble$171;
+                                        @ 343: let preamble$173 = "*value";
+                                        @ 344: let preamble$174 = {};
+                                        @ 345: let preamble$175 = preamble$174{preamble$173 -> &preamble$172};
+                                        @ 346: let &preamble$176 = alloc;
+                                        @ 347: store &preamble$176 preamble$175;
+                                        @ 348: raise &preamble$176;
+
+                                    };
+                                    @ 351: let &preamble$151 = &preamble$169;
+                                    @ 352: let preamble$153 = get &preamble$151;
+                                    @ 353: let preamble$155 = "*value";
+                                    @ 354: let preamble$156 = preamble$153 haskey preamble$155;
+                                    @ 355: let &preamble$157 = if preamble$156 then {
+                                        @ 365: let &preamble$158 = preamble$153{preamble$155};
+                                        @ 366: ifresult &preamble$158;
+
+                                    } else {
+                                        @ 356: let preamble$159 = "Object has no attribute *value";
+                                        @ 357: let &preamble$160 = alloc;
+                                        @ 358: store &preamble$160 preamble$159;
+                                        @ 359: let preamble$161 = "*value";
+                                        @ 360: let preamble$162 = {};
+                                        @ 361: let preamble$163 = preamble$162{preamble$161 -> &preamble$160};
+                                        @ 362: let &preamble$164 = alloc;
+                                        @ 363: store &preamble$164 preamble$163;
+                                        @ 364: raise &preamble$164;
+
+                                    };
+                                    @ 367: let preamble$154 = get &preamble$157;
+                                    @ 368: let preamble$165 = isfunc preamble$154;
+                                    @ 369: let preamble$166 = not preamble$165;
+                                    @ 370: let &preamble$152 = alloc;
+                                    @ 371: store &preamble$152 preamble$166;
+
+                                };
+                                @ 372: let preamble$178 = [&preamble$135];
+                                @ 373: let &preamble$177 = preamble$154(preamble$178);
+                                @ 374: let preamble$179 = get &preamble$177;
+                                @ 375: ifresult preamble$179;
+
+                            } else {
+                                @ 222: let preamble$149 = "__len__";
+                                @ 223: let preamble$229 = preamble$136 haskey preamble$149;
+                                @ 224: let preamble$230 = if preamble$229 then {
+                                    @ 227: let &preamble$180 = preamble$136{preamble$149};
+                                    @ 228: let &preamble$181 = &preamble$180;
+                                    @ 229: let preamble$183 = get &preamble$181;
+                                    @ 230: let preamble$185 = "*value";
+                                    @ 231: let preamble$186 = preamble$183 haskey preamble$185;
+                                    @ 232: let &preamble$187 = if preamble$186 then {
+                                        @ 242: let &preamble$188 = preamble$183{preamble$185};
+                                        @ 243: ifresult &preamble$188;
+
+                                    } else {
+                                        @ 233: let preamble$189 = "Object has no attribute *value";
+                                        @ 234: let &preamble$190 = alloc;
+                                        @ 235: store &preamble$190 preamble$189;
+                                        @ 236: let preamble$191 = "*value";
+                                        @ 237: let preamble$192 = {};
+                                        @ 238: let preamble$193 = preamble$192{preamble$191 -> &preamble$190};
+                                        @ 239: let &preamble$194 = alloc;
+                                        @ 240: store &preamble$194 preamble$193;
+                                        @ 241: raise &preamble$194;
+
+                                    };
+                                    @ 244: let preamble$184 = get &preamble$187;
+                                    @ 245: let preamble$195 = isfunc preamble$184;
+                                    @ 246: let preamble$196 = not preamble$195;
+                                    @ 247: let &preamble$182 = alloc;
+                                    @ 248: store &preamble$182 preamble$196;
+                                    @ 249: while &preamble$182 {
+                                        @ 250: let preamble$197 = "__call__";
+                                        @ 251: let preamble$198 = preamble$183 haskey preamble$197;
+                                        @ 252: let &preamble$199 = if preamble$198 then {
+                                            @ 262: let &preamble$200 = preamble$183{preamble$197};
+                                            @ 263: ifresult &preamble$200;
+
+                                        } else {
+                                            @ 253: let preamble$201 = "Object is not callable";
+                                            @ 254: let &preamble$202 = alloc;
+                                            @ 255: store &preamble$202 preamble$201;
+                                            @ 256: let preamble$203 = "*value";
+                                            @ 257: let preamble$204 = {};
+                                            @ 258: let preamble$205 = preamble$204{preamble$203 -> &preamble$202};
+                                            @ 259: let &preamble$206 = alloc;
+                                            @ 260: store &preamble$206 preamble$205;
+                                            @ 261: raise &preamble$206;
+
+                                        };
+                                        @ 264: let &preamble$181 = &preamble$199;
+                                        @ 265: let preamble$183 = get &preamble$181;
+                                        @ 266: let preamble$185 = "*value";
+                                        @ 267: let preamble$186 = preamble$183 haskey preamble$185;
+                                        @ 268: let &preamble$187 = if preamble$186 then {
+                                            @ 278: let &preamble$188 = preamble$183{preamble$185};
+                                            @ 279: ifresult &preamble$188;
+
+                                        } else {
+                                            @ 269: let preamble$189 = "Object has no attribute *value";
+                                            @ 270: let &preamble$190 = alloc;
+                                            @ 271: store &preamble$190 preamble$189;
+                                            @ 272: let preamble$191 = "*value";
+                                            @ 273: let preamble$192 = {};
+                                            @ 274: let preamble$193 = preamble$192{preamble$191 -> &preamble$190};
+                                            @ 275: let &preamble$194 = alloc;
+                                            @ 276: store &preamble$194 preamble$193;
+                                            @ 277: raise &preamble$194;
+
+                                        };
+                                        @ 280: let preamble$184 = get &preamble$187;
+                                        @ 281: let preamble$195 = isfunc preamble$184;
+                                        @ 282: let preamble$196 = not preamble$195;
+                                        @ 283: let &preamble$182 = alloc;
+                                        @ 284: store &preamble$182 preamble$196;
+
+                                    };
+                                    @ 285: let preamble$208 = [&preamble$135];
+                                    @ 286: let &preamble$207 = preamble$184(preamble$208);
+                                    @ 287: let preamble$209 = get &preamble$207;
+                                    @ 288: let preamble$210 = "*value";
+                                    @ 289: let preamble$211 = preamble$209 haskey preamble$210;
+                                    @ 290: let &preamble$212 = if preamble$211 then {
+                                        @ 300: let &preamble$213 = preamble$209{preamble$210};
+                                        @ 301: ifresult &preamble$213;
+
+                                    } else {
+                                        @ 291: let preamble$214 = "Object has no attribute *value";
+                                        @ 292: let &preamble$215 = alloc;
+                                        @ 293: store &preamble$215 preamble$214;
+                                        @ 294: let preamble$216 = "*value";
+                                        @ 295: let preamble$217 = {};
+                                        @ 296: let preamble$218 = preamble$217{preamble$216 -> &preamble$215};
+                                        @ 297: let &preamble$219 = alloc;
+                                        @ 298: store &preamble$219 preamble$218;
+                                        @ 299: raise &preamble$219;
+
+                                    };
+                                    @ 302: let preamble$220 = get &preamble$212;
+                                    @ 303: let preamble$222 = isint preamble$220;
+                                    @ 304: let preamble$221 = if preamble$222 then {
+                                        @ 305: let preamble$225 = 0;
+                                        @ 306: let preamble$224 = preamble$225 == preamble$220;
+                                        @ 307: let preamble$226 = if preamble$224 then {
+                                            @ 310: let preamble$227 = False;
+                                            @ 311: ifresult preamble$227;
+
+                                        } else {
+                                            @ 308: let preamble$223 = True;
+                                            @ 309: ifresult preamble$223;
+
+                                        };
+
+                                    } else {
+
+                                    };
+                                    @ 312: ifresult preamble$221;
+
+                                } else {
+                                    @ 225: let preamble$228 = True;
+                                    @ 226: ifresult preamble$228;
+
+                                };
+                                @ 313: ifresult preamble$230;
+
+                            };
+                            @ 376: ifresult preamble$232;
+
+                        };
+
+                    };
+
+                };
+
+            };
+
+        };
+
+    };
+    @ 389: ifresult preamble$255;
+    @ 390: let &preamble$257 = if preamble$255 then {
+        @ 392: ifresult &True;
+
+    } else {
+        @ 391: ifresult &False;
+
+    };
+    @ 393: return &preamble$257;
+
+};
+@ 394: let &preamble$259 = alloc;
+@ 395: store &preamble$259 preamble$258;
+@ 396: let preamble$260 = "*value";
+@ 397: let preamble$261 = {};
+@ 398: let preamble$262 = preamble$261{preamble$260 -> &preamble$259};
+@ 399: let &preamble$263 = alloc;
+@ 400: store &preamble$263 preamble$262;
+@ 401: let &bool = &preamble$263;
+@ 402: let &int_add = alloc;
+@ 403: let preamble$299 = def (preamble$264) {
+    @ 404: let preamble$265 = 0;
+    @ 405: let &preamble$266 = preamble$264[preamble$265];
+    @ 406: let preamble$267 = get &preamble$266;
+    @ 407: let preamble$268 = "*value";
+    @ 408: let preamble$269 = preamble$267 haskey preamble$268;
+    @ 409: let &preamble$270 = if preamble$269 then {
+        @ 419: let &preamble$271 = preamble$267{preamble$268};
+        @ 420: ifresult &preamble$271;
+
+    } else {
+        @ 410: let preamble$272 = "Object has no attribute *value";
+        @ 411: let &preamble$273 = alloc;
+        @ 412: store &preamble$273 preamble$272;
+        @ 413: let preamble$274 = "*value";
+        @ 414: let preamble$275 = {};
+        @ 415: let preamble$276 = preamble$275{preamble$274 -> &preamble$273};
+        @ 416: let &preamble$277 = alloc;
+        @ 417: store &preamble$277 preamble$276;
+        @ 418: raise &preamble$277;
+
+    };
+    @ 421: let preamble$278 = get &preamble$270;
+    @ 422: let preamble$279 = 1;
+    @ 423: let &preamble$280 = preamble$264[preamble$279];
+    @ 424: let preamble$281 = get &preamble$280;
+    @ 425: let preamble$282 = "*value";
+    @ 426: let preamble$283 = preamble$281 haskey preamble$282;
+    @ 427: let &preamble$284 = if preamble$283 then {
+        @ 437: let &preamble$285 = preamble$281{preamble$282};
+        @ 438: ifresult &preamble$285;
+
+    } else {
+        @ 428: let preamble$286 = "Object has no attribute *value";
+        @ 429: let &preamble$287 = alloc;
+        @ 430: store &preamble$287 preamble$286;
+        @ 431: let preamble$288 = "*value";
+        @ 432: let preamble$289 = {};
+        @ 433: let preamble$290 = preamble$289{preamble$288 -> &preamble$287};
+        @ 434: let &preamble$291 = alloc;
+        @ 435: store &preamble$291 preamble$290;
+        @ 436: raise &preamble$291;
+
+    };
+    @ 439: let preamble$292 = get &preamble$284;
+    @ 440: let preamble$293 = preamble$278 int+ preamble$292;
+    @ 441: let &preamble$294 = alloc;
+    @ 442: store &preamble$294 preamble$293;
+    @ 443: let preamble$295 = "*value";
+    @ 444: let preamble$296 = {};
+    @ 445: let preamble$297 = preamble$296{preamble$295 -> &preamble$294};
+    @ 446: let &preamble$298 = alloc;
+    @ 447: store &preamble$298 preamble$297;
+    @ 448: return &preamble$298;
+
+};
+@ 449: store &int_add preamble$299;
+@ 450: let &method_call = alloc;
+@ 451: let preamble$330 = def (preamble$300) {
+    @ 452: let preamble$301 = 0;
+    @ 453: let &preamble$302 = preamble$300[preamble$301];
+    @ 454: let preamble$303 = get &preamble$302;
+    @ 455: let preamble$304 = "*value";
+    @ 456: let preamble$305 = preamble$303 haskey preamble$304;
+    @ 457: let &preamble$306 = if preamble$305 then {
+        @ 467: let &preamble$307 = preamble$303{preamble$304};
+        @ 468: ifresult &preamble$307;
+
+    } else {
+        @ 458: let preamble$308 = "Object has no attribute *value";
+        @ 459: let &preamble$309 = alloc;
+        @ 460: store &preamble$309 preamble$308;
+        @ 461: let preamble$310 = "*value";
+        @ 462: let preamble$311 = {};
+        @ 463: let preamble$312 = preamble$311{preamble$310 -> &preamble$309};
+        @ 464: let &preamble$313 = alloc;
+        @ 465: store &preamble$313 preamble$312;
+        @ 466: raise &preamble$313;
+
+    };
+    @ 469: let preamble$314 = get &preamble$306;
+    @ 470: let preamble$315 = "*value";
+    @ 471: let preamble$316 = preamble$314 haskey preamble$315;
+    @ 472: let &preamble$317 = if preamble$316 then {
+        @ 482: let &preamble$318 = preamble$314{preamble$315};
+        @ 483: ifresult &preamble$318;
+
+    } else {
+        @ 473: let preamble$319 = "Object has no attribute *value";
+        @ 474: let &preamble$320 = alloc;
+        @ 475: store &preamble$320 preamble$319;
+        @ 476: let preamble$321 = "*value";
+        @ 477: let preamble$322 = {};
+        @ 478: let preamble$323 = preamble$322{preamble$321 -> &preamble$320};
+        @ 479: let &preamble$324 = alloc;
+        @ 480: store &preamble$324 preamble$323;
+        @ 481: raise &preamble$324;
+
+    };
+    @ 484: let preamble$325 = get &preamble$317;
+    @ 485: let preamble$326 = 1;
+    @ 486: let preamble$327 = None;
+    @ 487: let preamble$328 = preamble$300[preamble$326:preamble$327];
+    @ 488: let &preamble$329 = preamble$325(preamble$328);
+    @ 489: return &preamble$329;
+
+};
+@ 490: store &method_call preamble$330;
+@ 491: let preamble$331 = "*None";
+@ 492: let preamble$332 = get &scope;
+@ 493: let preamble$333 = preamble$332{preamble$331 -> &None};
+@ 494: store &scope preamble$333;
+@ 495: let preamble$334 = "True";
+@ 496: let preamble$335 = get &scope;
+@ 497: let preamble$336 = preamble$335{preamble$334 -> &True};
+@ 498: store &scope preamble$336;
+@ 499: let preamble$337 = "False";
+@ 500: let preamble$338 = get &scope;
+@ 501: let preamble$339 = preamble$338{preamble$337 -> &False};
+@ 502: store &scope preamble$339;
+@ 503: let preamble$340 = "bool";
+@ 504: let preamble$341 = get &scope;
+@ 505: let preamble$342 = preamble$341{preamble$340 -> &bool};
+@ 506: store &scope preamble$342;
+@ 507: let preamble$343 = "NameError";
+@ 508: let preamble$344 = get &scope;
+@ 509: let preamble$345 = preamble$344{preamble$343 -> &NameError};
+@ 510: store &scope preamble$345;
+@ 511: let preamble$346 = "TypeError";
+@ 512: let preamble$347 = get &scope;
+@ 513: let preamble$348 = preamble$347{preamble$346 -> &TypeError};
+@ 514: store &scope preamble$348;
+@ 515: let preamble$349 = "AttributeError";
+@ 516: let preamble$350 = get &scope;
+@ 517: let preamble$351 = preamble$350{preamble$349 -> &AttributeError};
+@ 518: store &scope preamble$351;
+@ 519: let preamble$352 = "ValueError";
+@ 520: let preamble$353 = get &scope;
+@ 521: let preamble$354 = preamble$353{preamble$352 -> &ValueError};
+@ 522: store &scope preamble$354;
+@ 523: let preamble$355 = "StopIteration";
+@ 524: let preamble$356 = get &scope;
+@ 525: let preamble$357 = preamble$356{preamble$355 -> &StopIteration};
+@ 526: store &scope preamble$357;
+@ 527: let lamia$0 = True;
+@ 528: let &lamia$1 = if lamia$0 then {
+    @ 530: ifresult &True;
+
+} else {
+    @ 529: ifresult &False;
+
+};
+@ 531: let lamia$2 = "$norm1";
+@ 532: let lamia$3 = get &scope;
+@ 533: let lamia$4 = lamia$3{lamia$2 -> &lamia$1};
+@ 534: store &scope lamia$4;
+@ 535: let lamia$5 = False;
+@ 536: let &lamia$6 = if lamia$5 then {
+    @ 538: ifresult &True;
+
+} else {
+    @ 537: ifresult &False;
+
+};
+@ 539: let lamia$7 = "$norm2";
+@ 540: let lamia$8 = get &scope;
+@ 541: let lamia$9 = lamia$8{lamia$7 -> &lamia$6};
+@ 542: store &scope lamia$9;

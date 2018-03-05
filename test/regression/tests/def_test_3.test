@@ -1,0 +1,2 @@
+def fun(x,y,foobar):
+  return foobar

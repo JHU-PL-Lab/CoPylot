@@ -671,145 +671,59 @@
 @ 536: let lamia$7 = get &scope;
 @ 537: let lamia$8 = lamia$7{lamia$6 -> &lamia$5};
 @ 538: store &scope lamia$8;
-@ 539: let lamia$9 = "$norm1";
-@ 540: let &lamia$10 = get_from_scope(lamia$9);
-@ 541: let lamia$11 = get &lamia$10;
-@ 542: let lamia$12 = "__add__";
-@ 543: let lamia$13 = lamia$11 haskey lamia$12;
-@ 544: let &lamia$14 = if lamia$13 then {
-    @ 554: let &lamia$15 = lamia$11{lamia$12};
-    @ 555: ifresult &lamia$15;
-
-} else {
-    @ 545: let lamia$16 = "Object has no attribute __add__";
-    @ 546: let &lamia$17 = alloc;
-    @ 547: store &lamia$17 lamia$16;
-    @ 548: let lamia$18 = "*value";
-    @ 549: let lamia$19 = {};
-    @ 550: let lamia$20 = lamia$19{lamia$18 -> &lamia$17};
-    @ 551: let &lamia$21 = alloc;
-    @ 552: store &lamia$21 lamia$20;
-    @ 553: raise &lamia$21;
-
-};
-@ 556: let lamia$22 = get &lamia$14;
-@ 557: let lamia$23 = isfunc lamia$22;
-@ 558: let &lamia$24 = if lamia$23 then {
-    @ 560: let lamia$25 = def (lamia$26) {
-        @ 561: let lamia$27 = [&lamia$10];
-        @ 562: let lamia$28 = lamia$27 || lamia$26;
-        @ 563: let &lamia$29 = lamia$22(lamia$28);
-        @ 564: return &lamia$29;
-
-    };
-    @ 565: let &lamia$30 = alloc;
-    @ 566: store &lamia$30 lamia$25;
-    @ 567: let lamia$31 = "*value";
-    @ 568: let lamia$32 = {};
-    @ 569: let lamia$33 = lamia$32{lamia$31 -> &lamia$30};
-    @ 570: let &lamia$34 = alloc;
-    @ 571: store &lamia$34 lamia$33;
-    @ 572: ifresult &lamia$34;
-
-} else {
-    @ 559: ifresult &lamia$14;
-
-};
-@ 573: let lamia$35 = "$norm2";
-@ 574: let lamia$36 = get &scope;
-@ 575: let lamia$37 = lamia$36{lamia$35 -> &lamia$24};
-@ 576: store &scope lamia$37;
-@ 577: let lamia$38 = 2;
-@ 578: let &lamia$39 = alloc;
-@ 579: store &lamia$39 lamia$38;
-@ 580: let lamia$40 = "*value";
-@ 581: let lamia$41 = {};
-@ 582: let lamia$42 = lamia$41{lamia$40 -> &lamia$39};
-@ 583: let &lamia$43 = alloc;
-@ 584: store &lamia$43 lamia$42;
-@ 585: let lamia$44 = "$norm3";
-@ 586: let lamia$45 = get &scope;
-@ 587: let lamia$46 = lamia$45{lamia$44 -> &lamia$43};
-@ 588: store &scope lamia$46;
-@ 589: let lamia$47 = "$norm2";
-@ 590: let &lamia$48 = get_from_scope(lamia$47);
-@ 591: let lamia$49 = "$norm3";
-@ 592: let &lamia$50 = get_from_scope(lamia$49);
-@ 593: let &lamia$51 = &lamia$48;
-@ 594: let lamia$53 = get &lamia$51;
-@ 595: let lamia$55 = "*value";
-@ 596: let lamia$56 = lamia$53 haskey lamia$55;
-@ 597: let &lamia$57 = if lamia$56 then {
-    @ 607: let &lamia$58 = lamia$53{lamia$55};
-    @ 608: ifresult &lamia$58;
-
-} else {
-    @ 598: let lamia$59 = "Object has no attribute *value";
-    @ 599: let &lamia$60 = alloc;
-    @ 600: store &lamia$60 lamia$59;
-    @ 601: let lamia$61 = "*value";
-    @ 602: let lamia$62 = {};
-    @ 603: let lamia$63 = lamia$62{lamia$61 -> &lamia$60};
-    @ 604: let &lamia$64 = alloc;
-    @ 605: store &lamia$64 lamia$63;
-    @ 606: raise &lamia$64;
-
-};
-@ 609: let lamia$54 = get &lamia$57;
-@ 610: let lamia$65 = isfunc lamia$54;
-@ 611: let lamia$66 = not lamia$65;
-@ 612: let &lamia$52 = alloc;
-@ 613: store &lamia$52 lamia$66;
-@ 614: while &lamia$52 {
-    @ 615: let lamia$67 = "__call__";
-    @ 616: let lamia$68 = lamia$53 haskey lamia$67;
-    @ 617: let &lamia$69 = if lamia$68 then {
-        @ 627: let &lamia$70 = lamia$53{lamia$67};
-        @ 628: ifresult &lamia$70;
-
-    } else {
-        @ 618: let lamia$71 = "Object is not callable";
-        @ 619: let &lamia$72 = alloc;
-        @ 620: store &lamia$72 lamia$71;
-        @ 621: let lamia$73 = "*value";
-        @ 622: let lamia$74 = {};
-        @ 623: let lamia$75 = lamia$74{lamia$73 -> &lamia$72};
-        @ 624: let &lamia$76 = alloc;
-        @ 625: store &lamia$76 lamia$75;
-        @ 626: raise &lamia$76;
-
-    };
-    @ 629: let &lamia$51 = &lamia$69;
-    @ 630: let lamia$53 = get &lamia$51;
-    @ 631: let lamia$55 = "*value";
-    @ 632: let lamia$56 = lamia$53 haskey lamia$55;
-    @ 633: let &lamia$57 = if lamia$56 then {
-        @ 643: let &lamia$58 = lamia$53{lamia$55};
-        @ 644: ifresult &lamia$58;
-
-    } else {
-        @ 634: let lamia$59 = "Object has no attribute *value";
-        @ 635: let &lamia$60 = alloc;
-        @ 636: store &lamia$60 lamia$59;
-        @ 637: let lamia$61 = "*value";
-        @ 638: let lamia$62 = {};
-        @ 639: let lamia$63 = lamia$62{lamia$61 -> &lamia$60};
-        @ 640: let &lamia$64 = alloc;
-        @ 641: store &lamia$64 lamia$63;
-        @ 642: raise &lamia$64;
-
-    };
-    @ 645: let lamia$54 = get &lamia$57;
-    @ 646: let lamia$65 = isfunc lamia$54;
-    @ 647: let lamia$66 = not lamia$65;
-    @ 648: let &lamia$52 = alloc;
-    @ 649: store &lamia$52 lamia$66;
-
-};
-@ 650: let lamia$77 = [&lamia$50];
-@ 651: let &lamia$78 = lamia$54(lamia$77);
-@ 652: let lamia$79 = "$norm4";
-@ 653: let lamia$80 = get &scope;
-@ 654: let lamia$81 = lamia$80{lamia$79 -> &lamia$78};
-@ 655: store &scope lamia$81;
-
+@ 539: let lamia$9 = 2;
+@ 540: let &lamia$10 = alloc;
+@ 541: store &lamia$10 lamia$9;
+@ 542: let lamia$11 = "*value";
+@ 543: let lamia$12 = {};
+@ 544: let lamia$13 = lamia$12{lamia$11 -> &lamia$10};
+@ 545: let &lamia$14 = alloc;
+@ 546: store &lamia$14 lamia$13;
+@ 547: let lamia$15 = "$norm2";
+@ 548: let lamia$16 = get &scope;
+@ 549: let lamia$17 = lamia$16{lamia$15 -> &lamia$14};
+@ 550: store &scope lamia$17;
+@ 551: let lamia$18 = 3;
+@ 552: let &lamia$19 = alloc;
+@ 553: store &lamia$19 lamia$18;
+@ 554: let lamia$20 = "*value";
+@ 555: let lamia$21 = {};
+@ 556: let lamia$22 = lamia$21{lamia$20 -> &lamia$19};
+@ 557: let &lamia$23 = alloc;
+@ 558: store &lamia$23 lamia$22;
+@ 559: let lamia$24 = "$norm3";
+@ 560: let lamia$25 = get &scope;
+@ 561: let lamia$26 = lamia$25{lamia$24 -> &lamia$23};
+@ 562: store &scope lamia$26;
+@ 563: let lamia$27 = 4;
+@ 564: let &lamia$28 = alloc;
+@ 565: store &lamia$28 lamia$27;
+@ 566: let lamia$29 = "*value";
+@ 567: let lamia$30 = {};
+@ 568: let lamia$31 = lamia$30{lamia$29 -> &lamia$28};
+@ 569: let &lamia$32 = alloc;
+@ 570: store &lamia$32 lamia$31;
+@ 571: let lamia$33 = "$norm4";
+@ 572: let lamia$34 = get &scope;
+@ 573: let lamia$35 = lamia$34{lamia$33 -> &lamia$32};
+@ 574: store &scope lamia$35;
+@ 575: let lamia$36 = "$norm1";
+@ 576: let &lamia$37 = get_from_scope(lamia$36);
+@ 577: let lamia$38 = "$norm2";
+@ 578: let &lamia$39 = get_from_scope(lamia$38);
+@ 579: let lamia$40 = "$norm3";
+@ 580: let &lamia$41 = get_from_scope(lamia$40);
+@ 581: let lamia$42 = "$norm4";
+@ 582: let &lamia$43 = get_from_scope(lamia$42);
+@ 583: let lamia$44 = [&lamia$37, &lamia$39, &lamia$41, &lamia$43];
+@ 584: let &lamia$45 = alloc;
+@ 585: store &lamia$45 lamia$44;
+@ 586: let lamia$46 = "*value";
+@ 587: let lamia$47 = {};
+@ 588: let lamia$48 = lamia$47{lamia$46 -> &lamia$45};
+@ 589: let &lamia$49 = alloc;
+@ 590: store &lamia$49 lamia$48;
+@ 591: let lamia$50 = "$norm5";
+@ 592: let lamia$51 = get &scope;
+@ 593: let lamia$52 = lamia$51{lamia$50 -> &lamia$49};
+@ 594: store &scope lamia$52;

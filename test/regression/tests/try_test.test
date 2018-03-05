@@ -1,0 +1,8 @@
+try:
+  raise x
+except NameError as e:
+  return e
+except NameError:
+  return "HALP"
+except e:
+  return e
