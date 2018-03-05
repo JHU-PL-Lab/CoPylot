@@ -11,3 +11,9 @@ If not an int, return NotImplemented
 add *value fields
 wrap in a new int
 return that new int
+
+TODOs:
+Add NotImplemented value
+Add appropriate macros (should we give them the option to have a return value?)
+Change Python translation for __add__ to properly look for __radd__
+Hook up the lamia translator to pipe through lybie

@@ -42,9 +42,13 @@ and 'a statement =
 [@@deriving eq, ord, show]
 
 and stmt_macro =
-    (* For the moment we only handle functions with constant arg number *)
+    (* Boilerplate that goes at the top of each translated Python function.
+       Does not handle argument unpacking, etc *)
+    (* | Python_function_preamble *)
     (* Binds the given memory variable to the given identifier in the python scope *)
     | Assign_python_variable of identifier * memory_variable
+(* TODO: Macros that return things? *)
+(* | Extract_list_elt of value_variable list * int *)
 [@@deriving eq, ord, show]
 
 and 'a block =

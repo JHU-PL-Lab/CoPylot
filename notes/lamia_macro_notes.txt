@@ -1,5 +1,6 @@
 TODO: Gonna need some regressions tests for the lamia conversion.
-TODO: We seem to be lacking a conversion between annot lamia and uid lamia
+*TODO: We seem to be lacking a conversion between annot lamia and uid lamia
+  Nope, there's a whole file to do this: lamia_conversion_add_uids.ml
 TODO: Rejigger the python conversion to convert to Macro lamia (trivial for now)
 TODO: Come up with some macros
 
