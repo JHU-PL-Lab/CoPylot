@@ -1,19 +1,17 @@
 open Batteries;;
-open Lamia_ast;;
+open Lybie_ast;;
 open Lamia_ast_types;;
 open Python2_normalized_ast;;
 open Python2_ast_types;;
 open Unique_name_ctx;;
-open Uid_ctx;;
-open Lamia_conversion_monad;;
-open Lamia_conversion_builtin_names;;
-open Lamia_conversion_builtin_defs;;
-open Lamia_conversion_preamble;;
-open Lamia_conversion_utils;;
-open Lamia_conversion_object_defs;;
-open Lamia_conversion_add_uids;;
+open Lybie_conversion_monad;;
+open Lybie_conversion_builtin_names;;
+open Lybie_conversion_builtin_defs;;
+open Lybie_conversion_preamble;;
+open Lybie_conversion_utils;;
+open Lybie_conversion_object_defs;;
 
-open Lamia_monad;;
+open Lybie_monad;;
 
 let rec convert_module
     (ctx : name_context)
@@ -22,9 +20,9 @@ let rec convert_module
   let Module(stmts) = m in
   let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
   let preamble_ctx = create_new_name_ctx 0 "preamble$" in
-  let _, lamia_preamble = run preamble_ctx annot preamble in
-  let _, lamia_prog = run ctx annot @@ convert_stmt_list stmts in
-  let annot_block = Block(lamia_preamble @ lamia_prog) in
+  let _, lybie_preamble = run preamble_ctx annot preamble in
+  let _, lybie_prog = run ctx annot @@ convert_stmt_list stmts in
+  let annot_block = Block(lybie_preamble @ lybie_prog) in
   annot_block
 
 and convert_stmt_list (stmts : annotated_stmt list) : unit m =
@@ -44,7 +42,7 @@ and convert_stmt
     let%bind lookup_result = lookup x in
     emit
       [
-        Lamia_ast.Return(lookup_result);
+        Lybie_ast.Return(lookup_result);
       ]
 
   | While (test, body) ->
@@ -79,7 +77,7 @@ and convert_stmt
     ] @
     value_bindings @
     [
-      Lamia_ast.While(value_loc,
+      Lybie_ast.While(value_loc,
                       Block(while_body));
     ]
 
@@ -124,7 +122,7 @@ and convert_stmt
     let%bind lookup_result = lookup x in
     emit
       [
-        Lamia_ast.Raise(lookup_result);
+        Lybie_ast.Raise(lookup_result);
       ]
 
   | TryExcept (body, exn_name, handler) ->
@@ -205,7 +203,7 @@ and convert_expr
     return retval
 
   | Attribute (obj, attr) ->
-    (* TODO: When we add inheritance, lamia get_attr will no longer be
+    (* TODO: When we add inheritance, lybie get_attr will no longer be
        the same the python . operator. At that point lookup_and_get_attr
        won't work; we'll need to lookup, then do some complicated stuff
        to use the __getattr__ function and follow the inheritance chain *)
@@ -307,7 +305,7 @@ and convert_expr
     end
 
   | FunctionVal (args, body) ->
-    let%bind lamia_argname = fresh_value_var () in
+    let%bind lybie_argname = fresh_value_var () in
     let%bind _, converted_body = listen @@
       let gen_arg_binding m argname =
         let%bind list_val, scopename, index = m in
@@ -338,7 +336,7 @@ and convert_expr
 
       let%bind _, final_scope, _ =
         List.fold_left gen_arg_binding
-          (return (lamia_argname, empty_scope, 0))
+          (return (lybie_argname, empty_scope, 0))
           args
       in
 
@@ -351,26 +349,18 @@ and convert_expr
       convert_stmt_list body
     in
 
-    let lamia_funcval =
-      Function_expression([lamia_argname], Block converted_body)
+    let lybie_funcval =
+      Function_expression([lybie_argname], Block converted_body)
     in
 
     let%bind funcval_name = fresh_value_var () in
     let%bind funcval_loc = fresh_memory_var () in
     let%bind _ = emit
         [
-          Let_expression(funcval_name, lamia_funcval);
+          Let_expression(funcval_name, lybie_funcval);
           Let_alloc(funcval_loc);
           Store(funcval_loc, funcval_name);
         ]
     in
     return funcval_loc
-;;
-
-let annot_to_uid
-    (b : annot block)
-  : uid block * uid_context =
-  let uid_ctx = create_new_uid_ctx 0 in
-  let uid_block = add_uids_block uid_ctx b in
-  uid_block, uid_ctx
 ;;

@@ -1,10 +1,10 @@
 open Batteries;;
-open Lamia_ast;;
-open Lamia_conversion_monad;;
-open Lamia_monad;;
-open Lamia_conversion_builtin_names;;
-open Lamia_conversion_builtin_defs;;
-open Lamia_conversion_object_defs;;
+open Lybie_ast;;
+open Lybie_conversion_monad;;
+open Lybie_monad;;
+open Lybie_conversion_builtin_names;;
+open Lybie_conversion_builtin_defs;;
+open Lybie_conversion_object_defs;;
 
 let define_func_mem body_def func_loc =
   let%bind arglist = fresh_value_var () in

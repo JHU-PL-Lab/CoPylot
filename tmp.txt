@@ -1,0 +1,1707 @@
+diff --git a/_oasis b/_oasis
+index c2b4262..ed07282 100644
+--- a/_oasis
++++ b/_oasis
+@@ -117,17 +117,16 @@ Library "conversion_monads"
+     CoPylot.lamia_language,
+     CoPylot.lybie_language
+ 
+-Library "lamia_conversion"
++Library "lybie_conversion"
+   FindlibParent: CoPylot
+-  Path: src/lamia_conversion
++  Path: src/lybie_conversion
+   Modules:
+-    Lamia_conversion_builtin_names,
+-    Lamia_conversion_utils,
+-    Lamia_conversion_object_defs,
+-    Lamia_conversion_builtin_defs,
+-    Lamia_conversion_preamble,
+-    Lamia_conversion_add_uids,
+-    Lamia_converter
++    Lybie_conversion_builtin_names,
++    Lybie_conversion_utils,
++    Lybie_conversion_object_defs,
++    Lybie_conversion_builtin_defs,
++    Lybie_conversion_preamble,
++    Lybie_converter
+   BuildDepends:
+     batteries,
+     jhupllib,
+@@ -142,13 +141,14 @@ Library "lybie_expansion"
+   Path: src/lybie_expansion
+   Modules:
+     Lybie_macro_expansion,
++    Lybie_expansion_add_uids,
+     Lybie_expander
+   BuildDepends:
+     batteries,
+     jhupllib,
+     ppx_deriving.std,
+     ppx_deriving_yojson,
+-    CoPylot.lamia_conversion,
++    CoPylot.lybie_conversion,
+     CoPylot.conversion_monads
+ 
+ Library "lamia_parser"
+@@ -239,7 +239,8 @@ Executable "analysis_python_toploop"
+     jhupllib,
+     CoPylot.utils,
+     CoPylot.ast_simplification,
+-    CoPylot.lamia_conversion,
++    CoPylot.lybie_conversion,
++    CoPylot.lybie_expansion,
+     CoPylot.analysis
+ 
+ Executable "test"
+@@ -258,7 +259,8 @@ Executable "test"
+     CoPylot.lamia_language,
+     CoPylot.lamia_parser,
+     CoPylot.lamia_interpreter,
+-    CoPylot.lamia_conversion,
++    CoPylot.lybie_conversion,
++    CoPylot.lybie_expansion,
+     CoPylot.analysis
+ 
+ 
+diff --git a/src/analysis_toploop/analysis_python_toploop.ml b/src/analysis_toploop/analysis_python_toploop.ml
+index 418809c..11da14b 100644
+--- a/src/analysis_toploop/analysis_python_toploop.ml
++++ b/src/analysis_toploop/analysis_python_toploop.ml
+@@ -30,8 +30,9 @@ type analysis =
+ let parse_and_analyze lexbuf : analysis =
+   let modl = Python2_ast_pipeline.parse_to_normalized lexbuf 0 true in
+   let ctx = Unique_name_ctx.create_new_name_ctx 0 "lamia$" in
+-  let annot_block = Lamia_converter.convert_module ctx modl in
+-  let uid_block, uid_ctx = Lamia_converter.annot_to_uid annot_block in
++  let lybie_block = Lybie_converter.convert_module ctx modl in
++  let annot_block = Lybie_expander.expand_macros_block ctx lybie_block in
++  let uid_block, uid_ctx = Lybie_expander.annot_to_uid annot_block in
+   add_to_log `debug @@ "Lamia program:\n" ^ pp_to_string pp_block_top uid_block;
+   let abstract_block, _ = Analysis_lift_ast.lift_block_top uid_block in
+   let pds, relations = construct_analysis abstract_block in
+diff --git a/src/lamia_conversion/lamia_conversion_add_uids.ml b/src/lamia_conversion/lamia_conversion_add_uids.ml
+deleted file mode 100644
+index 7c7d30b..0000000
+--- a/src/lamia_conversion/lamia_conversion_add_uids.ml
++++ /dev/null
+@@ -1,78 +0,0 @@
+-open Batteries;;
+-open Python2_ast_types;;
+-open Lamia_ast;;
+-open Uid_ctx;;
+-
+-let rec add_uids_block (ctx : uid_context) (b : annot block) =
+-  let Block(stmts) = b in
+-  Block(List.map (add_uids_stmt ctx) stmts)
+-
+-and add_uids_stmt ctx s =
+-  let Statement(a, d) = s in
+-  let new_uid = get_next_uid ctx a in
+-  let new_d = add_uids_directive ctx d in
+-  Statement(new_uid, new_d)
+-
+-and add_uids_directive ctx d =
+-  match d with
+-  | Let_expression(arg1, e) ->
+-    Let_expression(arg1, add_uids_expression ctx e)
+-  | Let_alloc(arg1) ->
+-    Let_alloc(arg1)
+-  | Let_alias_value(arg1, arg2) ->
+-    Let_alias_value(arg1, arg2)
+-  | Let_alias_memory(arg1, arg2) ->
+-    Let_alias_memory(arg1, arg2)
+-  | Let_binding_update(arg1, arg2, arg3, arg4) ->
+-    Let_binding_update(arg1, arg2, arg3, arg4)
+-  | Let_binding_access(arg1, arg2, arg3) ->
+-    Let_binding_access(arg1, arg2, arg3)
+-  | Let_list_access(arg1, arg2, arg3) ->
+-    Let_list_access(arg1, arg2, arg3)
+-  | Let_list_slice(arg1, arg2, arg3, arg4) ->
+-    Let_list_slice(arg1, arg2, arg3, arg4)
+-  | Let_call_function(arg1, arg2, arg3) ->
+-    Let_call_function(arg1, arg2, arg3)
+-  | Store(arg1, arg2) ->
+-    Store(arg1, arg2)
+-  | Let_get(arg1, arg2) ->
+-    Let_get(arg1, arg2)
+-  | Let_is(arg1, arg2, arg3) ->
+-    Let_is(arg1, arg2, arg3)
+-  | Let_unop(arg1, arg2, arg3) ->
+-    Let_unop(arg1, arg2, arg3)
+-  | Let_binop(arg1, arg2, arg3, arg4) ->
+-    Let_binop(arg1, arg2, arg3, arg4)
+-  | Return(arg1) ->
+-    Return(arg1)
+-  | If_result_value(arg1) ->
+-    If_result_value(arg1)
+-  | If_result_memory(arg1) ->
+-    If_result_memory(arg1)
+-  | Raise(arg1) ->
+-    Raise(arg1)
+-  | Try_except(body, arg1, handler) ->
+-    Try_except(add_uids_block ctx body, arg1, add_uids_block ctx handler)
+-  | Let_conditional_value(arg1, arg2, body, orelse) ->
+-    Let_conditional_value(arg1, arg2, add_uids_block ctx body, add_uids_block ctx orelse)
+-  | Let_conditional_memory(arg1, arg2, body, orelse) ->
+-    Let_conditional_memory(arg1, arg2, add_uids_block ctx body, add_uids_block ctx orelse)
+-  | While(arg, body) ->
+-    While(arg, add_uids_block ctx body)
+-
+-and add_uids_expression ctx e =
+-  match e with
+-  | Integer_literal(n) ->
+-    Integer_literal n
+-  | String_literal(s) ->
+-    String_literal s
+-  | Boolean_literal(b) ->
+-    Boolean_literal b
+-  | List_expression(lst) ->
+-    List_expression lst
+-  | Function_expression(args, body) ->
+-    Function_expression(args, add_uids_block ctx body)
+-  | None_literal ->
+-    None_literal
+-  | Empty_binding ->
+-    Empty_binding
+diff --git a/src/lamia_conversion/lamia_conversion_builtin_defs.ml b/src/lamia_conversion/lamia_conversion_builtin_defs.ml
+deleted file mode 100644
+index 5aa9091..0000000
+--- a/src/lamia_conversion/lamia_conversion_builtin_defs.ml
++++ /dev/null
+@@ -1,285 +0,0 @@
+-open Batteries;;
+-open Lamia_ast;;
+-open Lamia_ast_types;;
+-open Lamia_conversion_monad;;
+-open Lamia_monad;;
+-open Lamia_conversion_builtin_names;;
+-open Lamia_conversion_object_defs;;
+-open Lamia_conversion_utils;;
+-
+-(* This file contains all definitions of python builtins, global helper
+-   functions like *getcall, etc *)
+-
+-let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos;;
+-
+-let define_scope =
+-  let%bind empty_name = fresh_value_var () in
+-  emit
+-    [
+-      Let_expression(empty_name, Empty_binding);
+-      Let_alloc(python_scope);
+-      Store(python_scope, empty_name);
+-    ]
+-;;
+-
+-let get_from_scope_def =
+-  let%bind target = fresh_value_var () in
+-  let%bind _, func_body =
+-    listen @@
+-    let lookup_in_parent =
+-      let%bind parent_retval = fresh_memory_var () in
+-      emit
+-        [
+-          Let_call_function(parent_retval, get_from_parent_scope, [target]);
+-          If_result_memory(parent_retval);
+-        ]
+-    in
+-    let%bind scope_val = fresh_value_var () in
+-    let%bind _ =
+-      emit
+-        [
+-          Let_get(scope_val, python_scope);
+-        ]
+-    in
+-    let%bind local_result =
+-      get_from_binding target scope_val lookup_in_parent
+-    in
+-    emit
+-      [
+-        Return(local_result);
+-      ]
+-  in
+-  return @@ Function_expression([target], Block(func_body))
+-;;
+-
+-let define_get_from_parent_scope =
+-  let%bind target_name = fresh_value_var () in
+-  let%bind _, throw_exn =
+-    listen @@
+-    let%bind exn_val =
+-      (* FIXME: The error message should by dynamically constructed to
+-         hold the name we were looking up *)
+-      store_value @@ String_literal("name is not defined")
+-    in
+-    let%bind exn_obj = wrap_name_error exn_val in
+-    emit
+-      [
+-        Raise(exn_obj);
+-      ]
+-  in
+-  emit
+-    [
+-      Let_expression(get_from_parent_scope,
+-                     Function_expression(
+-                       [target_name],
+-                       Block(throw_exn)));
+-    ]
+-;;
+-
+-(*TODO: All the builtin functions need arglist size verification and/or
+-  typechecking *)
+-
+-let builtin_attribute_error_body arglist =
+-  let%bind arg_val = extract_arg_to_value arglist 0 in
+-  wrap_attribute_error arg_val
+-;;
+-
+-let builtin_type_error_body arglist =
+-  let%bind arg_val = extract_arg_to_value arglist 0 in
+-  wrap_type_error arg_val
+-;;
+-
+-let builtin_name_error_body arglist =
+-  let%bind arg_val = extract_arg_to_value arglist 0 in
+-  wrap_name_error arg_val
+-;;
+-
+-let builtin_stop_iteration_body arglist =
+-  let%bind arg_val = extract_arg_to_value arglist 0 in
+-  wrap_stop_iteration arg_val
+-;;
+-
+-let builtin_bool_body arglist =
+-  let%bind arg_loc = extract_nth_list_elt arglist 0 in
+-  let%bind arg_obj = get_value arg_loc in
+-  let%bind val_loc = get_attr "*value" arg_obj in
+-  let%bind arg_val = get_value val_loc in
+-
+-  let check_starvalue toplevel argval test_expr rest =
+-    let%bind _, rest_of_if = listen rest in
+-    let%bind test_name = fresh_value_var () in
+-    let%bind value_name = fresh_value_var () in
+-    let%bind result_name = fresh_value_var () in
+-    let%bind _, return_false =
+-      listen @@
+-      let%bind retval = store_value @@ Boolean_literal false in
+-      emit
+-        [
+-          If_result_value(retval);
+-        ]
+-    in
+-    let return_if_necessary =
+-      if toplevel then
+-        [If_result_value(result_name)]
+-      else
+-        []
+-    in
+-    let%bind _ =
+-      emit @@
+-      [
+-        Let_expression(value_name, test_expr);
+-        Let_binop(test_name, value_name, Binop_equals, argval);
+-        Let_conditional_value(result_name, test_name, Block(return_false), Block(rest_of_if));
+-      ] @
+-      return_if_necessary
+-    in
+-    return result_name
+-  in
+-
+-  (* Check if it has a __bool__ or __len__ method, and call it *)
+-  let call_bool_and_len =
+-
+-    let%bind bool_name = fresh_value_var () in
+-    let%bind len_name = fresh_value_var () in
+-
+-    let check_haskey key_str key_name if_yes if_no =
+-      let%bind has_key = fresh_value_var () in
+-      let%bind retval = fresh_value_var () in
+-      emit
+-        [
+-          Let_expression(key_name, String_literal(key_str));
+-          Let_binop(has_key, arg_obj, Binop_haskey, key_name);
+-          Let_conditional_value(retval, has_key, Block if_yes, Block if_no);
+-          If_result_value(retval);
+-        ]
+-    in
+-
+-    let call_method method_name =
+-      let%bind method_loc = fresh_memory_var () in
+-      let%bind _ = emit [Let_binding_access(method_loc, arg_obj, method_name)] in
+-      let%bind method_func = get_call method_loc in
+-      let%bind method_func_result = fresh_memory_var () in
+-      let%bind method_func_arglist = fresh_value_var () in
+-      let%bind method_func_result_value = fresh_value_var () in
+-      let%bind _ =
+-        emit
+-          [
+-            Let_expression(method_func_arglist, List_expression [arg_loc]);
+-            Let_call_function(method_func_result, method_func, [method_func_arglist]);
+-            Let_get(method_func_result_value, method_func_result);
+-          ]
+-      in
+-      return method_func_result_value
+-    in
+-
+-    let%bind _, if_has_bool =
+-      listen @@
+-      let%bind bool_result = call_method bool_name in
+-      emit
+-        [
+-          (* TODO: Make sure result of __bool__ really is a bool *)
+-          (* TODO: Retrieve *value field if so, and return it *)
+-          If_result_value(bool_result);
+-        ]
+-    in
+-
+-    let%bind _, if_no_bool = listen @@
+-      let return_true =
+-        let%bind retval = store_value @@ Boolean_literal true in
+-        emit [If_result_value(retval)]
+-      in
+-
+-      let%bind _, if_has_len =
+-        listen @@
+-        let%bind len_result = call_method len_name in
+-        let%bind len_result_value_loc = get_attr "*value" len_result in
+-        let%bind len_result_value = get_value len_result_value_loc in
+-        let%bind len_result_bool = fresh_value_var () in
+-        let%bind _, if_not_int =
+-          listen @@
+-          emit
+-            [
+-              (* TODO: Throw error of some kind *)
+-            ]
+-        in
+-        let%bind isint = fresh_value_var () in
+-        let%bind _, if_is_int =
+-          listen @@
+-          check_starvalue false len_result_value (Integer_literal 0) return_true
+-        in
+-        emit
+-          [
+-            Let_unop(isint, Unop_is_int, len_result_value);
+-            Let_conditional_value(len_result_bool, isint, Block if_is_int, Block if_not_int);
+-            If_result_value(len_result_bool);
+-          ]
+-      in
+-
+-      let%bind _, if_no_len =
+-        listen @@ return_true
+-      in
+-
+-      check_haskey "__len__" len_name if_has_len if_no_len
+-
+-    in
+-
+-    check_haskey "__bool__" bool_name if_has_bool if_no_bool
+-  in
+-
+-  let%bind bool_result =
+-    check_starvalue true arg_val (None_literal) @@
+-    check_starvalue false arg_val (Boolean_literal false) @@
+-    check_starvalue false arg_val (Integer_literal 0) @@
+-    (* check_starvalue (Float_literal 0.0) @@ *)
+-    check_starvalue false arg_val (String_literal "") @@
+-    check_starvalue false arg_val (List_expression []) @@
+-    check_starvalue false arg_val (Empty_binding) @@
+-    call_bool_and_len
+-  in
+-
+-  let%bind obj_result = wrap_bool bool_result in
+-  emit
+-    [
+-      Return(obj_result);
+-    ]
+-;;
+-
+-(* Builtin methods *)
+-
+-let int_add_body arglist =
+-  let%bind arg0_val = extract_arg_to_value arglist 0 in
+-  let%bind arg1_val = extract_arg_to_value arglist 1 in
+-  let%bind sum = fresh_value_var () in
+-  let%bind _ = emit
+-      [
+-        Let_binop(sum, arg0_val, Binop_intplus, arg1_val);
+-      ]
+-  in
+-  let%bind obj_result = wrap_int sum in
+-  emit
+-    [
+-      Return(obj_result);
+-    ]
+-;;
+-
+-let method_call_body arglist =
+-  let%bind method_val = extract_arg_to_value arglist 0 in
+-  let%bind method_func = get_attr "*value" method_val in
+-  let%bind method_func_val = get_value method_func in
+-
+-  let%bind start_index = fresh_value_var () in
+-  let%bind end_index = fresh_value_var () in
+-  let%bind truncated_args = fresh_value_var () in
+-  let%bind retval = fresh_memory_var () in
+-  emit
+-    [
+-      (* Remove the first element from the arglist, since it's the "self"
+-         for __call__, not for the function __call__ invokes *)
+-      Let_expression(start_index, Integer_literal 1);
+-      Let_expression(end_index, None_literal);
+-      Let_list_slice(truncated_args, arglist, start_index, end_index);
+-      (* Call the function *)
+-      Let_call_function(retval, method_func_val, [truncated_args]);
+-      Return(retval);
+-    ]
+-;;
+diff --git a/src/lamia_conversion/lamia_conversion_builtin_names.ml b/src/lamia_conversion/lamia_conversion_builtin_names.ml
+deleted file mode 100644
+index 8f422d7..0000000
+--- a/src/lamia_conversion/lamia_conversion_builtin_names.ml
++++ /dev/null
+@@ -1,34 +0,0 @@
+-open Lamia_ast_types;;
+-
+-(* This file holds names of lamia variables that can be expected to always
+-   be in scope. Some (like the python scope) may be shadowed at some points,
+-   but will always exist *)
+-
+-(* Name of our local python scope variable *)
+-let python_scope = Memory_variable("&scope");;
+-(* Function to lookup a variable in the current scope, searching parent
+-   scopes as necessary *)
+-let get_from_scope = Value_variable("get_from_scope");;
+-(* Function to lookup a variable in the parent's scope; called by
+-   get_from_scope *)
+-let get_from_parent_scope = Value_variable("get_from_parent_scope");;
+-
+-let builtin_true = Memory_variable("&True");;
+-let builtin_false = Memory_variable("&False");;
+-let builtin_none = Memory_variable("&None");;
+-
+-(* Builtin global python functions *)
+-(* Technically these are constructor calls *)
+-(* let builtin_type = Memory_variable("builtin_type");; *)
+-let builtin_bool = Memory_variable("&bool");;
+-let builtin_slice = Memory_variable("&slice");;
+-let builtin_NameError = Memory_variable("&NameError");;
+-let builtin_ValueError = Memory_variable("&ValueError");;
+-let builtin_AttributeError = Memory_variable("&AttributeError");;
+-let builtin_TypeError = Memory_variable("&TypeError");;
+-let builtin_StopIteration = Memory_variable("&StopIteration");;
+-
+-(* Builtin python methods *)
+-let int_add = Memory_variable("&int_add");;
+-
+-let method_call = Memory_variable("&method_call");;
+diff --git a/src/lamia_conversion/lamia_conversion_object_defs.ml b/src/lamia_conversion/lamia_conversion_object_defs.ml
+deleted file mode 100644
+index 6a270c6..0000000
+--- a/src/lamia_conversion/lamia_conversion_object_defs.ml
++++ /dev/null
+@@ -1,198 +0,0 @@
+-(* open Batteries;; *)
+-open Lamia_ast;;
+-open Lamia_ast_types;;
+-open Lamia_conversion_builtin_names;;
+-open Lamia_conversion_monad;;
+-open Lamia_monad;;
+-
+-let add_binding
+-    (obj : value_variable)
+-    (attr : string)
+-    (value : memory_variable)
+-  : value_variable m =
+-  let%bind attr_val = fresh_value_var () in
+-  let%bind new_obj = fresh_value_var () in
+-  let%bind _ = emit
+-      [
+-        Let_expression(attr_val, String_literal attr);
+-        Let_binding_update(new_obj, obj, attr_val, value);
+-      ]
+-  in
+-  return new_obj
+-;;
+-
+-let wrap_obj
+-    fill_func
+-    (x : value_variable)
+-  : memory_variable m =
+-  let%bind value_loc = fresh_memory_var () in
+-  let%bind value_name = fresh_value_var () in
+-  let%bind empty_obj = fresh_value_var () in
+-  let%bind obj_with_value = fresh_value_var () in
+-
+-  let%bind _ = emit
+-      [
+-        Let_alloc(value_loc);
+-        Store(value_loc, x);
+-        Let_expression(value_name, String_literal("*value"));
+-        Let_expression(empty_obj, Empty_binding);
+-        Let_binding_update(obj_with_value, empty_obj, value_name, value_loc);
+-      ]
+-  in
+-  let%bind filled_obj = fill_func obj_with_value in
+-  let%bind obj_loc = fresh_memory_var () in
+-  let%bind _ = emit
+-      [
+-        Let_alloc(obj_loc);
+-        Store(obj_loc, filled_obj);
+-      ]
+-  in
+-  return obj_loc
+-;;
+-
+-let fill_int obj =
+-  (* This should be a method, but because we don't have classes we store it
+-     as a function value directly *)
+-  (* let%bind obj = add_binding obj "__add__" int_add in *)
+-  (* TODO: More of this *)
+-  return obj
+-;;
+-
+-let fill_float obj =
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-let fill_bool obj =
+-  fill_int obj
+-;;
+-
+-let fill_string obj =
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-let fill_list obj =
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-let fill_tuple obj =
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-let fill_func obj =
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-(* Methods will have as their *value a function value, which will call their
+-   __func__ attribute with __self__ as the first argument *)
+-let fill_method obj_loc obj =
+-  ignore obj_loc; (* TODO: This should be bound to __self__ *)
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-let fill_name_error obj =
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-let fill_attribute_error obj =
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-let fill_type_error obj =
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-let fill_stop_iteration obj =
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-let fill_none obj =
+-  (* TODO: Implement this *)
+-  return obj
+-;;
+-
+-(* The "right" way to handle all these similar functions is to make a type
+-   representing what type the object is, and pass that in as a parameter.
+-   However, a lot of this process will change once we implement classes,
+-   so I'm decreeing this to be acceptable for the moment. *)
+-let wrap_int x = wrap_obj fill_int x;;
+-let wrap_float x = wrap_obj fill_float x;;
+-let wrap_string x = wrap_obj fill_string x;;
+-let wrap_list x = wrap_obj fill_list x;;
+-let wrap_tuple x = wrap_obj fill_tuple x;;
+-let wrap_func x = wrap_obj fill_func x;;
+-(* We're going to pretend that exceptions are just regular objects, whose
+-   *value field is a string *)
+-let wrap_name_error = wrap_obj fill_name_error;;
+-let wrap_attribute_error = wrap_obj fill_attribute_error;;
+-let wrap_type_error = wrap_obj fill_type_error;;
+-let wrap_stop_iteration = wrap_obj fill_stop_iteration;;
+-
+-(* Since there are only two bool values, we check our input and return the
+-   appropriate one, rather than creating a new one *)
+-let wrap_bool x =
+-  let%bind output_name = fresh_memory_var () in
+-  let%bind _, if_true =
+-    listen @@
+-    emit
+-      [
+-        If_result_memory(builtin_true);
+-      ]
+-  in
+-  let%bind _, if_false =
+-    listen @@
+-    emit
+-      [
+-        If_result_memory(builtin_false);
+-      ]
+-  in
+-  let%bind _ =
+-    emit
+-      [
+-        Let_conditional_memory(output_name, x, Block if_true, Block if_false);
+-      ]
+-  in
+-  return output_name
+-;;
+-
+-let wrap_none =
+-  return builtin_none
+-;;
+-
+-(* Wrapping methods is significantly more complicated than other wraps. *)
+-let wrap_method func self =
+-  (* A lamia function value which curries in self automatically *)
+-  let%bind curried_func =
+-    let%bind new_func_name = fresh_value_var () in
+-    let%bind arglist = fresh_value_var () in
+-    let%bind _, new_func_body =
+-      listen @@
+-      let%bind self_list = fresh_value_var () in
+-      let%bind curried_args = fresh_value_var () in
+-      let%bind retval = fresh_memory_var () in
+-      emit
+-        [
+-          Let_expression(self_list, List_expression [self]);
+-          Let_binop(curried_args, self_list, Binop_listconcat, arglist);
+-          Let_call_function(retval, func, [curried_args]);
+-          Return(retval);
+-        ]
+-    in
+-    let%bind _ = emit
+-        [
+-          Let_expression(new_func_name,
+-                         Function_expression([arglist], Block new_func_body));
+-        ]
+-    in
+-    return new_func_name
+-  in
+-  wrap_obj (fill_method self) curried_func;;
+diff --git a/src/lamia_conversion/lamia_conversion_preamble.ml b/src/lamia_conversion/lamia_conversion_preamble.ml
+deleted file mode 100644
+index da4aad9..0000000
+--- a/src/lamia_conversion/lamia_conversion_preamble.ml
++++ /dev/null
+@@ -1,130 +0,0 @@
+-open Batteries;;
+-open Lamia_ast;;
+-open Lamia_conversion_monad;;
+-open Lamia_monad;;
+-open Lamia_conversion_builtin_names;;
+-open Lamia_conversion_builtin_defs;;
+-open Lamia_conversion_object_defs;;
+-
+-let define_func_mem body_def func_loc =
+-  let%bind arglist = fresh_value_var () in
+-
+-  let%bind _, func_body = listen @@ body_def arglist in
+-
+-  let%bind func_name = fresh_value_var () in
+-  let func_val = Function_expression([arglist], Block(func_body)) in
+-  let%bind _ = emit
+-      [
+-        Let_expression(func_name, func_val);
+-      ]
+-  in
+-  let%bind wrapped_loc = wrap_func func_name in
+-  emit
+-    [
+-      Let_alias_memory(func_loc, wrapped_loc)
+-    ]
+-;;
+-
+-(* TODO: Same as define_func_mem but doesn't wrap the result. Once we add
+-   classes we should just be able to always use define_func_mem instead *)
+-let define_method_mem body_def func_loc =
+-  let%bind arglist = fresh_value_var () in
+-
+-  let%bind _, func_body = listen @@ body_def arglist in
+-
+-  let%bind func_name = fresh_value_var () in
+-  let func_val = Function_expression([arglist], Block(func_body)) in
+-  emit
+-    [
+-      Let_alloc(func_loc);
+-      Let_expression(func_name, func_val);
+-      Store(func_loc, func_name);
+-    ]
+-;;
+-
+-let define_func_val func func_name =
+-  let%bind func_expr = func in
+-  emit
+-    [
+-      Let_expression(func_name, func_expr);
+-    ]
+-;;
+-
+-let define_obj_mem obj_loc fill_func starvalue =
+-  let%bind value_val = fresh_value_var () in
+-  let%bind value_loc = fresh_memory_var () in
+-  let%bind empty_obj = fresh_value_var () in
+-  let%bind value_str = fresh_value_var () in
+-  let%bind obj_with_value = fresh_value_var () in
+-  let%bind _ =
+-    emit
+-      [
+-        Let_alloc(value_loc);
+-        Let_expression(value_val, starvalue);
+-        Store(value_loc, value_val);
+-
+-        Let_expression(empty_obj, Empty_binding);
+-        Let_expression(value_str, String_literal "*value");
+-        Let_binding_update(obj_with_value, empty_obj, value_str, value_loc);
+-      ]
+-  in
+-  let%bind filled_obj = fill_func obj_with_value in
+-  emit
+-    [
+-      Let_alloc(obj_loc);
+-      Store(obj_loc, filled_obj);
+-    ]
+-;;
+-
+-let add_to_global_python_scope varname memloc =
+-  let%bind varstr = fresh_value_var () in
+-  let%bind scopeval = fresh_value_var () in
+-  let%bind new_scopeval = fresh_value_var () in
+-  emit
+-    [
+-      Let_expression(varstr, String_literal varname);
+-      Let_get(scopeval, python_scope);
+-      Let_binding_update(new_scopeval, scopeval, varstr, memloc);
+-      Store(python_scope, new_scopeval);
+-    ]
+-;;
+-
+-let all_definitions =
+-  [
+-    define_scope;
+-    define_get_from_parent_scope;
+-    define_func_val get_from_scope_def get_from_scope;
+-
+-    define_obj_mem builtin_true fill_bool @@ Integer_literal 1;
+-    define_obj_mem builtin_false fill_bool @@ Integer_literal 0;
+-    define_obj_mem builtin_none fill_none @@ None_literal;
+-
+-    define_func_mem builtin_attribute_error_body builtin_AttributeError;
+-    define_func_mem builtin_type_error_body builtin_TypeError;
+-    define_func_mem builtin_name_error_body builtin_NameError;
+-    (* define_func_mem builtin_value_error_body builtin_ValueError; *)
+-    define_func_mem builtin_stop_iteration_body builtin_StopIteration;
+-
+-    define_func_mem builtin_bool_body builtin_bool;
+-
+-    define_method_mem int_add_body int_add;
+-    define_method_mem method_call_body method_call;
+-
+-    (* Global builtin values *)
+-    add_to_global_python_scope "*None" builtin_none;
+-    add_to_global_python_scope "True" builtin_true;
+-    add_to_global_python_scope "False" builtin_false;
+-    (* Global builtin functions *)
+-    add_to_global_python_scope "bool" builtin_bool;
+-    (* add_to_global_python_scope "slice" builtin_slice; *) (* Not_yet_implemented *)
+-    add_to_global_python_scope "NameError" builtin_NameError;
+-    add_to_global_python_scope "TypeError" builtin_TypeError;
+-    add_to_global_python_scope "AttributeError" builtin_AttributeError;
+-    add_to_global_python_scope "ValueError" builtin_ValueError;
+-    add_to_global_python_scope "StopIteration" builtin_StopIteration;
+-
+-  ]
+-
+-let preamble =
+-  sequence all_definitions
+-;;
+diff --git a/src/lamia_conversion/lamia_conversion_utils.ml b/src/lamia_conversion/lamia_conversion_utils.ml
+deleted file mode 100644
+index 059438e..0000000
+--- a/src/lamia_conversion/lamia_conversion_utils.ml
++++ /dev/null
+@@ -1,215 +0,0 @@
+-open Batteries;;
+-open Lamia_ast;;
+-open Lamia_ast_types;;
+-open Lamia_conversion_monad;;
+-open Lamia_monad;;
+-open Lamia_conversion_builtin_names;;
+-open Lamia_conversion_object_defs;;
+-
+-type annot = Generic_conversion_monad.annot;;
+-
+-let store_value
+-    (v : annot value_expression) =
+-  let%bind value_name = fresh_value_var () in
+-  let%bind _ = emit
+-      [
+-        Let_expression(value_name, v);
+-      ]
+-  in
+-  return value_name
+-;;
+-
+-let get_value value_loc =
+-  let%bind value_result = fresh_value_var () in
+-  let%bind _ = emit
+-      [
+-        Let_get(value_result, value_loc);
+-      ]
+-  in
+-  return value_result
+-;;
+-
+-(* Get the memloc with key id from the binding at binding_loc. If no such
+-   memloc exists, run the directives in on_failure. *)
+-let get_from_binding target binding_val on_failure =
+-  let%bind haskey = fresh_value_var () in
+-  let%bind retval = fresh_memory_var () in
+-
+-  let%bind _, on_success =
+-    listen @@
+-    let%bind ret_memloc = fresh_memory_var () in
+-    emit
+-      [
+-        Let_binding_access(ret_memloc, binding_val, target);
+-        If_result_memory(ret_memloc);
+-      ]
+-  in
+-  let%bind _, on_failure = listen on_failure in
+-  let success_block = Block on_success in
+-  let fail_block = Block on_failure in
+-
+-  let%bind _ = emit
+-      [
+-        Let_binop(haskey, binding_val, Binop_haskey, target);
+-        Let_conditional_memory(retval, haskey, success_block, fail_block);
+-      ]
+-  in
+-  return retval
+-;;
+-
+-let lookup (id : string) =
+-  let%bind target_result = store_value @@ String_literal(id) in
+-  let%bind retval = fresh_memory_var () in
+-  let%bind _ = emit
+-      [
+-        Let_call_function(retval, get_from_scope, [target_result]);
+-      ]
+-  in
+-  return retval
+-;;
+-
+-let get_or_error target bindings on_failure =
+-  let%bind target_result = store_value @@ String_literal(target) in
+-  get_from_binding target_result bindings on_failure
+-;;
+-
+-let get_attr target bindings =
+-  let throw_exn =
+-    (* FIXME: The error string should by dynamically constructed to
+-       hold the class of the object *)
+-    let%bind exn_val =
+-      store_value @@ String_literal("Object has no attribute " ^ target)
+-    in
+-    let%bind exn_obj = wrap_attribute_error exn_val in
+-    emit
+-      [
+-        Raise(exn_obj);
+-      ]
+-  in
+-  get_or_error target bindings throw_exn
+-;;
+-
+-let lookup_and_get_attr varname attr =
+-  let%bind lookup_result = lookup varname in
+-  let%bind obj_val = fresh_value_var () in
+-  let%bind _ = emit
+-      [
+-        Let_get(obj_val, lookup_result)
+-      ]
+-  in
+-  get_attr attr obj_val
+-;;
+-
+-let assign_python_variable id y =
+-  let%bind varname = fresh_value_var () in
+-  let%bind old_scopeval = fresh_value_var () in
+-  let%bind new_scopeval = fresh_value_var () in
+-  emit
+-    [
+-      Let_expression(varname, String_literal id);
+-      Let_get(old_scopeval, python_scope);
+-      Let_binding_update(new_scopeval, old_scopeval, varname, y);
+-      Store(python_scope, new_scopeval);
+-    ]
+-;;
+-
+-let convert_list
+-    (convert_func : 'a -> 'b m)
+-    (lst :'a list)
+-  : 'b list m =
+-  let accumulate elt m =
+-    let%bind new_result = convert_func elt in
+-    let%bind old_results = m in
+-    return @@ new_result::old_results
+-  in
+-  List.fold_right accumulate lst (return [])
+-;;
+-
+-let extract_nth_list_elt listname n =
+-  let%bind index = fresh_value_var () in
+-  let%bind value = fresh_memory_var () in
+-  let%bind _ = emit
+-      [
+-        Let_expression(index, Integer_literal n);
+-        Let_list_access(value, listname, index);
+-      ]
+-  in
+-  return value
+-;;
+-
+-let extract_arg_to_value arglist n =
+-  let%bind arg_loc = extract_nth_list_elt arglist n in
+-  let%bind arg_obj = get_value arg_loc in
+-  let%bind val_loc = get_attr "*value" arg_obj in
+-  let%bind arg_val = get_value val_loc in
+-  return arg_val
+-;;
+-
+-(* Given an object, get a function we can call (or throw an exception)
+-   pseudocode: while target.*value is not a function, target = target.__call__
+-*)
+-let get_call target =
+-  (* Store target in a new, temporary variable *)
+-  let%bind tmp_loc = fresh_memory_var () in
+-  let%bind _ =
+-    emit
+-      [
+-        Let_alias_memory(tmp_loc, target);
+-      ]
+-  in
+-  (* Get its *value field *)
+-  (* TODO: Catch attribute error and continue *)
+-  let%bind test_loc = fresh_memory_var () in
+-  let%bind tmp_bindings = fresh_value_var () in
+-  let%bind tmp_value = fresh_value_var () in
+-  let%bind _, compute_test =
+-    listen @@
+-    let%bind _ = emit [Let_get(tmp_bindings, tmp_loc)] in
+-    let%bind tmp_value_loc = get_attr "*value" tmp_bindings in
+-    let%bind _ = emit [Let_get(tmp_value, tmp_value_loc)] in
+-    let%bind test_name = fresh_value_var () in
+-    let%bind test_name_inverted = fresh_value_var () in
+-    emit
+-      [
+-        Let_unop(test_name, Unop_is_function, tmp_value);
+-        Let_unop(test_name_inverted, Unop_not, test_name);
+-        Let_alloc(test_loc);
+-        Store(test_loc, test_name_inverted);
+-      ]
+-  in
+-
+-  (* Body of the while loop: assign tmp to tmp.__call__ *)
+-  let%bind _, while_body =
+-    listen @@
+-    let throw_exn =
+-      (* FIXME: The error string should by dynamically constructed to
+-         hold the class of the object *)
+-      let%bind exn_val =
+-        store_value @@ String_literal("Object is not callable")
+-      in
+-      let%bind exn_obj = wrap_type_error exn_val in
+-      emit
+-        [
+-          Raise(exn_obj);
+-        ]
+-    in
+-    let%bind new_tmp = get_or_error "__call__" tmp_bindings throw_exn in
+-    emit
+-      [
+-        Let_alias_memory(tmp_loc, new_tmp);
+-      ]
+-  in
+-
+-  (* Put everything together *)
+-  let compute_test_directives =
+-    List.map (fun s -> let Statement(_, d) = s in d) compute_test
+-  in
+-  let%bind _ =
+-    emit @@
+-    compute_test_directives @
+-    [
+-      While(test_loc, Block(while_body @ compute_test));
+-    ]
+-  in
+-  return tmp_value
+-;;
+diff --git a/src/lamia_conversion/lamia_converter.ml b/src/lamia_conversion/lamia_converter.ml
+deleted file mode 100644
+index e0f3e4b..0000000
+--- a/src/lamia_conversion/lamia_converter.ml
++++ /dev/null
+@@ -1,376 +0,0 @@
+-open Batteries;;
+-open Lamia_ast;;
+-open Lamia_ast_types;;
+-open Python2_normalized_ast;;
+-open Python2_ast_types;;
+-open Unique_name_ctx;;
+-open Uid_ctx;;
+-open Lamia_conversion_monad;;
+-open Lamia_conversion_builtin_names;;
+-open Lamia_conversion_builtin_defs;;
+-open Lamia_conversion_preamble;;
+-open Lamia_conversion_utils;;
+-open Lamia_conversion_object_defs;;
+-open Lamia_conversion_add_uids;;
+-
+-open Lamia_monad;;
+-
+-let rec convert_module
+-    (ctx : name_context)
+-    (m : modl)
+-  : annot block =
+-  let Module(stmts) = m in
+-  let annot = Python2_ast.Pos.of_pos Lexing.dummy_pos in
+-  let preamble_ctx = create_new_name_ctx 0 "preamble$" in
+-  let _, lamia_preamble = run preamble_ctx annot preamble in
+-  let _, lamia_prog = run ctx annot @@ convert_stmt_list stmts in
+-  let annot_block = Block(lamia_preamble @ lamia_prog) in
+-  annot_block
+-
+-and convert_stmt_list (stmts : annotated_stmt list) : unit m =
+-  let accumulate m s = bind m (fun () -> convert_stmt s) in
+-  List.fold_left accumulate empty stmts
+-
+-and convert_stmt
+-    (s : annotated_stmt)
+-  : unit m =
+-  local_annot s.annot @@
+-  match s.body with
+-  | Assign (id, value) ->
+-    let%bind value_result = convert_expr value in
+-    assign_python_variable id value_result
+-
+-  | Return (x) ->
+-    let%bind lookup_result = lookup x in
+-    emit
+-      [
+-        Lamia_ast.Return(lookup_result);
+-      ]
+-
+-  | While (test, body) ->
+-    let%bind value_loc, value_stmts =
+-      listen @@
+-      let%bind test_loc = lookup test in
+-      let%bind test_val = fresh_value_var () in
+-      let%bind result_loc = fresh_memory_var () in
+-      let%bind _ =
+-        emit
+-          [
+-            Let_is(test_val, test_loc, builtin_true);
+-            Store(result_loc, test_val);
+-          ]
+-      in
+-      return result_loc
+-    in
+-    (* Work to figure out if test is True or False. Needs to be
+-       appended to the while loop body as well *)
+-    let value_bindings =
+-      (* Turn value_stmts back into directives *)
+-      List.map (fun s -> let Statement(_, d) = s in d) value_stmts
+-    in
+-    let%bind _, while_body =
+-      listen @@
+-      let%bind _ = convert_stmt_list body in
+-      emit value_bindings
+-    in
+-    emit @@
+-    [
+-      Let_alloc(value_loc);
+-    ] @
+-    value_bindings @
+-    [
+-      Lamia_ast.While(value_loc,
+-                      Block(while_body));
+-    ]
+-
+-  | If (test, body, orelse) ->
+-    let%bind test_loc = lookup test in
+-    let%bind test_val = fresh_value_var () in
+-    let%bind _ = emit
+-        [
+-          Let_is(test_val, test_loc, builtin_true);
+-        ]
+-    in
+-    let dummy_return =
+-      let%bind dummy_retval = store_value @@ None_literal in
+-      emit
+-        [
+-          If_result_value(dummy_retval);
+-        ]
+-    in
+-
+-    let%bind _, new_body =
+-      listen @@
+-      let%bind _ = convert_stmt_list body in
+-      dummy_return
+-    in
+-    let%bind _, new_orelse =
+-      listen @@
+-      let%bind _ = convert_stmt_list orelse in
+-      dummy_return
+-    in
+-
+-    let%bind dummy_variable = fresh_value_var () in
+-
+-    emit @@
+-    [
+-      Let_conditional_value(dummy_variable,
+-                            test_val,
+-                            Block(new_body),
+-                            Block(new_orelse));
+-    ]
+-
+-  | Raise (x) ->
+-    let%bind lookup_result = lookup x in
+-    emit
+-      [
+-        Lamia_ast.Raise(lookup_result);
+-      ]
+-
+-  | TryExcept (body, exn_name, handler) ->
+-    let%bind exn_memloc = fresh_memory_var () in
+-    let%bind _, new_body = listen @@ convert_stmt_list body in
+-    let%bind _, new_handler =
+-      listen @@
+-      let%bind _ = assign_python_variable exn_name exn_memloc in
+-      convert_stmt_list handler
+-    in
+-    emit
+-      [
+-        Try_except(Block(new_body),
+-                   exn_memloc,
+-                   Block(new_handler))
+-      ]
+-
+-  | Pass ->
+-    empty
+-
+-  | Break ->
+-    raise @@ Jhupllib_utils.Not_yet_implemented "Convert break stmt"
+-
+-  | Continue ->
+-    raise @@ Jhupllib_utils.Not_yet_implemented "Convert continue stmt"
+-
+-and convert_expr
+-    (e : annotated_expr)
+-  : memory_variable m =
+-  local_annot e.annot @@
+-  match e.body with
+-  | Binop (left, op, right) ->
+-    let%bind left_result = lookup left in
+-    let%bind right_result = lookup right in
+-    let%bind value_result =
+-      match op with
+-      | Is ->
+-        let%bind result = fresh_value_var () in
+-        let%bind _ = emit
+-            [
+-              Let_is(result, left_result, right_result);
+-            ]
+-        in
+-        return result
+-    in
+-    let%bind obj_result = wrap_bool value_result in
+-    return obj_result
+-
+-  | UnaryOp (op, value) ->
+-    let%bind value_result = lookup_and_get_attr "*value" value in
+-    let%bind op_result =
+-      match op with
+-      | Not ->
+-        let%bind boolval = fresh_value_var () in
+-        let%bind result = fresh_value_var () in
+-        let%bind _ =  emit
+-            [
+-              Let_get(boolval, value_result);
+-              Let_unop(result, Unop_not, boolval);
+-            ]
+-        in
+-        return result
+-    in
+-    let%bind obj_result = wrap_bool op_result in
+-    return obj_result
+-
+-  | Call (func, args) ->
+-    let%bind lookup_result = lookup func in
+-    let%bind arg_results = convert_list lookup args in
+-    let%bind callable = get_call lookup_result in
+-    let%bind arg_list = store_value @@ List_expression arg_results in
+-    let%bind retval = fresh_memory_var () in
+-    let%bind _ = emit
+-        [
+-          Let_call_function(retval, callable, [arg_list]);
+-        ]
+-    in
+-    return retval
+-
+-  | Attribute (obj, attr) ->
+-    (* TODO: When we add inheritance, lamia get_attr will no longer be
+-       the same the python . operator. At that point lookup_and_get_attr
+-       won't work; we'll need to lookup, then do some complicated stuff
+-       to use the __getattr__ function and follow the inheritance chain *)
+-    let%bind obj_loc = lookup obj in
+-    let%bind attr_result =
+-      let%bind obj_val = fresh_value_var () in
+-      let%bind _ = emit
+-          [
+-            Let_get(obj_val, obj_loc)
+-          ]
+-      in
+-      get_attr attr obj_val
+-    in
+-    (* Because we don't have classes yet, we can't store an actual method object
+-       during object creation (since we'd have to put methods on that, and on
+-       its methods, etc). So we have to wrap methods on projection.
+-       This is really hacky and I hate it, but I see no alternative. *)
+-    let%bind attr_val = get_value attr_result in
+-    let%bind is_method = fresh_value_var () in
+-    let%bind _ =
+-      emit
+-        [
+-          Let_unop(is_method, Unop_is_function, attr_val);
+-        ]
+-    in
+-    let%bind final_result = fresh_memory_var () in
+-    let%bind _ =
+-      let%bind _, on_success =
+-        listen @@
+-        let%bind wrapped_method = wrap_method attr_val obj_loc in
+-        emit
+-          [
+-            If_result_memory wrapped_method;
+-          ]
+-      in
+-      let%bind _, on_failure =
+-        listen @@
+-        emit
+-          [
+-            If_result_memory attr_result;
+-          ]
+-      in
+-      emit
+-        [
+-          Let_conditional_memory(final_result,
+-                                 is_method,
+-                                 Block on_success,
+-                                 Block on_failure)
+-        ]
+-    in
+-    return final_result
+-
+-  | List (elts) ->
+-    let%bind elt_results = convert_list lookup elts in
+-    let%bind list_val = store_value @@ List_expression elt_results in
+-    let%bind obj_result = wrap_list list_val in
+-    return obj_result
+-
+-  | Tuple (elts) ->
+-    let%bind elt_results = convert_list lookup elts in
+-    let%bind tuple_val = store_value @@ List_expression elt_results in
+-    let%bind obj_result = wrap_tuple tuple_val in
+-    return obj_result
+-
+-  | Num (num) ->
+-    begin
+-      match num with
+-      | Python2_ast_types.Int n ->
+-        let%bind value = store_value @@ Integer_literal n in
+-        let%bind obj_result = wrap_int value in
+-        return obj_result
+-
+-      | Python2_ast_types.Float _ ->
+-        raise @@ Jhupllib_utils.Not_yet_implemented "wrap_float"
+-    end
+-
+-  | Str (s) ->
+-    let%bind value = store_value @@ String_literal s in
+-    let%bind obj_result = wrap_string value in
+-    return obj_result
+-
+-  | Bool (b) ->
+-    let%bind value = store_value @@ Boolean_literal b in
+-    let%bind obj_result = wrap_bool value in
+-    return obj_result
+-
+-  | Name (id) ->
+-    lookup id
+-
+-  | Builtin (b) ->
+-    begin
+-      match b with
+-      | Builtin_slice          -> return builtin_slice
+-      | Builtin_bool           -> return builtin_bool
+-      | Builtin_AttributeError -> return builtin_AttributeError
+-      | Builtin_ValueError     -> return builtin_ValueError
+-      | Builtin_TypeError      -> return builtin_TypeError
+-      | Builtin_StopIteration  -> return builtin_StopIteration
+-    end
+-
+-  | FunctionVal (args, body) ->
+-    let%bind lamia_argname = fresh_value_var () in
+-    let%bind _, converted_body = listen @@
+-      let gen_arg_binding m argname =
+-        let%bind list_val, scopename, index = m in
+-        let%bind new_scopename = fresh_value_var () in
+-        let%bind argname_value = fresh_value_var () in
+-        let%bind list_result = extract_nth_list_elt list_val index in
+-        let%bind _ =
+-          emit
+-            [
+-              Let_expression(argname_value, String_literal argname);
+-              Let_binding_update(new_scopename, scopename, argname_value, list_result);
+-            ]
+-        in
+-        return (list_val, new_scopename, index + 1)
+-      in
+-
+-      let%bind empty_scope = fresh_value_var () in
+-      let%bind get_from_scope_val = get_from_scope_def in
+-      let%bind _ =
+-        emit
+-          [
+-            Let_alias_value(get_from_parent_scope, get_from_scope);
+-            Let_alloc(python_scope);
+-            Let_expression(get_from_scope, get_from_scope_val);
+-            Let_expression(empty_scope, Empty_binding);
+-          ]
+-      in
+-
+-      let%bind _, final_scope, _ =
+-        List.fold_left gen_arg_binding
+-          (return (lamia_argname, empty_scope, 0))
+-          args
+-      in
+-
+-      let%bind _ = emit
+-          [
+-            Store(python_scope, final_scope);
+-          ]
+-      in
+-
+-      convert_stmt_list body
+-    in
+-
+-    let lamia_funcval =
+-      Function_expression([lamia_argname], Block converted_body)
+-    in
+-
+-    let%bind funcval_name = fresh_value_var () in
+-    let%bind funcval_loc = fresh_memory_var () in
+-    let%bind _ = emit
+-        [
+-          Let_expression(funcval_name, lamia_funcval);
+-          Let_alloc(funcval_loc);
+-          Store(funcval_loc, funcval_name);
+-        ]
+-    in
+-    return funcval_loc
+-;;
+-
+-let annot_to_uid
+-    (b : annot block)
+-  : uid block * uid_context =
+-  let uid_ctx = create_new_uid_ctx 0 in
+-  let uid_block = add_uids_block uid_ctx b in
+-  uid_block, uid_ctx
+-;;
+diff --git a/src/lybie_expansion/lybie_expander.ml b/src/lybie_expansion/lybie_expander.ml
+index d24230a..d3f98ce 100644
+--- a/src/lybie_expansion/lybie_expander.ml
++++ b/src/lybie_expansion/lybie_expander.ml
+@@ -1,121 +1,104 @@
+ open Batteries;;
+ open Unique_name_ctx;;
+ open Lybie_macro_expansion;;
++open Uid_ctx;;
++open Lybie_expansion_add_uids;;
+ module Lamia = Lamia_ast;;
+-module Macros = Lybie_ast;;
++module Lybie = Lybie_ast;;
+ 
+ let map_and_concat f lst = List.concat @@ List.map f lst;;
+ 
+-let rec expand_macros_block (ctx : name_context) (m : 'a Macros.block) : 'a Lamia.block =
+-  let Macros.Block(stmts) = m in
++let rec expand_macros_block (ctx : name_context) (m : 'a Lybie.block) : 'a Lamia.block =
++  let Lybie.Block(stmts) = m in
+   Lamia.Block(map_and_concat (expand_macros_stmt ctx) stmts)
+ 
+ and expand_macros_stmt
+     (ctx : name_context)
+-    (stmt : 'a Macros.statement)
++    (stmt : 'a Lybie.statement)
+   : 'a Lamia.statement list =
+   match stmt with
+-  | Macros.Statement (annot, d) ->
++  | Lybie.Statement (annot, Lybie.Macro m) ->
++    map_and_concat (expand_macros_stmt ctx) (expand_macro ctx annot m)
++  | Lybie.Statement (annot, d) ->
+     [Lamia.Statement(annot, expand_macros_directive ctx d)]
+-  | Macros.Stmt_macro(annot, macro) ->
+-    map_and_concat (expand_macros_stmt ctx) (expand_macro ctx annot macro)
+ 
+ and expand_macros_directive
+     (ctx : name_context)
+-    (d : 'a Macros.directive)
++    (d : 'a Lybie.directive)
+   : 'a Lamia.directive =
+   match d with
+-  | Macros.Let_expression (x,e) ->
++  | Lybie.Let_expression (x,e) ->
+     Lamia.Let_expression(x, expand_macros_valexp ctx e)
+-  | Macros.Let_alloc y ->
++  | Lybie.Let_alloc y ->
+     Lamia.Let_alloc y
+-  | Macros.Let_alias_value (x1,x2) ->
++  | Lybie.Let_alias_value (x1,x2) ->
+     Lamia.Let_alias_value (x1,x2)
+-  | Macros.Let_alias_memory (y1,y2) ->
++  | Lybie.Let_alias_memory (y1,y2) ->
+     Lamia.Let_alias_memory (y1,y2)
+-  | Macros.Let_binding_update (x1,x2,x3,y) ->
++  | Lybie.Let_binding_update (x1,x2,x3,y) ->
+     Lamia.Let_binding_update (x1,x2,x3,y)
+-  | Macros.Let_binding_access (y,x1,x2) ->
++  | Lybie.Let_binding_access (y,x1,x2) ->
+     Lamia.Let_binding_access (y,x1,x2)
+-  | Macros.Let_list_access (y,x1,x2) ->
++  | Lybie.Let_list_access (y,x1,x2) ->
+     Lamia.Let_list_access (y,x1,x2)
+-  | Macros.Let_list_slice (y1,y2,y3,y4) ->
++  | Lybie.Let_list_slice (y1,y2,y3,y4) ->
+     Lamia.Let_list_slice (y1,y2,y3,y4)
+-  | Macros.Let_call_function (y,x,xs) ->
++  | Lybie.Let_call_function (y,x,xs) ->
+     Lamia.Let_call_function (y,x,xs)
+-  | Macros.Store (y,x) ->
++  | Lybie.Store (y,x) ->
+     Lamia.Store (y,x)
+-  | Macros.Let_get (x,y) ->
++  | Lybie.Let_get (x,y) ->
+     Lamia.Let_get (x,y)
+-  | Macros.Let_is (x,y1,y2) ->
++  | Lybie.Let_is (x,y1,y2) ->
+     Lamia.Let_is (x,y1,y2)
+-  | Macros.Let_unop (x1,op,x2) ->
++  | Lybie.Let_unop (x1,op,x2) ->
+     Lamia.Let_unop (x1,op,x2)
+-  | Macros.Let_binop (x1,x2,op,x3) ->
++  | Lybie.Let_binop (x1,x2,op,x3) ->
+     Lamia.Let_binop (x1,x2,op,x3)
+-  | Macros.Return y ->
++  | Lybie.Return y ->
+     Lamia.Return y
+-  | Macros.If_result_value x ->
++  | Lybie.If_result_value x ->
+     Lamia.If_result_value x
+-  | Macros.If_result_memory y ->
++  | Lybie.If_result_memory y ->
+     Lamia.If_result_memory y
+-  | Macros.Raise y ->
++  | Lybie.Raise y ->
+     Lamia.Raise y
+-  | Macros.Try_except (body,y,handler) ->
++  | Lybie.Try_except (body,y,handler) ->
+     Lamia.Try_except (expand_macros_block ctx body, y, expand_macros_block ctx handler)
+-  | Macros.Let_conditional_value (x1,x2,body,orelse) ->
++  | Lybie.Let_conditional_value (x1,x2,body,orelse) ->
+     Lamia.Let_conditional_value (x1, x2, expand_macros_block ctx body, expand_macros_block ctx orelse)
+-  | Macros.Let_conditional_memory (y1,y2,body,orelse) ->
++  | Lybie.Let_conditional_memory (y1,y2,body,orelse) ->
+     Lamia.Let_conditional_memory (y1, y2, expand_macros_block ctx body, expand_macros_block ctx orelse)
+-  | Macros.While (test, body) ->
++  | Lybie.While (test, body) ->
+     Lamia.While (test, expand_macros_block ctx body)
++  | Lybie.Macro _ ->
++    failwith "Called expand_macros_directive with a Macro"
+ 
+ and expand_macros_valexp
+     (ctx : name_context)
+-    (v : 'a Macros.value_expression)
++    (v : 'a Lybie.value_expression)
+   : 'a Lamia.value_expression =
+   match v with
+-  | Macros.Integer_literal n ->
++  | Lybie.Integer_literal n ->
+     Lamia.Integer_literal n
+-  | Macros.String_literal s ->
++  | Lybie.String_literal s ->
+     Lamia.String_literal s
+-  | Macros.Boolean_literal b ->
++  | Lybie.Boolean_literal b ->
+     Lamia.Boolean_literal b
+-  | Macros.List_expression lst ->
++  | Lybie.List_expression lst ->
+     Lamia.List_expression lst
+-  | Macros.Function_expression (args,body) ->
++  | Lybie.Function_expression (args,body) ->
+     Lamia.Function_expression(args, expand_macros_block ctx body)
+-  | Macros.None_literal ->
++  | Lybie.None_literal ->
+     Lamia.None_literal
+-  | Macros.Empty_binding ->
++  | Lybie.Empty_binding ->
+     Lamia.Empty_binding
++;;
+ 
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
++let annot_to_uid
++    (b : Generic_conversion_monad.annot Lamia.block)
++  : Lamia_ast_types.uid Lamia.block * uid_context =
++  let uid_ctx = create_new_uid_ctx 0 in
++  let uid_block = add_uids_block uid_ctx b in
++  uid_block, uid_ctx
+ ;;
+diff --git a/src/lybie_expansion/lybie_macro_expansion.ml b/src/lybie_expansion/lybie_macro_expansion.ml
+index aa7529d..9cbcc2e 100644
+--- a/src/lybie_expansion/lybie_macro_expansion.ml
++++ b/src/lybie_expansion/lybie_macro_expansion.ml
+@@ -2,8 +2,8 @@ open Batteries;;
+ open Lybie_ast;;
+ open Unique_name_ctx;;
+ 
+-open Lamia_conversion_builtin_names;;
+-(* open Lamia_conversion_builtin_defs;; *)
++open Lybie_conversion_builtin_names;;
++(* open Lybie_conversion_builtin_defs;; *)
+ 
+ open Lybie_conversion_monad;;
+ open Lybie_monad;;
+@@ -11,13 +11,14 @@ open Lybie_monad;;
+ let expand_macro
+     (ctx : name_context)
+     (annot : 'a)
+-    (m : stmt_macro)
++    (m : macro)
+   : 'a statement list =
+   snd @@
+   run ctx annot @@
+   local_annot annot @@
+   match m with
+-  (* | Python_function_preamble ->
++  (*
++| Python_function_preamble ->
+     let%bind empty_scope = fresh_value_var () in
+     let%bind get_from_scope_val = get_from_scope_def in
+     let%bind _ =
+diff --git a/src/lybie_language/lybie_ast.ml b/src/lybie_language/lybie_ast.ml
+index b644ccf..a29c456 100644
+--- a/src/lybie_language/lybie_ast.ml
++++ b/src/lybie_language/lybie_ast.ml
+@@ -34,20 +34,19 @@ and 'a directive =
+   | Let_conditional_value of value_variable * value_variable * 'a block * 'a block
+   | Let_conditional_memory of memory_variable * value_variable * 'a block * 'a block
+   | While of memory_variable * 'a block
++  | Macro of macro
+ [@@deriving eq, ord, show]
+ 
+ and 'a statement =
+     | Statement of 'a * 'a directive
+-  | Stmt_macro of 'a * stmt_macro
+ [@@deriving eq, ord, show]
+ 
+-and stmt_macro =
++and macro =
+     (* Boilerplate that goes at the top of each translated Python function.
+        Does not handle argument unpacking, etc *)
+     (* | Python_function_preamble *)
+     (* Binds the given memory variable to the given identifier in the python scope *)
+     | Assign_python_variable of identifier * memory_variable
+-(* TODO: Macros that return things? *)
+ (* | Extract_list_elt of value_variable list * int *)
+ [@@deriving eq, ord, show]
+ 
+diff --git a/test/test_lamia_conversion.ml b/test/test_lamia_conversion.ml
+index a3a3b15..009293b 100644
+--- a/test/test_lamia_conversion.ml
++++ b/test/test_lamia_conversion.ml
+@@ -4,7 +4,6 @@ open Jhupllib;;
+ 
+ open Python2_ast_pipeline;;
+ 
+-open Lamia_converter;;
+ open Lamia_ast_pretty;;
+ 
+ let parse_to_normalized_safe prog short_names =
+@@ -53,8 +52,9 @@ let gen_module_test (filename : string) =
+ 
+       let actual = parse_to_normalized_safe prog 1 true in
+       let ctx = Unique_name_ctx.create_new_name_ctx 0 "lamia$" in
+-      let lamia_prog = convert_module ctx actual in
+-      let lamia_uid_prog, _ = annot_to_uid lamia_prog in
++      let lybie_prog = Lybie_converter.convert_module ctx actual in
++      let lamia_prog = Lybie_expander.expand_macros_block ctx lybie_prog in
++      let lamia_uid_prog, _ = Lybie_expander.annot_to_uid lamia_prog in
+       let lamia_str = String.trim @@ lamia_to_string lamia_uid_prog in
+ 
+       (* If our output changed, write to a file for inspection *)
+@@ -68,7 +68,7 @@ let gen_module_test (filename : string) =
+   )
+ ;;
+ 
+-(* Commented tests are for features which are not yet implemendted *)
++(* Commented tests are for features which are not yet implemented *)
+ let tests =
+   "test_lamia_converter">:::
+   [

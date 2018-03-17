@@ -2,8 +2,8 @@ open Batteries;;
 open Lybie_ast;;
 open Unique_name_ctx;;
 
-open Lamia_conversion_builtin_names;;
-(* open Lamia_conversion_builtin_defs;; *)
+open Lybie_conversion_builtin_names;;
+(* open Lybie_conversion_builtin_defs;; *)
 
 open Lybie_conversion_monad;;
 open Lybie_monad;;
@@ -11,13 +11,14 @@ open Lybie_monad;;
 let expand_macro
     (ctx : name_context)
     (annot : 'a)
-    (m : stmt_macro)
+    (m : macro)
   : 'a statement list =
   snd @@
   run ctx annot @@
   local_annot annot @@
   match m with
-  (* | Python_function_preamble ->
+  (*
+| Python_function_preamble ->
     let%bind empty_scope = fresh_value_var () in
     let%bind get_from_scope_val = get_from_scope_def in
     let%bind _ =

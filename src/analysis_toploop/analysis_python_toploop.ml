@@ -30,8 +30,9 @@ type analysis =
 let parse_and_analyze lexbuf : analysis =
   let modl = Python2_ast_pipeline.parse_to_normalized lexbuf 0 true in
   let ctx = Unique_name_ctx.create_new_name_ctx 0 "lamia$" in
-  let annot_block = Lamia_converter.convert_module ctx modl in
-  let uid_block, uid_ctx = Lamia_converter.annot_to_uid annot_block in
+  let lybie_block = Lybie_converter.convert_module ctx modl in
+  let annot_block = Lybie_expander.expand_macros_block ctx lybie_block in
+  let uid_block, uid_ctx = Lybie_expander.annot_to_uid annot_block in
   add_to_log `debug @@ "Lamia program:\n" ^ pp_to_string pp_block_top uid_block;
   let abstract_block, _ = Analysis_lift_ast.lift_block_top uid_block in
   let pds, relations = construct_analysis abstract_block in

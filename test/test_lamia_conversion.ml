@@ -4,7 +4,6 @@ open Jhupllib;;
 
 open Python2_ast_pipeline;;
 
-open Lamia_converter;;
 open Lamia_ast_pretty;;
 
 let parse_to_normalized_safe prog short_names =
@@ -53,8 +52,9 @@ let gen_module_test (filename : string) =
 
       let actual = parse_to_normalized_safe prog 1 true in
       let ctx = Unique_name_ctx.create_new_name_ctx 0 "lamia$" in
-      let lamia_prog = convert_module ctx actual in
-      let lamia_uid_prog, _ = annot_to_uid lamia_prog in
+      let lybie_prog = Lybie_converter.convert_module ctx actual in
+      let lamia_prog = Lybie_expander.expand_macros_block ctx lybie_prog in
+      let lamia_uid_prog, _ = Lybie_expander.annot_to_uid lamia_prog in
       let lamia_str = String.trim @@ lamia_to_string lamia_uid_prog in
 
       (* If our output changed, write to a file for inspection *)
@@ -68,7 +68,7 @@ let gen_module_test (filename : string) =
   )
 ;;
 
-(* Commented tests are for features which are not yet implemendted *)
+(* Commented tests are for features which are not yet implemented *)
 let tests =
   "test_lamia_converter">:::
   [

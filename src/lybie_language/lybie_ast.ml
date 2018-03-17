@@ -34,20 +34,19 @@ and 'a directive =
   | Let_conditional_value of value_variable * value_variable * 'a block * 'a block
   | Let_conditional_memory of memory_variable * value_variable * 'a block * 'a block
   | While of memory_variable * 'a block
+  | Macro of macro
 [@@deriving eq, ord, show]
 
 and 'a statement =
     | Statement of 'a * 'a directive
-  | Stmt_macro of 'a * stmt_macro
 [@@deriving eq, ord, show]
 
-and stmt_macro =
+and macro =
     (* Boilerplate that goes at the top of each translated Python function.
        Does not handle argument unpacking, etc *)
     (* | Python_function_preamble *)
     (* Binds the given memory variable to the given identifier in the python scope *)
     | Assign_python_variable of identifier * memory_variable
-(* TODO: Macros that return things? *)
 (* | Extract_list_elt of value_variable list * int *)
 [@@deriving eq, ord, show]
 

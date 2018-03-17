@@ -1,12 +1,12 @@
 open Batteries;;
-open Lamia_ast;;
+open Lybie_ast;;
 open Lamia_ast_types;;
-open Lamia_conversion_monad;;
-open Lamia_monad;;
-open Lamia_conversion_builtin_names;;
-open Lamia_conversion_object_defs;;
+open Lybie_conversion_monad;;
+open Lybie_monad;;
+open Lybie_conversion_builtin_names;;
+open Lybie_conversion_object_defs;;
 
-type annot = Generic_conversion_monad.annot;;
+type annot = Generic_conversion_monad.annot
 
 let store_value
     (v : annot value_expression) =

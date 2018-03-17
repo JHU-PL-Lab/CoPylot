@@ -1,9 +1,9 @@
 (* open Batteries;; *)
-open Lamia_ast;;
+open Lybie_ast;;
 open Lamia_ast_types;;
-open Lamia_conversion_builtin_names;;
-open Lamia_conversion_monad;;
-open Lamia_monad;;
+open Lybie_conversion_builtin_names;;
+open Lybie_conversion_monad;;
+open Lybie_monad;;
 
 let add_binding
     (obj : value_variable)

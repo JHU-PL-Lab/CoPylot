@@ -117,17 +117,16 @@ Library "conversion_monads"
     CoPylot.lamia_language,
     CoPylot.lybie_language
 
-Library "lamia_conversion"
+Library "lybie_conversion"
   FindlibParent: CoPylot
-  Path: src/lamia_conversion
+  Path: src/lybie_conversion
   Modules:
-    Lamia_conversion_builtin_names,
-    Lamia_conversion_utils,
-    Lamia_conversion_object_defs,
-    Lamia_conversion_builtin_defs,
-    Lamia_conversion_preamble,
-    Lamia_conversion_add_uids,
-    Lamia_converter
+    Lybie_conversion_builtin_names,
+    Lybie_conversion_utils,
+    Lybie_conversion_object_defs,
+    Lybie_conversion_builtin_defs,
+    Lybie_conversion_preamble,
+    Lybie_converter
   BuildDepends:
     batteries,
     jhupllib,
@@ -142,13 +141,14 @@ Library "lybie_expansion"
   Path: src/lybie_expansion
   Modules:
     Lybie_macro_expansion,
+    Lybie_expansion_add_uids,
     Lybie_expander
   BuildDepends:
     batteries,
     jhupllib,
     ppx_deriving.std,
     ppx_deriving_yojson,
-    CoPylot.lamia_conversion,
+    CoPylot.lybie_conversion,
     CoPylot.conversion_monads
 
 Library "lamia_parser"
@@ -239,7 +239,8 @@ Executable "analysis_python_toploop"
     jhupllib,
     CoPylot.utils,
     CoPylot.ast_simplification,
-    CoPylot.lamia_conversion,
+    CoPylot.lybie_conversion,
+    CoPylot.lybie_expansion,
     CoPylot.analysis
 
 Executable "test"
@@ -258,7 +259,8 @@ Executable "test"
     CoPylot.lamia_language,
     CoPylot.lamia_parser,
     CoPylot.lamia_interpreter,
-    CoPylot.lamia_conversion,
+    CoPylot.lybie_conversion,
+    CoPylot.lybie_expansion,
     CoPylot.analysis
 
 
