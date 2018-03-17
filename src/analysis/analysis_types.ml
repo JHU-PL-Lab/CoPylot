@@ -52,6 +52,7 @@ type value_expression =
   | Function_expression of value_variable list * block
   | None_literal
   | Empty_binding
+  | Not_Implemented
 [@@deriving eq, ord, show, to_yojson]
 
 and binary_operator =
@@ -142,5 +143,6 @@ type value =
   | Object_value of memory_location AbstractStringMap.t
   | Function_value of value_variable list * block
   | None_value
+  | Not_Implemented_value
 [@@deriving eq, ord, show, to_yojson]
 ;;

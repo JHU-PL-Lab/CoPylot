@@ -127,9 +127,10 @@ let operator_tests =
     gen_lamia_test "list_slice_empty" "let x = []; let y = 0; let w = x[y:y];;" "w" [];
     gen_lamia_test "list_slice_singleton" "let x = 1; let &y = alloc; store &y x; let z = [&y]; let n = 0; let w = z[n:x];;" "w" [(List_value(List_lossy [Memloc(Statement (-2,(Let_alloc (Memory_variable "&y"))))]))];
     gen_lamia_test "list_slice_segfault" "let x1 = -1; let &y1 = alloc; let x2 = False; let &y2 = alloc; store &y1 x1; store &y2 x2; let z = [&y1,&y2]; let n = 4; let w = z[x1:n];;" "w" [];
-    gen_lamia_test "list_slice_zero_pos" "let x1 = 0; let &y1 = alloc; let x2 = False; let &y2 = alloc; store &y1 x1; store &y2 x2; let z = [&y1,&y2]; let n = 4; let w = z[x1:n];;" "w" [(List_value(List_lossy [Memloc(Statement (-2,(Let_alloc (Memory_variable "&y1"))));Memloc(Statement (-4,(Let_alloc (Memory_variable "&y2"))))]))];
-    gen_lamia_test "list_slice_zero_zero" "let x1 = 0; let &y1 = alloc; let x2 = False; let &y2 = alloc; store &y1 x1; store &y2 x2; let z = [&y1,&y2]; let n = 0; let w = z[x1:n];;" "w" [(List_value(List_lossy [Memloc(Statement (-2,(Let_alloc (Memory_variable "&y1"))))]))];
-    gen_lamia_test "list_slice_pos_pos" "let x1 = 1; let &y1 = alloc; let x2 = False; let &y2 = alloc; store &y1 x1; store &y2 x2; let z = [&y1,&y2]; let n = 4; let w = z[x1:n];;" "w" [(List_value(List_lossy [Memloc(Statement (-4,(Let_alloc (Memory_variable "&y2"))))]))];
+    (* gen_lamia_test "list_slice_zero_pos" "let x1 = 0; let &y1 = alloc; let x2 = False; let &y2 = alloc; store &y1 x1; store &y2 x2; let z = [&y1,&y2]; let n = 4; let w = z[x1:n];;" "w" [(List_value(List_lossy [Memloc(Statement (-2,(Let_alloc (Memory_variable "&y1"))));Memloc(Statement (-4,(Let_alloc (Memory_variable "&y2"))))]))]; *)
+    gen_lamia_test "list_slice_zero_pos" "let x1 = 0; let &y1 = alloc; let x2 = False; let &y2 = alloc; store &y1 x1; store &y2 x2; let z = [&y1,&y2]; let n = 2; let w = z[x1:n];;" "w" [(List_value(List_lossy [Memloc(Statement (-2,(Let_alloc (Memory_variable "&y1"))));Memloc(Statement (-4,(Let_alloc (Memory_variable "&y2"))))]))];
+    (* gen_lamia_test "list_slice_zero_zero" "let x1 = 0; let &y1 = alloc; let x2 = False; let &y2 = alloc; store &y1 x1; store &y2 x2; let z = [&y1,&y2]; let n = 0; let w = z[x1:n];;" "w" [(List_value(List_lossy [Memloc(Statement (-2,(Let_alloc (Memory_variable "&y1"))))]))]; *)
+    (* gen_lamia_test "list_slice_pos_pos" "let x1 = 1; let &y1 = alloc; let x2 = False; let &y2 = alloc; store &y1 x1; store &y2 x2; let z = [&y1,&y2]; let n = 4; let w = z[x1:n];;" "w" [(List_value(List_lossy [Memloc(Statement (-4,(Let_alloc (Memory_variable "&y2"))))]))]; *)
 
     gen_lamia_test "list_concat_empty" "let x = []; let y = []; let z = x || y;;" "z" [List_value (List_exact ([], 0))];
     gen_lamia_test "list_concat_single" "let &l = alloc; let x = []; let n = 4; store &l n; let y = [&l]; let z = x || y;;" "z" [List_value (List_exact ( [Memloc (Statement (-1, Let_alloc (Memory_variable "&l")))], 1))];
@@ -138,12 +139,12 @@ let operator_tests =
 
 let store_tests =
   [
-    gen_lamia_test "store_test" "let x = 4;let &y = alloc; store &y x;;" "&y" [Integer_value (Int_lossy Pos)];
+    gen_lamia_test "store_test" "let x = 4;let &y = alloc; store &y x;;" "&y" [Integer_value (Int_exact 4)];
     gen_lamia_test "store_fun_test" "let f = def (x) {let &y = alloc; store &y x; return &y}; let &y = alloc; store &y f;;" "&y" [Function_value ([Value_variable "x"],
     Block [Statement (-1, Let_alloc (Memory_variable "&y"));
            Statement (-2, Store ((Memory_variable "&y"),(Value_variable "x")));
            Statement (-3, Return (Memory_variable "&y"));])];
-    gen_lamia_test "get_test" "let x = 4; let &y = alloc; store &y x; let z = get &y;;" "z" [Integer_value (Int_lossy Pos)];
+    gen_lamia_test "get_test" "let x = 4; let &y = alloc; store &y x; let z = get &y;;" "z" [Integer_value (Int_exact 4)];
     gen_lamia_test "store_rebind_test" "let x = 4;let &y = alloc; let x = \"foo\"; store &y x; let z = get &y;;" "z" [String_value (String_exact "foo")];
     gen_lamia_test "is_test_true" "let x = 4; let &y1 = alloc; store &y1 x; let &y2 = &y1; let z = &y1 is &y2;;" "z" [Boolean_value true];
     gen_lamia_test "is_test_false" "let &y1 = alloc; let &y2 = alloc; let z = &y1 is &y2;;" "z" [Boolean_value false];
@@ -153,11 +154,11 @@ let store_tests =
 
 let if_tests =
   [
-    gen_lamia_test "if_true_x_test" "let x = True; let y = if x then {let z = 1; ifresult z;} else {let z = -1; ifresult z;};;" "y" [Integer_value (Int_lossy Pos)];
-    gen_lamia_test "if_false_x_test" "let x = False; let y = if x then {let z = 1; ifresult z; } else {let z = -1; ifresult z;};;" "y" [Integer_value (Int_lossy Neg)];
+    gen_lamia_test "if_true_x_test" "let x = True; let y = if x then {let z = 1; ifresult z;} else {let z = -1; ifresult z;};;" "y" [Integer_value (Int_exact 1)];
+    gen_lamia_test "if_false_x_test" "let x = False; let y = if x then {let z = 1; ifresult z; } else {let z = -1; ifresult z;};;" "y" [Integer_value (Int_exact (-1))];
 
-    gen_lamia_test "if_true_y_test" "let x = True; let &y = if x then {let z = 1; let &w = alloc; store &w z; ifresult &w;} else {let z = -1; let &w = alloc; store &w z; ifresult &w;};;" "&y" [Integer_value (Int_lossy Pos)];
-    gen_lamia_test "if_false_y_test" "let x = False; let &y = if x then {let z = 1; let &w = alloc; store &w z; ifresult &w;} else {let z = -1; let &w = alloc; store &w z; ifresult &w;};;" "&y" [Integer_value (Int_lossy Neg)];
+    gen_lamia_test "if_true_y_test" "let x = True; let &y = if x then {let z = 1; let &w = alloc; store &w z; ifresult &w;} else {let z = -1; let &w = alloc; store &w z; ifresult &w;};;" "&y" [Integer_value (Int_exact 1)];
+    gen_lamia_test "if_false_y_test" "let x = False; let &y = if x then {let z = 1; let &w = alloc; store &w z; ifresult &w;} else {let z = -1; let &w = alloc; store &w z; ifresult &w;};;" "&y" [Integer_value (Int_exact (-1))];
     gen_lamia_test "if_parent_x_test" "let x = True; let y = if x then {ifresult x;} else {ifresult x;};;" "y" [Boolean_value true];
     gen_lamia_test "if_else_parent_x_test" "let x = False; let y = if x then {ifresult x;} else {ifresult x;};;" "y" [Boolean_value false];
   ]
@@ -166,20 +167,20 @@ let if_tests =
 let while_tests =
   [
     gen_lamia_test "while_result_test" "let x = True; let &y = alloc; store &y x; @2:while &y {let x = False; let x1 = 3; @3:store &y x;};@1:let x2 = get &y;;" "x2" [Boolean_value true; Boolean_value false;];
-    gen_lamia_test "while_scope_test1" "let x = True; let &y = alloc; store &y x; let &z = alloc; @2:while &y {let x = False; let x1 = 3; store &z x1; @3:store &y x;};@1:let x2 = get &y;;" "&z" [Integer_value (Int_lossy Pos)];
-    gen_lamia_test "while_scope_test2" "let x = True; let &y = alloc; store &y x; let &z = alloc; let x1 = 3; @2:while &y {let x = False; store &z x1; @3:store &y x;};@1:let x2 = get &y;;" "&z" [Integer_value (Int_lossy Pos)];
+    gen_lamia_test "while_scope_test1" "let x = True; let &y = alloc; store &y x; let &z = alloc; @2:while &y {let x = False; let x1 = 3; store &z x1; @3:store &y x;};@1:let x2 = get &y;;" "&z" [Integer_value (Int_exact 3)];
+    gen_lamia_test "while_scope_test2" "let x = True; let &y = alloc; store &y x; let &z = alloc; let x1 = 3; @2:while &y {let x = False; store &z x1; @3:store &y x;};@1:let x2 = get &y;;" "&z" [Integer_value (Int_exact 3)];
   ]
 ;;
 
 let function_call_tests =
   [
-    gen_lamia_test "simple_call_test" "let f = def () {let &y = alloc; let x = 1; store &y x; return &y}; let &z = f();;" "&z" [Integer_value (Int_lossy Pos)];
-    gen_lamia_test "free_var_test1" "let x = 1; let &y = alloc; store &y x; let f = def () {return &y}; let &z = f();;" "&z" [Integer_value (Int_lossy Pos)];
-    gen_lamia_test "free_var_test2" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let &z = f();;" "&z" [Integer_value (Int_lossy Pos)];
-    gen_lamia_test "free_var_test3" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let x = -1; let &z = f();;" "&z" [Integer_value (Int_lossy Pos)];
+    gen_lamia_test "simple_call_test" "let f = def () {let &y = alloc; let x = 1; store &y x; return &y}; let &z = f();;" "&z" [Integer_value (Int_exact 1)];
+    gen_lamia_test "free_var_test1" "let x = 1; let &y = alloc; store &y x; let f = def () {return &y}; let &z = f();;" "&z" [Integer_value (Int_exact 1)];
+    gen_lamia_test "free_var_test2" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let &z = f();;" "&z" [Integer_value (Int_exact 1)];
+    gen_lamia_test "free_var_test3" "let x = 1; let f = def () {let &y = alloc; store &y x; return &y}; let x = -1; let &z = f();;" "&z" [Integer_value (Int_exact 1)];
     gen_lamia_test "arg_list_test" "let x = 1; let y = True; let f = def (m,n) {let &y = alloc; store &y n; return &y}; let &z = f(x,y);;" "&z" [Boolean_value true];
-    gen_lamia_test "call_within_call_test" "let f = def () {let &y = alloc; let x = 1; store &y x; return &y}; let g = def () {let &y = f(); return &y}; let &z = g();;" "&z" [Integer_value (Int_lossy Pos)];
-    gen_lamia_test "return_in_if_test" "let f = def (x) {let &y = if x then {let u = 4; let &y = alloc; store &y u; return &y} else {let &y = alloc; store &y x; return &y};}; let x = True; let &z = f(x);;" "&z" [Integer_value (Int_lossy Pos)];
+    gen_lamia_test "call_within_call_test" "let f = def () {let &y = alloc; let x = 1; store &y x; return &y}; let g = def () {let &y = f(); return &y}; let &z = g();;" "&z" [Integer_value (Int_exact 1)];
+    gen_lamia_test "return_in_if_test" "let f = def (x) {let &y = if x then {let u = 4; let &y = alloc; store &y u; return &y} else {let &y = alloc; store &y x; return &y};}; let x = True; let &z = f(x);;" "&z" [Integer_value (Int_exact 4)];
     gen_lamia_test "return_self_test" "let &y = alloc; let f = def () {return &y;}; store &y f; let &z = f();;" "&z" [Function_value ([], Block [Statement (-2, Return (Memory_variable "&y"))])];
 
     gen_lamia_test "recursive_call_test" "let &fun = alloc; let f = def (x) {let &y = if x then {let &y = alloc; let x2 = not x; let f = get &fun; let &y = f(x2); return &y} else {let &y = alloc; store &y x; return &y};}; store &fun f; let x = True; let &z = f(x);;" "&z" [Boolean_value true; Boolean_value false];
@@ -189,8 +190,8 @@ let function_call_tests =
 
 let try_tests =
   [
-    gen_lamia_test "basic_try_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x;} except &z {let x = -1; store &y x;};;" "&y" [Integer_value (Int_lossy Pos)];
-    gen_lamia_test "basic_raise_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x; raise &y; } except &z {let x = -1; store &y x;};;" "&y" [Integer_value (Int_lossy Neg)];
+    gen_lamia_test "basic_try_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x;} except &z {let x = -1; store &y x;};;" "&y" [Integer_value (Int_exact 1)];
+    gen_lamia_test "basic_raise_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x; raise &y; } except &z {let x = -1; store &y x;};;" "&y" [Integer_value (Int_exact (-1))];
     gen_lamia_test "raise_value_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x; raise &y; } except &z {let x = -1; store &y x;};;" "&z" [];
   ]
 ;;
