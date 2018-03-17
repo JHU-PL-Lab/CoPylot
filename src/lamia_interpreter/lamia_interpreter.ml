@@ -35,6 +35,7 @@ let value_of (e : value_expression) : value Lamia_heap_monad.m =
     return @@ Lamia_evaluation_grammar.List_value ms
   | Empty_binding -> return @@ Object_value StringMap.empty
   | None_literal -> return @@ None_value
+  | NotImplemented_literal -> return @@ NotImplemented_value
 ;;
 
 let assert_object_and_string (objv : value) (keyv : value) (action : string)

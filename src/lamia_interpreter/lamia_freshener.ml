@@ -155,6 +155,7 @@ let rec freshen_value_expression (e : value_expression) : value_expression m =
     in
     return @@ Function_expression(xs',b')
   | None_literal -> return @@ None_literal
+  | NotImplemented_literal -> return @@ NotImplemented_literal
   | Empty_binding -> return @@ Empty_binding
 
 and freshen_directive (directive : directive) : directive m =

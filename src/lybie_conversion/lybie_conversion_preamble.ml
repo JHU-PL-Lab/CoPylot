@@ -98,6 +98,7 @@ let all_definitions =
     define_obj_mem builtin_true fill_bool @@ Integer_literal 1;
     define_obj_mem builtin_false fill_bool @@ Integer_literal 0;
     define_obj_mem builtin_none fill_none @@ None_literal;
+    define_obj_mem builtin_notimplemented fill_notimplemented @@ NotImplemented_literal;
 
     define_func_mem builtin_attribute_error_body builtin_AttributeError;
     define_func_mem builtin_type_error_body builtin_TypeError;
@@ -111,9 +112,10 @@ let all_definitions =
     define_method_mem method_call_body method_call;
 
     (* Global builtin values *)
-    add_to_global_python_scope "*None" builtin_none;
     add_to_global_python_scope "True" builtin_true;
     add_to_global_python_scope "False" builtin_false;
+    add_to_global_python_scope "NotImplemented" builtin_notimplemented;
+    add_to_global_python_scope "*None" builtin_none;
     (* Global builtin functions *)
     add_to_global_python_scope "bool" builtin_bool;
     (* add_to_global_python_scope "slice" builtin_slice; *) (* Not_yet_implemented *)

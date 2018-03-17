@@ -74,5 +74,7 @@ and add_uids_expression ctx e =
     Function_expression(args, add_uids_block ctx body)
   | None_literal ->
     None_literal
+  | NotImplemented_literal ->
+    NotImplemented_literal
   | Empty_binding ->
     Empty_binding

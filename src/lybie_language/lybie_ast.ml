@@ -8,6 +8,7 @@ type 'a value_expression =
   | List_expression of memory_variable list
   | Function_expression of value_variable list * 'a block
   | None_literal
+  | NotImplemented_literal
   | Empty_binding
 [@@deriving eq, ord, show]
 

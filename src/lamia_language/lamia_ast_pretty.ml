@@ -149,6 +149,7 @@ and pp_expr indent fmt e =
       (pp_block (increase_indent indent)) body
       indent
   | None_literal -> fprintf fmt "None"
+  | NotImplemented_literal -> fprintf fmt "NotImplemented"
   | Empty_binding -> fprintf fmt "{}"
 
 and pp_unop fmt op =

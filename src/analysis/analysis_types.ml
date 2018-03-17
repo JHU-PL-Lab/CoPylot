@@ -52,7 +52,7 @@ type value_expression =
   | Function_expression of value_variable list * block
   | None_literal
   | Empty_binding
-  | Not_Implemented
+  | NotImplemented_literal
 [@@deriving eq, ord, show, to_yojson]
 
 and binary_operator =

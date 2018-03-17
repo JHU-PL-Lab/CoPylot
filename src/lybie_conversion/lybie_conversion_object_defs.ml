@@ -120,6 +120,11 @@ let fill_none obj =
   return obj
 ;;
 
+let fill_notimplemented obj =
+  (* TODO: Implement this *)
+  return obj
+;;
+
 (* The "right" way to handle all these similar functions is to make a type
    representing what type the object is, and pass that in as a parameter.
    However, a lot of this process will change once we implement classes,
@@ -166,6 +171,10 @@ let wrap_bool x =
 
 let wrap_none =
   return builtin_none
+;;
+
+let wrap_notimplemented =
+  return builtin_notimplemented
 ;;
 
 (* Wrapping methods is significantly more complicated than other wraps. *)

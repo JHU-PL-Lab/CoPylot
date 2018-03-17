@@ -43,5 +43,6 @@ type value =
   | Object_value of memory_address StringMap.t
   | Function_value of value_variable list * block
   | None_value
+  | NotImplemented_value
 [@@deriving eq, ord, show]
 ;;

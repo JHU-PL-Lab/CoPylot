@@ -76,6 +76,7 @@ and lift_value_expression tbl e =
   | Lamia.Function_expression (args, body) ->
     Abstract.Function_expression (List.map lift_value_var args, lift_block tbl body)
   | Lamia.None_literal -> Abstract.None_literal
+  | Lamia.NotImplemented_literal -> Abstract.NotImplemented_literal
   | Lamia.Empty_binding -> Abstract.Empty_binding
 
 and lift_unop op =

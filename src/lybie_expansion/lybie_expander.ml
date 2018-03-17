@@ -91,6 +91,8 @@ and expand_macros_valexp
     Lamia.Function_expression(args, expand_macros_block ctx body)
   | Lybie.None_literal ->
     Lamia.None_literal
+  | Lybie.NotImplemented_literal ->
+    Lamia.NotImplemented_literal
   | Lybie.Empty_binding ->
     Lamia.Empty_binding
 ;;

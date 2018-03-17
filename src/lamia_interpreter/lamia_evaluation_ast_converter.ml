@@ -9,6 +9,7 @@ let rec convert_value_expression =
   | Lamia_ast.Function_expression(xs,b) ->
     Lamia_evaluation_ast.Function_expression(xs, convert_block b)
   | Lamia_ast.None_literal -> Lamia_evaluation_ast.None_literal
+  | Lamia_ast.NotImplemented_literal -> Lamia_evaluation_ast.NotImplemented_literal
   | Lamia_ast.Empty_binding -> Lamia_evaluation_ast.Empty_binding
 
 and convert_directive =

@@ -27,6 +27,7 @@ type value =
   | Object_value of memory_address StringMap.t
   | Function_value of value_variable list * block
   | None_value
+  | NotImplemented_value
 ;;
 val equal_value : value -> value -> bool;;
 val compare_value : value -> value -> int;;

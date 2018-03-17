@@ -63,6 +63,7 @@ type value_expression =
   | List_value of memory_variable list
   | Function_expression of value_variable list * block
   | None_literal
+  | NotImplemented_literal
   | Empty_binding
 [@@deriving eq, ord, show]
 
