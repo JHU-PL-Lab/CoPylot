@@ -1,0 +1,9 @@
+Update spec to account for e.g. __radd_ and NotImplemeneted
+Update code to match updated spec
+
+Make sure spec is properly idempotent (i.e. we're not accidentally evaluating
+expressions more than one when we shouldn't be). I have a hunch it's not.
+
+Related to the above, it might be time to get rid of the normalization phase
+and make simplification write lamia code directly (which is normalized, of
+course)
