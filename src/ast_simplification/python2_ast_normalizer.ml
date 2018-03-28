@@ -1,4 +1,4 @@
-open Python2_ast_types
+open Python2_ast_types;;
 module Simplified = Python2_simplified_ast;;
 module Normalized = Python2_normalized_ast;;
 open Unique_name_ctx;;
