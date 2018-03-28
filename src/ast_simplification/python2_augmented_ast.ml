@@ -11,7 +11,7 @@ type 'a modl =
 [@@deriving eq, ord, show]
 
 and 'a stmt =
-    | FunctionDef of identifier (* name *) * 'a arguments (* args *) * 'a stmt list (* body *) * 'a expr list (* decorator_list *) * 'a
+    | FunctionDef of identifier (* name *) * identifier list (* args *) * 'a stmt list (* body *) * 'a
   | Return of 'a expr option (* value *) * 'a
   | Assign of 'a expr list (* targets *) * 'a expr (* value *) * 'a
   | AugAssign of 'a expr (* target *) * operator (* op *) * 'a expr (* value *) * 'a
@@ -19,7 +19,7 @@ and 'a stmt =
   | For of 'a expr (* target *) * 'a expr (* iter *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
   | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
-  | Raise of 'a expr option (* type *) * 'a expr option (* inst *) * 'a expr option (* tback *) * 'a
+  | Raise of 'a expr option (* type *) * 'a
   | TryExcept of 'a stmt list (* body *) * 'a excepthandler list (* handlers *) * 'a stmt list (* orelse *) * 'a
   | Expr of 'a expr (* value *) * 'a
   | Pass of 'a
@@ -33,7 +33,7 @@ and 'a expr =
   | UnaryOp of unaryop (* op *) * 'a expr (* operand *) * 'a
   | IfExp of 'a expr (* test *) * 'a expr (* body *) * 'a expr (* orelse *) * 'a
   | Compare of 'a expr (* left *) * cmpop list (* ops *) * 'a expr list (* comparators *) * 'a
-  | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a keyword list (* keywords *) * 'a expr option (* starargs *) * 'a expr option (* kwargs *) * 'a
+  | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a
   | Num of number (* n *) * 'a
   | Str of string (* s *) * 'a
   | Bool of bool * 'a (* N.B. The Python formal specification does not treat Bools
@@ -66,9 +66,6 @@ and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
 [@@deriving eq, ord, show]
 
 and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * 'a expr option (* name *) * 'a stmt list (* body *) * 'a
-[@@deriving eq, ord, show]
-
-and 'a arguments = 'a expr list (* args *) * identifier option (* varargs *) * identifier option (* kwargs *) * 'a expr list (* defaults *)
 [@@deriving eq, ord, show]
 
 and 'a keyword = identifier (* arg *) * 'a expr (* value *)
