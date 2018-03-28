@@ -134,8 +134,8 @@ and augment_slice = function
 
 and augment_number = function
   | Base.Int n
-  | Base.LongInt n -> Augmented.Int n
-  | Base.Float f -> Augmented.Float f
+  | Base.LongInt n -> Int n
+  | Base.Float f -> Float f
 
 and augment_unop = function
   | Base.Not -> Augmented.Not

@@ -1,5 +1,5 @@
-open Batteries
-open Python2_ast
+open Batteries;;
+open Python2_ast;;
 
 (* module ID_tuple = struct
   type t = identifier * expr_context

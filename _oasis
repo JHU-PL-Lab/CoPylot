@@ -59,11 +59,9 @@ Library "ast_simplification"
   Path: src/ast_simplification
   Modules:
     Python2_ast_types,
+    Python2_ast_renamer,
     Python2_augmented_ast,
     Python2_ast_augmentor,
-    Python2_concrete_ast,
-    Python2_ast_generalizer,
-    Python2_rename_ast,
     Python2_simplified_ast,
     Python2_ast_simplifier,
     Python2_normalized_ast,

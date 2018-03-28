@@ -2,7 +2,7 @@ open OUnit2;;
 open Batteries;;
 open Jhupllib;;
 
-module Concrete = Python2_concrete_ast;;
+module Augmented = Python2_augmented_ast;;
 
 open Python2_ast_types;;
 open Python2_ast_pipeline;;
@@ -1074,7 +1074,7 @@ let binop_tests =
 
 let expect_error_test
     (name : string)
-    (prog : 'a Concrete.stmt list)
+    (prog : 'a Augmented.stmt list)
     (expected : exn) =
   name>::
   (fun _ ->
@@ -1087,38 +1087,22 @@ let expect_error_test
 ;;
 
 (* This is useful when creating tests for expect_error_test *)
-let dummy_expr = Concrete.Num(Int(0), annot);;
+let dummy_expr = Augmented.Num(Int(0), annot);;
 
 let gen_some_concrete_assignment target =
-  Concrete.Assign(
+  Augmented.Assign(
     [target],
     dummy_expr,
     annot)
 ;;
 
-let bad_funcdef_test = expect_error_test "bad_funcdef_test"
-    [
-      Concrete.FunctionDef(
-        "func",
-        ([Concrete.Num(Int(5), annot)],
-         None,
-         None,
-         []),
-        [Concrete.Pass(annot)],
-        [],
-        annot
-      )
-    ]
-    (Failure("The arguments in a function definition must be identifiers"))
-;;
-
 let bad_exception_handler_test = expect_error_test
     "bad_exception_handler_test"
-    [Concrete.TryExcept(
+    [Augmented.TryExcept(
         [],
         [
-          Concrete.ExceptHandler(
-            Some(Concrete.Name("foo", Concrete.Load, annot)),
+          Augmented.ExceptHandler(
+            Some(Augmented.Name("foo", annot)),
             Some(dummy_expr),
             [],
             annot
@@ -1135,41 +1119,40 @@ let error_tests =
   [
     expect_error_test "assign_to_num"
       [(gen_some_concrete_assignment
-          (Concrete.Num(Int(0), annot)))]
+          (Augmented.Num(Int(0), annot)))]
       (Simplify.Invalid_assignment("can't assign to literal"));
     expect_error_test "assign_to_str"
       [(gen_some_concrete_assignment
-          (Concrete.Str("", annot)))]
+          (Augmented.Str("", annot)))]
       (Simplify.Invalid_assignment("can't assign to literal"));
     expect_error_test "assign_to_bool"
       [(gen_some_concrete_assignment
-          (Concrete.Bool(true, annot)))]
+          (Augmented.Bool(true, annot)))]
       (Simplify.Invalid_assignment("can't assign to literal"));
     expect_error_test "assign_to_boolop"
       [(gen_some_concrete_assignment
-          (Concrete.BoolOp(Concrete.And, [dummy_expr; dummy_expr], annot)))]
+          (Augmented.BoolOp(Augmented.And, [dummy_expr; dummy_expr], annot)))]
       (Simplify.Invalid_assignment("can't assign to operator"));
     expect_error_test "assign_to_binop"
       [(gen_some_concrete_assignment
-          (Concrete.BinOp(dummy_expr, Concrete.Add, dummy_expr, annot)))]
+          (Augmented.BinOp(dummy_expr, Augmented.Add, dummy_expr, annot)))]
       (Simplify.Invalid_assignment("can't assign to operator"));
     expect_error_test "assign_to_unaryop"
       [(gen_some_concrete_assignment
-          (Concrete.UnaryOp(Concrete.UAdd, dummy_expr, annot)))]
+          (Augmented.UnaryOp(Augmented.UAdd, dummy_expr, annot)))]
       (Simplify.Invalid_assignment("can't assign to operator"));
     expect_error_test "assign_to_ifexp"
       [(gen_some_concrete_assignment
-          (Concrete.IfExp(dummy_expr, dummy_expr, dummy_expr, annot)))]
+          (Augmented.IfExp(dummy_expr, dummy_expr, dummy_expr, annot)))]
       (Simplify.Invalid_assignment("can't assign to conditional expression"));
     expect_error_test "assign_to_compare"
       [(gen_some_concrete_assignment
-          (Concrete.Compare(dummy_expr, [Concrete.Lt], [dummy_expr], annot)))]
+          (Augmented.Compare(dummy_expr, [Augmented.Lt], [dummy_expr], annot)))]
       (Simplify.Invalid_assignment("can't assign to comparison"));
     expect_error_test "assign_to_call"
       [(gen_some_concrete_assignment
-          (Concrete.Call(dummy_expr, [], [], None, None, annot)))]
+          (Augmented.Call(dummy_expr, [], annot)))]
       (Simplify.Invalid_assignment("can't assign to function call"));
-    bad_funcdef_test;
     bad_exception_handler_test;
   ]
 ;;

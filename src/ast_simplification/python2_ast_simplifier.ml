@@ -1,7 +1,7 @@
 open Jhupllib;;
 open Python2_ast_types;;
 open Unique_name_ctx;;
-module Concrete = Python2_concrete_ast;;
+module Augmented = Python2_augmented_ast;;
 module Simplified = Python2_simplified_ast;;
 exception Invalid_assignment of string;;
 
@@ -22,9 +22,9 @@ let add_return stmts annot =
        it would also be acceptable to just always return true
        in which case we'd generate dead code sometimes. Oh well. *)
     | [] -> true
-    | [Concrete.Return _] -> false
+    | [Augmented.Return _] -> false
     (* If both branches of the if end in a return, we're good! *)
-    | Concrete.If(_,body,orelse,_)::rest ->
+    | Augmented.If(_,body,orelse,_)::rest ->
       if (needs_return body) || (needs_return orelse) then
         needs_return rest
       else
@@ -32,7 +32,7 @@ let add_return stmts annot =
     | _::tl -> needs_return tl
   in
   if needs_return stmts then
-    stmts @ [Concrete.Return(Some(Concrete.NoneExpr annot), annot)]
+    stmts @ [Augmented.Return(Some(Augmented.NoneExpr annot), annot)]
   else
     stmts
 ;;
@@ -55,38 +55,37 @@ let simplify_option func o =
   | Some(x) -> Some(func x)
 ;;
 
-let rec simplify_modl (ctx : name_context) (m : 'a Concrete.modl)
+let rec simplify_modl (ctx : name_context) (m : 'a Augmented.modl)
   : 'a Simplified.modl =
   match m with
-  | Concrete.Module (body, annot) ->
+  | Augmented.Module (body, annot) ->
     Simplified.Module(map_and_concat (simplify_stmt ctx) body, annot)
 
 and simplify_stmt ctx
-    (s : 'a Concrete.stmt)
+    (s : 'a Augmented.stmt)
   : 'a Simplified.stmt list =
   let gen_unique_name = gen_unique_name ctx in
   let simplify_stmt = simplify_stmt ctx in
   let simplify_expr = simplify_expr ctx in
   match s with
-  | Concrete.FunctionDef (func_name, args, body, _, annot)->
-    let simplified_args = simplify_arguments args in
+  | Augmented.FunctionDef (func_name, args, body, annot)->
     let body = add_return body annot in
     let simplified_body = map_and_concat simplify_stmt body in
     [Simplified.Assign(func_name,
                        Simplified.FunctionVal(
-                         simplified_args,
+                         args,
                          simplified_body,
                          annot),
                        annot)]
 
-  | Concrete.Return (value, annot) ->
+  | Augmented.Return (value, annot) ->
     begin
       match simplify_option simplify_expr value with
       | None -> [Simplified.Return(Simplified.Name("*None", annot), annot)]
       | Some(b, v) -> b @ [Simplified.Return(v, annot)]
     end
 
-  | Concrete.Assign (targets, value, annot) ->
+  | Augmented.Assign (targets, value, annot) ->
     (* Assignments are very complicated, with different behavior depending
        on the lvalue.
 
@@ -110,12 +109,12 @@ and simplify_stmt ctx
     let simplify_assignment =
       (fun e ->
          match e with
-         | Concrete.Name (id, _, _) ->
+         | Augmented.Name (id, _) ->
            [Simplified.Assign(id,
                               value_name,
                               annot)]
 
-         | Concrete.Attribute (obj, id, _, _) ->
+         | Augmented.Attribute (obj, id, _) ->
            let obj_bindings, obj_result = simplify_expr obj in
            obj_bindings @
            [Simplified.Expr(
@@ -131,7 +130,7 @@ and simplify_stmt ctx
                  annot),
                annot)]
 
-         | Concrete.Subscript (lst, slice, _, _) ->
+         | Augmented.Subscript (lst, slice, _) ->
            let lst_bindings, lst_result = simplify_expr lst in
            let slice_bindings, slice_result = simplify_slice ctx slice annot in
            lst_bindings @ slice_bindings @
@@ -176,8 +175,8 @@ and simplify_stmt ctx
             j = tmp_j
             k = tmp_k
          *)
-         | Concrete.List (elts, _, _)
-         | Concrete.Tuple (elts, _, _) ->
+         | Augmented.List (elts, _)
+         | Augmented.Tuple (elts, _) ->
            let next_val = gen_unique_name annot in
            let bind_next_val = (* next_val = seq.__iter__().next *)
              Simplified.Assign(
@@ -196,18 +195,15 @@ and simplify_stmt ctx
            let tmp_bindings =
              List.fold_left
                (fun
-                 (prev : identifier list * 'a Concrete.stmt list)
-                 (_ : 'a Concrete.expr) ->
+                 (prev : identifier list * 'a Augmented.stmt list)
+                 (_ : 'a Augmented.expr) ->
                  let tmp_name = gen_unique_name annot in
                  let next_assignment =
                    [
-                     Concrete.Assign( (* tmp_i = next_val() *)
-                       [Concrete.Name(tmp_name, Concrete.Store, annot)],
-                       Concrete.Call(Concrete.Name(next_val, Concrete.Load, annot),
+                     Augmented.Assign( (* tmp_i = next_val() *)
+                       [Augmented.Name(tmp_name, annot)],
+                       Augmented.Call(Augmented.Name(next_val, annot),
                                      [],
-                                     [],
-                                     None,
-                                     None,
                                      annot),
                        annot);
                    ]
@@ -215,62 +211,49 @@ and simplify_stmt ctx
                  (fst prev) @ [tmp_name], (snd prev) @ next_assignment)
                ([], []) elts in
            let subordinate_try_except =
-             Concrete.TryExcept(
+             Augmented.TryExcept(
                [
-                 Concrete.Expr(
-                   Concrete.Call(
-                     Concrete.Name(next_val, Concrete.Load, annot),
+                 Augmented.Expr(
+                   Augmented.Call(
+                     Augmented.Name(next_val, annot),
                      [],
-                     [],
-                     None,
-                     None,
                      annot),
                    annot);
 
-                 Concrete.Raise(
-                   Some(Concrete.Call(
-                       Concrete.Builtin(Builtin_ValueError, annot),
-                       [Concrete.Str(
+                 Augmented.Raise(
+                   Some(Augmented.Call(
+                       Augmented.Builtin(Builtin_ValueError, annot),
+                       [Augmented.Str(
                            "too many values to unpack",
                            annot)],
-                       [],
-                       None,
-                       None,
                        annot)),
-                   None,
-                   None,
                    annot);
                ],
 
-               [Concrete.ExceptHandler(
-                   Some(Concrete.Builtin(Builtin_StopIteration, annot)),
+               [Augmented.ExceptHandler(
+                   Some(Augmented.Builtin(Builtin_StopIteration, annot)),
                    None,
-                   [ Concrete.Pass(annot) ],
+                   [ Augmented.Pass(annot) ],
                    annot)],
                [],
                annot) in
 
            let overall_try_except =
-             Concrete.TryExcept(
+             Augmented.TryExcept(
                (snd tmp_bindings) @ [subordinate_try_except],
-               [Concrete.ExceptHandler(
-                   Some(Concrete.Builtin(Builtin_StopIteration, annot)),
+               [Augmented.ExceptHandler(
+                   Some(Augmented.Builtin(Builtin_StopIteration, annot)),
                    None,
                    [
-                     Concrete.Raise(
-                       Some(Concrete.Call(
-                           Concrete.Builtin(Builtin_ValueError, annot),
-                           [Concrete.Str(
+                     Augmented.Raise(
+                       Some(Augmented.Call(
+                           Augmented.Builtin(Builtin_ValueError, annot),
+                           [Augmented.Str(
                                (* TODO: In Python this has the actual number of
                                   elts that it successfully unpacked *)
                                "too few values to unpack",
                                annot)],
-                           [],
-                           None,
-                           None,
                            annot)),
-                       None,
-                       None,
                        annot);
                    ],
                    annot)],
@@ -284,11 +267,11 @@ and simplify_stmt ctx
            let assignment_list =
              List.map2
                (fun
-                 (tuple_elt : 'a Concrete.expr)
+                 (tuple_elt : 'a Augmented.expr)
                  (tmp_name : identifier) ->
-                 Concrete.Assign(
+                 Augmented.Assign(
                    [tuple_elt],
-                   Concrete.Name(tmp_name, Concrete.Load, annot),
+                   Augmented.Name(tmp_name, annot),
                    annot)
                )
                elts (fst tmp_bindings)
@@ -296,23 +279,23 @@ and simplify_stmt ctx
            verification @
            map_and_concat simplify_stmt assignment_list
 
-         | Concrete.BoolOp _
-         | Concrete.BinOp _
-         | Concrete.UnaryOp _
+         | Augmented.BoolOp _
+         | Augmented.BinOp _
+         | Augmented.UnaryOp _
            -> raise @@ Invalid_assignment "can't assign to operator"
-         | Concrete.IfExp _
+         | Augmented.IfExp _
            -> raise @@ Invalid_assignment "can't assign to conditional expression"
-         | Concrete.Compare _
+         | Augmented.Compare _
            -> raise @@ Invalid_assignment "can't assign to comparison"
-         | Concrete.Call _
+         | Augmented.Call _
            -> raise @@ Invalid_assignment "can't assign to function call"
-         | Concrete.Num _
-         | Concrete.Str _
-         | Concrete.Bool _
+         | Augmented.Num _
+         | Augmented.Str _
+         | Augmented.Bool _
            -> raise @@ Invalid_assignment "can't assign to literal"
-         | Concrete.NoneExpr _
+         | Augmented.NoneExpr _
            -> raise @@ Invalid_assignment "cannot assign to None"
-         | Concrete.Builtin _
+         | Augmented.Builtin _
            -> raise @@ Invalid_assignment "Can't assign to builtin. How did you even do that?"
 
       )
@@ -320,7 +303,7 @@ and simplify_stmt ctx
     in
     value_bindings @ (map_and_concat simplify_assignment targets)
 
-  | Concrete.AugAssign (target, op, value, annot) ->
+  | Augmented.AugAssign (target, op, value, annot) ->
     (* a += b "simplifies" to
        tmp1 = a
        try:
@@ -342,16 +325,16 @@ and simplify_stmt ctx
     let binds, newtarget =
       begin
         match target with
-        | Concrete.Name _ ->
+        | Augmented.Name _ ->
           [], target
 
-        | Concrete.Attribute (obj, id, ctx, annot) ->
+        | Augmented.Attribute (obj, id, annot) ->
           let obj_binds, obj_result = simplify_expr obj in
           obj_binds @
           [Simplified.Assign (tmp1, obj_result, annot)],
-          Concrete.Attribute (Concrete.Name(tmp1, Concrete.Load, annot), id, ctx, annot)
+          Augmented.Attribute (Augmented.Name(tmp1, annot), id, annot)
 
-        | Concrete.Subscript (lst, slice, concrete_ctx, annot) ->
+        | Augmented.Subscript (lst, slice, annot) ->
           let lst_binds, lst_result = simplify_expr lst in
           let slice_binds, slice_result = simplify_slice ctx slice annot in
           let slice_name = gen_unique_name annot in
@@ -360,48 +343,47 @@ and simplify_stmt ctx
             Simplified.Assign (tmp1, lst_result, annot);
             Simplified.Assign (slice_name, slice_result, annot);
           ],
-          Concrete.Subscript(Concrete.Name(tmp1, Concrete.Load, annot),
-                             Concrete.Index(Concrete.Name(tmp2, Concrete.Load, annot)),
-                             concrete_ctx,
+          Augmented.Subscript(Augmented.Name(tmp1, annot),
+                             Augmented.Index(Augmented.Name(tmp2, annot)),
                              annot)
 
-        | Concrete.List _
-        | Concrete.Tuple _
+        | Augmented.List _
+        | Augmented.Tuple _
           -> raise @@ Invalid_assignment "illegal expression for augmented assignment"
-        | Concrete.BoolOp _
-        | Concrete.BinOp _
-        | Concrete.UnaryOp _
+        | Augmented.BoolOp _
+        | Augmented.BinOp _
+        | Augmented.UnaryOp _
           -> raise @@ Invalid_assignment "can't assign to operator"
-        | Concrete.IfExp _
+        | Augmented.IfExp _
           -> raise @@ Invalid_assignment "can't assign to conditional expression"
-        | Concrete.Compare _
+        | Augmented.Compare _
           -> raise @@ Invalid_assignment "can't assign to comparison"
-        | Concrete.Call _
+        | Augmented.Call _
           -> raise @@ Invalid_assignment "can't assign to function call"
-        | Concrete.Num _
-        | Concrete.Str _
-        | Concrete.Bool _
+        | Augmented.Num _
+        | Augmented.Str _
+        | Augmented.Bool _
           -> raise @@ Invalid_assignment "can't assign to literal"
-        | Concrete.NoneExpr _
+        | Augmented.NoneExpr _
           -> raise @@ Invalid_assignment "cannot assign to None"
-        | Concrete.Builtin _
+        | Augmented.Builtin _
           -> raise @@ Invalid_assignment "Can't assign to builtin. How did you even do that?"
       end in
     let tryexcept =
-      Concrete.TryExcept(
+      Augmented.TryExcept(
         [
-          Concrete.Assign(
-            [Concrete.Name(tmp2, Concrete.Store, annot)],
-            Concrete.Attribute(newtarget, simplify_augoperator op, Concrete.Load, annot),
+          Augmented.Assign(
+            [Augmented.Name(tmp2, annot)],
+            Augmented.Attribute(newtarget, simplify_augoperator op, annot),
             annot);
         ],
         [
-          Concrete.ExceptHandler(
-            Some(Concrete.Builtin(Builtin_AttributeError, annot)), None,
+          Augmented.ExceptHandler(
+            Some(Augmented.Builtin(Builtin_AttributeError, annot)), None,
             [
-              Concrete.Assign(
-                [Concrete.Name(tmp2, Concrete.Store, annot)],
-                Concrete.Attribute(newtarget, simplify_operator op, Concrete.Load, annot),
+              Augmented.Assign(
+                [Augmented.Name(tmp2, annot)],
+                Augmented.Attribute(newtarget, simplify_operator op, annot),
                 annot)
             ],
             annot);
@@ -410,23 +392,14 @@ and simplify_stmt ctx
         annot);
     in
     let final_assign =
-      Concrete.Assign([newtarget],
-                      Concrete.Call(Concrete.Name(tmp2, Concrete.Load, annot),
-                                    [value], [], None, None, annot),
+      Augmented.Assign([newtarget],
+                      Augmented.Call(Augmented.Name(tmp2, annot),
+                                    [value], annot),
                       annot)
     in
     binds @ simplify_stmt tryexcept @ simplify_stmt final_assign
 
-  | Concrete.Print _ (*(dest, values, nl, annot)*) ->
-    raise @@ Utils.Not_yet_implemented "Print statements"
-  (* [Simplified.Print (
-      simplify_expr_option dest,
-      List.map simplify_expr values,
-      nl,
-      annot
-     )] *)
-
-  | Concrete.For (target, seq, body, _, annot) ->
+  | Augmented.For (target, seq, body, _, annot) ->
     (* For loops are always over some iterable. According to the docs,
        they loop until they are told to stop, or their iterator stops
        returning objects.
@@ -454,55 +427,47 @@ and simplify_stmt ctx
     *)
     let next_val = gen_unique_name annot in
     let bind_next_val = (* next_val = seq.__iter__().next_val *)
-      Concrete.Assign(
-        [Concrete.Name(next_val, Concrete.Store, annot)],
-        Concrete.Attribute(
-          Concrete.Call(
-            Concrete.Attribute(
+      Augmented.Assign(
+        [Augmented.Name(next_val, annot)],
+        Augmented.Attribute(
+          Augmented.Call(
+            Augmented.Attribute(
               seq,
               "__iter__",
-              Concrete.Load,
               annot
             ),
             [],
-            [],
-            None,
-            None,
             annot
           ),
           "next",
-          Concrete.Load,
           annot
         ),
         annot
       ) in
     let assign_target = (* i = next_val() *)
-      Concrete.Assign(
+      Augmented.Assign(
         [target],
-        Concrete.Call(
-          Concrete.Name(next_val, Concrete.Load, annot),
+        Augmented.Call(
+          Augmented.Name(next_val, annot),
           [],
-          [],
-          None,
-          None,
           annot
         ),
         annot
       ) in
     let while_loop = (* while True: i = next_val(); <body> *)
-      Concrete.While(
-        Concrete.Bool(true, annot),
+      Augmented.While(
+        Augmented.Bool(true, annot),
         [assign_target] @ body,
         [],
         annot
       ) in
     let try_except = (* try: <while>; except StopIteration: pass *)
-      Concrete.TryExcept(
+      Augmented.TryExcept(
         [while_loop],
-        [Concrete.ExceptHandler(
-            Some(Concrete.Builtin(Builtin_StopIteration, annot)),
+        [Augmented.ExceptHandler(
+            Some(Augmented.Builtin(Builtin_StopIteration, annot)),
             None,
-            [Concrete.Pass(annot)],
+            [Augmented.Pass(annot)],
             annot
           )],
         [],
@@ -510,7 +475,7 @@ and simplify_stmt ctx
       ) in
     map_and_concat simplify_stmt [bind_next_val; try_except]
 
-  | Concrete.While (test, body, _, annot) ->
+  | Augmented.While (test, body, _, annot) ->
     let test_bindings, test_result = simplify_expr test in
     let test_name = gen_unique_name annot in
     let full_test_bindings =
@@ -532,7 +497,7 @@ and simplify_stmt ctx
                        map_and_concat simplify_stmt body @ full_test_bindings,
                        annot)]
 
-  | Concrete.If (test, body, orelse, annot) ->
+  | Augmented.If (test, body, orelse, annot) ->
     let test_bindings, test_result = simplify_expr test in
     test_bindings @
     [Simplified.If(Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
@@ -542,7 +507,7 @@ and simplify_stmt ctx
                    map_and_concat simplify_stmt orelse,
                    annot)]
 
-  | Concrete.Raise (typ, _, _, annot) ->
+  | Augmented.Raise (typ, annot) ->
     let typ_bindings, typ_result =
       match typ with
       | None -> failwith "Raise must have exactly one argument"
@@ -551,7 +516,7 @@ and simplify_stmt ctx
     typ_bindings @
     [Simplified.Raise(typ_result, annot)]
 
-  | Concrete.TryExcept (body, handlers, _, annot) ->
+  | Augmented.TryExcept (body, handlers, _, annot) ->
     let exn_id = gen_unique_name annot in
     [Simplified.TryExcept (
         map_and_concat simplify_stmt body,
@@ -559,18 +524,18 @@ and simplify_stmt ctx
         simplify_excepthandlers ctx exn_id handlers annot,
         annot)]
 
-  | Concrete.Expr (e, annot) ->
+  | Augmented.Expr (e, annot) ->
     let bindings, result = simplify_expr e in
     bindings @
     [Simplified.Expr(result, annot)]
 
-  | Concrete.Pass (annot) ->
+  | Augmented.Pass (annot) ->
     [Simplified.Pass (annot)]
 
-  | Concrete.Break (annot) ->
+  | Augmented.Break (annot) ->
     [Simplified.Break (annot)]
 
-  | Concrete.Continue (annot) ->
+  | Augmented.Continue (annot) ->
     [Simplified.Continue(annot)]
 
 (* Given a concrete expr, returns a list of statements, corresponding to
@@ -578,7 +543,7 @@ and simplify_stmt ctx
    variable that was bound *)
 and simplify_expr
     (ctx : name_context)
-    (e : 'a Concrete.expr)
+    (e : 'a Augmented.expr)
   : 'a Simplified.stmt list * 'a Simplified.expr =
   let gen_unique_name = gen_unique_name ctx in
   let simplify_expr = simplify_expr ctx in
@@ -597,7 +562,7 @@ and simplify_expr
      To avoid duplicate code, we construct a concrete IfExp to represent
      the above code, then recursively simplify that.
   *)
-  | Concrete.BoolOp (op, operands, annot) ->
+  | Augmented.BoolOp (op, operands, annot) ->
     begin
       match operands with
       | [] -> failwith "No arguments to BoolOp"
@@ -613,17 +578,17 @@ and simplify_expr
         let if_exp =
           begin
             match op with
-            | Concrete.And ->
-              Concrete.IfExp(
-                Concrete.Name(test_name, Concrete.Load, annot),
-                Concrete.BoolOp (op, tl, annot),
-                Concrete.Name(test_name, Concrete.Load, annot),
+            | Augmented.And ->
+              Augmented.IfExp(
+                Augmented.Name(test_name, annot),
+                Augmented.BoolOp (op, tl, annot),
+                Augmented.Name(test_name, annot),
                 annot)
-            | Concrete.Or ->
-              Concrete.IfExp(
-                Concrete.Name(test_name, Concrete.Load, annot),
-                Concrete.Name(test_name, Concrete.Load, annot),
-                Concrete.BoolOp (op, tl, annot),
+            | Augmented.Or ->
+              Augmented.IfExp(
+                Augmented.Name(test_name, annot),
+                Augmented.Name(test_name, annot),
+                Augmented.BoolOp (op, tl, annot),
                 annot)
           end
         in
@@ -634,7 +599,7 @@ and simplify_expr
 
     end
 
-  | Concrete.BinOp (left, op, right, annot) ->
+  | Augmented.BinOp (left, op, right, annot) ->
     let left_bindings, left_result = simplify_expr left in
     let right_bindings, right_result = simplify_expr right in
     left_bindings @ right_bindings,
@@ -646,12 +611,12 @@ and simplify_expr
       [right_result],
       annot)
 
-  | Concrete.UnaryOp (op, operand, annot) ->
+  | Augmented.UnaryOp (op, operand, annot) ->
     let op_bindings, op_result = simplify_expr operand in
     op_bindings,
     begin
       match op with
-      | Concrete.Not ->
+      | Augmented.Not ->
         Simplified.UnaryOp(Simplified.Not,
                            Simplified.Call(
                              Simplified.Builtin(Builtin_bool, annot),
@@ -659,7 +624,7 @@ and simplify_expr
                              annot),
                            annot)
 
-      | Concrete.UAdd ->
+      | Augmented.UAdd ->
         Simplified.Call(
           Simplified.Attribute(
             op_result,
@@ -668,7 +633,7 @@ and simplify_expr
           [],
           annot)
 
-      | Concrete.USub -> Simplified.Call(
+      | Augmented.USub -> Simplified.Call(
           Simplified.Attribute(
             op_result,
             "__neg__",
@@ -677,7 +642,7 @@ and simplify_expr
           annot)
     end
 
-  | Concrete.IfExp (test, body, orelse, annot) ->
+  | Augmented.IfExp (test, body, orelse, annot) ->
     (* Python allows expressions like x = 1 if test else 0. Of course,
        only the relevant branch is executed, so we can't simply evaluate both
        beforehand. But in order to be on the right-hand-side of an assignment,
@@ -712,7 +677,7 @@ and simplify_expr
     all_bindings,
     Simplified.Name(result_name, annot)
 
-  | Concrete.Compare (left, ops, comparators, annot) ->
+  | Augmented.Compare (left, ops, comparators, annot) ->
     (* "x < y < z" is equivalent to "x < y and y < z", except y is only
        evaluated once. We treat compare in almost exactly the same way
        as we treat boolean operators.
@@ -749,11 +714,11 @@ and simplify_expr
 
             let comparison_id = gen_unique_name annot in
             let cmp_assign = Simplified.Assign(comparison_id, comparison, annot) in
-            let comparison_name = Concrete.Name(comparison_id, Concrete.Load, annot) in
+            let comparison_name = Augmented.Name(comparison_id, annot) in
             let rest_of_bindings, rest_of_comparison =
               simplify_expr @@
-              Concrete.IfExp(comparison_name,
-                             Concrete.Compare(Concrete.Name(right_id, Concrete.Load, annot),
+              Augmented.IfExp(comparison_name,
+                             Augmented.Compare(Augmented.Name(right_id, annot),
                                               rest, List.tl comparators, annot),
                              comparison_name,
                              annot)
@@ -762,7 +727,7 @@ and simplify_expr
         end
     end
 
-  | Concrete.Call (func, args, _, _, _, annot) ->
+  | Augmented.Call (func, args, annot) ->
     let func_bindings, func_result = simplify_expr func in
     let arg_bindings, arg_results = simplify_list simplify_expr args in
     func_bindings @ arg_bindings,
@@ -770,25 +735,25 @@ and simplify_expr
                      arg_results,
                      annot)
 
-  | Concrete.Num (n, annot) ->
+  | Augmented.Num (n, annot) ->
     [],
     Simplified.Num(n, annot)
 
-  | Concrete.Str (s, annot) ->
+  | Augmented.Str (s, annot) ->
     [],
     Simplified.Str(s, annot)
 
-  | Concrete.Bool (b, annot) ->
+  | Augmented.Bool (b, annot) ->
     [],
     Simplified.Bool(b, annot)
 
-  | Concrete.Attribute (obj, attr, _, annot) ->
+  | Augmented.Attribute (obj, attr, annot) ->
     let obj_bindings, obj_result = simplify_expr obj in
     obj_bindings,
     Simplified.Attribute (obj_result, attr, annot)
 
   (* Turn subscripts into calls to __getitem__() *)
-  | Concrete.Subscript (value, slice, _, annot) ->
+  | Augmented.Subscript (value, slice, annot) ->
     let value_bindings, value_result = simplify_expr value in
     let slice_bindings, slice_result = simplify_slice ctx slice annot in
     value_bindings @ slice_bindings,
@@ -800,25 +765,25 @@ and simplify_expr
       [slice_result],
       annot)
 
-  | Concrete.Name (id, _, annot) -> (* Throw out context *)
+  | Augmented.Name (id, annot) -> (* Throw out context *)
     [],
     Simplified.Name(id, annot)
 
-  | Concrete.List (elts, _, annot) ->
+  | Augmented.List (elts, annot) ->
     let elt_bindings, elt_results = simplify_list simplify_expr elts in
     elt_bindings,
     Simplified.List(elt_results, annot)
 
-  | Concrete.Tuple (elts, _, annot) ->
+  | Augmented.Tuple (elts, annot) ->
     let elt_bindings, elt_results = simplify_list simplify_expr elts in
     elt_bindings,
     Simplified.Tuple(elt_results, annot)
 
-  | Concrete.NoneExpr (annot) ->
+  | Augmented.NoneExpr (annot) ->
     [],
     Simplified.Name("*None", annot);
 
-  | Concrete.Builtin (b, annot) ->
+  | Augmented.Builtin (b, annot) ->
     [],
     Simplified.Builtin(b, annot)
 
@@ -826,7 +791,7 @@ and simplify_expr
    the same arguments. E.g. 1:2:3 becomes slice(1,2,3), and
    1:2 becomes slice (1,2,None) *)
 and simplify_slice ctx
-    (s : 'a Concrete.slice)
+    (s : 'a Augmented.slice)
     annot
   : 'a Simplified.stmt list * 'a Simplified.expr =
   (* Turn a "None" option into the python "None" object, and turn a
@@ -839,7 +804,7 @@ and simplify_slice ctx
       simplify_expr ctx x
   in
   match s with
-  | Concrete.Slice (lower, upper, step) ->
+  | Augmented.Slice (lower, upper, step) ->
     let lower_bindings, lower_result = exp_opt_to_slice_arg lower in
     let upper_bindings, upper_result = exp_opt_to_slice_arg upper in
     let step_bindings, step_result = exp_opt_to_slice_arg step in
@@ -855,68 +820,67 @@ and simplify_slice ctx
       args_list,
       annot
     )
-  | Concrete.Index (value) ->
+  | Augmented.Index (value) ->
     simplify_expr ctx value
 
 and simplify_operator o =
   match o with
-  | Concrete.Add  ->  "__add__"
-  | Concrete.Sub  ->  "__sub__"
-  | Concrete.Mult ->  "__mul__"
-  | Concrete.Div  ->  "__div__"
-  | Concrete.Mod  ->  "__mod__"
-  | Concrete.Pow  ->  "__pow__"
+  | Augmented.Add  ->  "__add__"
+  | Augmented.Sub  ->  "__sub__"
+  | Augmented.Mult ->  "__mul__"
+  | Augmented.Div  ->  "__div__"
+  | Augmented.Mod  ->  "__mod__"
+  | Augmented.Pow  ->  "__pow__"
 
 and simplify_augoperator o =
   match o with
-  | Concrete.Add  ->  "__iadd__"
-  | Concrete.Sub  ->  "__isub__"
-  | Concrete.Mult ->  "__imul__"
-  | Concrete.Div  ->  "__idiv__"
-  | Concrete.Mod  ->  "__imod__"
-  | Concrete.Pow  ->  "__ipow__"
+  | Augmented.Add  ->  "__iadd__"
+  | Augmented.Sub  ->  "__isub__"
+  | Augmented.Mult ->  "__imul__"
+  | Augmented.Div  ->  "__idiv__"
+  | Augmented.Mod  ->  "__imod__"
+  | Augmented.Pow  ->  "__ipow__"
 
 and simplify_cmpop o =
   match o with
-  | Concrete.Eq -> "__eq__"
-  | Concrete.NotEq -> "__ne__"
-  | Concrete.Lt -> "__lt__"
-  | Concrete.LtE -> "__le__"
-  | Concrete.Gt -> "__gt__"
-  | Concrete.GtE -> "__ge__"
-  | Concrete.In -> "__contains__"
-  | Concrete.NotIn
-  | Concrete.Is
-  | Concrete.IsNot -> failwith "No corresponding comparison function"
+  | Augmented.Eq -> "__eq__"
+  | Augmented.NotEq -> "__ne__"
+  | Augmented.Lt -> "__lt__"
+  | Augmented.LtE -> "__le__"
+  | Augmented.Gt -> "__gt__"
+  | Augmented.GtE -> "__ge__"
+  | Augmented.In -> "__contains__"
+  | Augmented.NotIn
+  | Augmented.Is
+  | Augmented.IsNot -> failwith "No corresponding comparison function"
 
 and simplify_excepthandlers ctx exn_id handlers annot =
   match handlers with
   | [] ->
     [Simplified.Raise(Simplified.Name(exn_id, annot), annot)]
 
-  | Concrete.ExceptHandler (typ, name, body, annot)::rest ->
+  | Augmented.ExceptHandler (typ, name, body, annot)::rest ->
     let typ_bindings, typ_result =
       match typ with
       | None -> [], Simplified.Bool(true, annot)
       | Some(t) ->
         simplify_expr ctx @@
-        Concrete.Compare(
+        Augmented.Compare(
           (* We use exn.__class__ instead of type(exn) to avoid having to think
              about the type function. They behave the same since exceptions are
              always new_style. *)
-          Concrete.Attribute(
-            Concrete.Name(exn_id, Concrete.Load, annot),
+          Augmented.Attribute(
+            Augmented.Name(exn_id, annot),
             "__class__",
-            Concrete.Load,
             annot),
-          [Concrete.Is],
+          [Augmented.Is],
           [t],
           annot)
     in
     let name_bind =
       match name with
       | None -> []
-      | Some(Concrete.Name(id,_,_)) ->
+      | Some(Augmented.Name(id,_)) ->
         [Simplified.Assign(id, Simplified.Name(exn_id, annot), annot)]
       | _ -> failwith "Second argument to exception handler must be an identifier"
     in
@@ -931,29 +895,18 @@ and simplify_excepthandlers ctx exn_id handlers annot =
         annot
       )]
 
-and simplify_arguments a : identifier list =
-  match a with
-  | (args, _, _, _) ->
-    List.map
-      (fun arg ->
-         match arg with
-         | Concrete.Name (id, _, _) -> id
-         | _ -> failwith "The arguments in a function definition must be identifiers"
-      )
-      args
-
 and generate_comparison lhs op rhs annot =
   match op with
-  | Concrete.Is ->
+  | Augmented.Is ->
     Simplified.Binop(lhs, Simplified.Is, rhs, annot)
-  | Concrete.IsNot ->
+  | Augmented.IsNot ->
     Simplified.UnaryOp(Simplified.Not,
                        Simplified.Call(
                          Simplified.Builtin(Builtin_bool, annot),
                          [Simplified.Binop(lhs, Simplified.Is, rhs, annot)],
                          annot),
                        annot)
-  | Concrete.NotIn -> raise @@ Utils.Not_yet_implemented "NotIn simplification"
+  | Augmented.NotIn -> raise @@ Utils.Not_yet_implemented "NotIn simplification"
   | _ ->
     (* FIXME: comparison operators are actually a lot more complicated *)
     let cmp_func = simplify_cmpop op in

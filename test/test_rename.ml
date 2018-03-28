@@ -4,7 +4,7 @@ open Jhupllib
 open Python2_parser
 open Python2_ast
 open Lexing
-open Python2_rename_ast
+open Python2_ast_renamer
 
 (* TODO: *)
 (* - Ignore keyword *)

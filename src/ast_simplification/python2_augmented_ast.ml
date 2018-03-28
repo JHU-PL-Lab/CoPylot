@@ -15,7 +15,6 @@ and 'a stmt =
   | Return of 'a expr option (* value *) * 'a
   | Assign of 'a expr list (* targets *) * 'a expr (* value *) * 'a
   | AugAssign of 'a expr (* target *) * operator (* op *) * 'a expr (* value *) * 'a
-  | Print of 'a expr option (* dest *) * 'a expr list (* values *) * bool (* nl *) * 'a
   | For of 'a expr (* target *) * 'a expr (* iter *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
   | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
   | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
@@ -66,12 +65,4 @@ and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
 [@@deriving eq, ord, show]
 
 and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * 'a expr option (* name *) * 'a stmt list (* body *) * 'a
-[@@deriving eq, ord, show]
-
-and 'a keyword = identifier (* arg *) * 'a expr (* value *)
-[@@deriving eq, ord, show]
-
-and number =
-    | Int of int
-  | Float of float
 [@@deriving eq, ord, show]
