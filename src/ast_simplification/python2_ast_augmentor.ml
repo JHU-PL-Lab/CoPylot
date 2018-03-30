@@ -3,9 +3,9 @@ open Python2_ast_types;;
 module Base = Python2_ast;;
 module Augmented = Python2_augmented_ast;;
 
-let rec augment_modl (m : annot Base.modl) : Augmented.modl =
-  let Base.Module (body, _) = m in
-  Augmented.Module(List.map augment_stmt body)
+let rec augment_modl (m : annot Base.modl) : Augmented.annotated_modl =
+  let Base.Module (body, annot) = m in
+  annotate annot @@ Augmented.Module(List.map augment_stmt body)
 
 and augment_stmt (s : annot Base.stmt) : Augmented.annotated_stmt =
   match s with

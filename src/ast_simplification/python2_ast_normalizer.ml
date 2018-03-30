@@ -34,11 +34,14 @@ let normalize_list normalize_func lst =
   bindings, results
 ;;
 
-let rec normalize_modl (ctx : name_context) m : Normalized.modl =
-  match m with
+let rec normalize_modl
+    (ctx : name_context)
+    (m : Simplified.annotated_modl)
+  : Normalized.annotated_modl =
+  match m.body with
   | Simplified.Module (body) ->
     let normalized_prog = map_and_concat (normalize_stmt ctx) body in
-    Normalized.Module(normalized_prog)
+    annotate m.annot @@ Normalized.Module(normalized_prog)
 
 and normalize_stmt ctx
     (s : Simplified.annotated_stmt)

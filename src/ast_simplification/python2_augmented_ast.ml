@@ -6,7 +6,10 @@
 
 open Python2_ast_types;;
 
-type annotated_stmt = stmt annotation
+type annotated_modl = modl annotation
+[@@deriving eq, ord, show, to_yojson]
+
+and annotated_stmt = stmt annotation
 [@@deriving eq, ord, show, to_yojson]
 
 and annotated_expr = expr annotation
