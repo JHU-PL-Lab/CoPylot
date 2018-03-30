@@ -23,29 +23,29 @@ sig
   val empty: unit t
 
   (* Smart Constructors *)
-  val s_Assign: identifier -> annotated_expr -> annotated_stmt t
+  val s_Assign: identifier * annotated_expr -> annotated_stmt t
   val s_Return: annotated_expr -> annotated_stmt t
-  val s_While: identifier -> annotated_stmt list -> annotated_stmt t
-  val s_If: annotated_expr -> annotated_stmt list -> annotated_stmt list -> annotated_stmt t
+  val s_While: identifier * annotated_stmt list -> annotated_stmt t
+  val s_If: annotated_expr * annotated_stmt list * annotated_stmt list -> annotated_stmt t
   val s_Raise: annotated_expr -> annotated_stmt t
-  val s_TryExcept: annotated_stmt list -> identifier -> annotated_stmt list -> annotated_stmt t
+  val s_TryExcept: annotated_stmt list * identifier * annotated_stmt list -> annotated_stmt t
   val s_Pass: annotated_stmt t
   val s_Break: annotated_stmt t
   val s_Continue: annotated_stmt t
   val s_Expr: annotated_expr -> annotated_stmt t
 
-  val s_UnaryOp: unaryop -> annotated_expr -> annotated_expr t
-  val s_Binop: annotated_expr -> binop -> annotated_expr -> annotated_expr t
-  val s_Call: annotated_expr -> annotated_expr list -> annotated_expr t
-  val s_Attribute: annotated_expr -> string -> annotated_expr t
-  val s_List: annotated_expr list  -> annotated_expr t
-  val s_Tuple: annotated_expr list  -> annotated_expr t
+  val s_UnaryOp: unaryop * annotated_expr -> annotated_expr t
+  val s_Binop: annotated_expr * binop * annotated_expr -> annotated_expr t
+  val s_Call: annotated_expr * annotated_expr list -> annotated_expr t
+  val s_Attribute: annotated_expr * string -> annotated_expr t
+  val s_List: annotated_expr list -> annotated_expr t
+  val s_Tuple: annotated_expr list -> annotated_expr t
   val s_Num: number -> annotated_expr t
   val s_Str: string -> annotated_expr t
   val s_Bool: bool -> annotated_expr t
   val s_Name: identifier -> annotated_expr t
   val s_Builtin: builtin -> annotated_expr t
-  val s_FunctionVal: identifier list -> annotated_stmt list -> annotated_expr t
+  val s_FunctionVal: identifier list * annotated_stmt list -> annotated_expr t
 end =
 struct
   (* TODO: Change to not use a list for performance reasons *)
@@ -97,7 +97,7 @@ struct
   let empty = return ();;
 
   (* Smart Constructors *)
-  let s_Assign arg1 arg2 =
+  let s_Assign (arg1, arg2) =
     fun _ annot ->
       annotate annot @@ Assign(arg1, arg2), []
 
@@ -105,11 +105,11 @@ struct
     fun _ annot ->
       annotate annot @@ Return(arg1), []
 
-  let s_While arg1 arg2 =
+  let s_While (arg1, arg2) =
     fun _ annot ->
       annotate annot @@ While(arg1, arg2), []
 
-  let s_If arg1 arg2 arg3 =
+  let s_If (arg1, arg2, arg3) =
     fun _ annot ->
       annotate annot @@ If(arg1, arg2, arg3), []
 
@@ -117,7 +117,7 @@ struct
     fun _ annot ->
       annotate annot @@ Raise(arg1), []
 
-  let s_TryExcept arg1 arg2 arg3 =
+  let s_TryExcept (arg1, arg2, arg3) =
     fun _ annot ->
       annotate annot @@ TryExcept(arg1, arg2, arg3), []
 
@@ -137,19 +137,19 @@ struct
     fun _ annot ->
       annotate annot @@ Expr(arg1), []
 
-  let s_UnaryOp arg1 arg2 =
+  let s_UnaryOp (arg1, arg2) =
     fun _ annot ->
       annotate annot @@ UnaryOp(arg1, arg2), []
 
-  let s_Binop arg1 arg2 arg3 =
+  let s_Binop (arg1, arg2, arg3) =
     fun _ annot ->
       annotate annot @@ Binop(arg1, arg2, arg3), []
 
-  let s_Call arg1 arg2 =
+  let s_Call (arg1, arg2) =
     fun _ annot ->
       annotate annot @@ Call(arg1, arg2), []
 
-  let s_Attribute arg1 arg2 =
+  let s_Attribute (arg1, arg2) =
     fun _ annot ->
       annotate annot @@ Attribute(arg1, arg2), []
 
@@ -181,7 +181,7 @@ struct
     fun _ annot ->
       annotate annot @@ Builtin(arg1), []
 
-  let s_FunctionVal arg1 arg2 =
+  let s_FunctionVal (arg1, arg2) =
     fun _ annot ->
       annotate annot @@ FunctionVal(arg1, arg2), []
 end
