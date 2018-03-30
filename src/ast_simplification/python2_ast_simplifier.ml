@@ -1,58 +1,14 @@
+open Batteries;;
 open Jhupllib;;
 open Python2_ast_types;;
 open Unique_name_ctx;;
 module Augmented = Python2_augmented_ast;;
 module Simplified = Python2_simplified_ast;;
+open Python2_simplification_utils;;
 exception Invalid_assignment of string;;
-
-(* FIXME: We need to create a type for builtin methods (in addition to builtin
-   functions such as type, bool, slice) such as __getattr__, and use that
-   instead of just a string whenever we invoke them in this file *)
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
-;;
-
-(* Add a "return None" if the function might not explicitly Return
-   otherwise *)
-let add_return stmts annot =
-  let rec needs_return = function
-    (* Returns true iff we can't guarantee that the function will explicitly
-       return. This implementation is not super efficient or important;
-       it would also be acceptable to just always return true
-       in which case we'd generate dead code sometimes. Oh well. *)
-    | [] -> true
-    | [Augmented.Return _] -> false
-    (* If both branches of the if end in a return, we're good! *)
-    | Augmented.If(_,body,orelse,_)::rest ->
-      if (needs_return body) || (needs_return orelse) then
-        needs_return rest
-      else
-        false
-    | _::tl -> needs_return tl
-  in
-  if needs_return stmts then
-    stmts @ [Augmented.Return(Some(Augmented.NoneExpr annot), annot)]
-  else
-    stmts
-;;
-
-let simplify_list simp_func lst =
-  let simplified_list = List.map simp_func lst in
-  let extract
-      (tup1 : 'a list * 'b )
-      (tup2 : 'a list * 'b list)
-    : 'a list * 'b list =
-    (fst tup1 @ fst tup2, (snd tup1)::(snd tup2)) in
-  let bindings, results =
-    List.fold_right extract simplified_list ([], []) in
-  bindings, results
-;;
-
-let simplify_option func o =
-  match o with
-  | None -> None
-  | Some(x) -> Some(func x)
 ;;
 
 let rec simplify_modl (ctx : name_context) (m : 'a Augmented.modl)
@@ -80,7 +36,7 @@ and simplify_stmt ctx
 
   | Augmented.Return (value, annot) ->
     begin
-      match simplify_option simplify_expr value with
+      match Option.map simplify_expr value with
       | None -> [Simplified.Return(Simplified.Name("*None", annot), annot)]
       | Some(b, v) -> b @ [Simplified.Return(v, annot)]
     end
