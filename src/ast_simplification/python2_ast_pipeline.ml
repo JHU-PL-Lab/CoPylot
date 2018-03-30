@@ -11,7 +11,7 @@ let parse_to_renamed (prog: string) : 'a Python2_ast.modl =
   Rename.rename_modl Rename.Id_map.empty [] base
 ;;
 
-let parse_to_augmented (prog: string) : annot Python2_augmented_ast.modl =
+let parse_to_augmented (prog: string) : Python2_augmented_ast.modl =
   let renamed = parse_to_renamed prog in
   Python2_ast_augmentor.augment_modl renamed
 ;;
@@ -20,7 +20,7 @@ let parse_to_simplified
     (prog: string)
     (starting_name: int)
     (short_names: bool)
-  : annot Python2_simplified_ast.modl =
+  : Python2_simplified_ast.modl =
   let module Simplify =  Python2_ast_simplifier in
   let prefix = if short_names then "$simp" else "$simplified_unique_name_" in
   let augmented = parse_to_augmented prog in

@@ -24,6 +24,8 @@ let equal_annotation eq_a a1 a2 = eq_a a1.body a2.body;;
 let compare_annotation cmp_a a1 a2 = cmp_a a1.body a2.body;;
 let annotation_to_yojson a_to_yojson a = a_to_yojson a.body;;
 
+let annotate annot body = { annot=annot; body = body};;
+
 type number =
   | Int of int
   | Float of float

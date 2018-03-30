@@ -1,4 +1,4 @@
-open Batteries;;
+(* open Batteries;;
 open Jhupllib;;
 open Python2_ast_types;;
 open Unique_name_ctx;;
@@ -9,14 +9,15 @@ exception Invalid_assignment of string;;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
-;;
-
+   ;; *)
+let simplify_modl _ _ = failwith "NYI"
+(*
 let rec simplify_modl (ctx : name_context) (m : 'a Augmented.modl)
   : 'a Simplified.modl =
   match m with
   | Augmented.Module (body, annot) ->
-    Simplified.Module(map_and_concat (simplify_stmt ctx) body, annot)
-
+    Simplified.Module(map_and_concat (simplify_stmt ctx) body, annot) *)
+(*
 and simplify_stmt ctx
     (s : 'a Augmented.stmt)
   : 'a Simplified.stmt list =
@@ -869,4 +870,4 @@ and generate_comparison lhs op rhs annot =
     Simplified.Call(
       Simplified.Attribute(lhs, cmp_func, annot),
       [rhs],
-      annot)
+      annot) *)

@@ -6,50 +6,56 @@
 
 open Python2_ast_types;;
 
-type 'a modl =
-    | Module of 'a stmt list (* body *) * 'a
+type annotated_stmt = stmt annotation
+[@@deriving eq, ord, show, to_yojson]
+
+and annotated_expr = expr annotation
+[@@deriving eq, ord, show, to_yojson]
+
+and modl =
+    | Module of annotated_stmt list (* body *)
 [@@deriving eq, ord, show]
 
-and 'a stmt =
-    | FunctionDef of identifier (* name *) * identifier list (* args *) * 'a stmt list (* body *) * 'a
-  | Return of 'a expr option (* value *) * 'a
-  | Assign of 'a expr list (* targets *) * 'a expr (* value *) * 'a
-  | AugAssign of 'a expr (* target *) * operator (* op *) * 'a expr (* value *) * 'a
-  | For of 'a expr (* target *) * 'a expr (* iter *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
-  | While of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
-  | If of 'a expr (* test *) * 'a stmt list (* body *) * 'a stmt list (* orelse *) * 'a
-  | Raise of 'a expr option (* type *) * 'a
-  | TryExcept of 'a stmt list (* body *) * 'a excepthandler list (* handlers *) * 'a stmt list (* orelse *) * 'a
-  | Expr of 'a expr (* value *) * 'a
-  | Pass of 'a
-  | Break of 'a
-  | Continue of 'a
+and stmt =
+    | FunctionDef of identifier (* name *) * identifier list (* args *) * annotated_stmt list (* body *)
+  | Return of annotated_expr option (* value *)
+  | Assign of annotated_expr list (* targets *) * annotated_expr (* value *)
+  | AugAssign of annotated_expr (* target *) * operator (* op *) * annotated_expr (* value *)
+  | For of annotated_expr (* target *) * annotated_expr (* iter *) * annotated_stmt list (* body *) * annotated_stmt list (* orelse *)
+  | While of annotated_expr (* test *) * annotated_stmt list (* body *) * annotated_stmt list (* orelse *)
+  | If of annotated_expr (* test *) * annotated_stmt list (* body *) * annotated_stmt list (* orelse *)
+  | Raise of annotated_expr option (* type *)
+  | TryExcept of annotated_stmt list (* body *) * excepthandler list (* handlers *) * annotated_stmt list (* orelse *)
+  | Expr of annotated_expr (* value *)
+  | Pass
+  | Break
+  | Continue
 [@@deriving eq, ord, show]
 
-and 'a expr =
-    | BoolOp of boolop (* op *) * 'a expr list (* values *) * 'a
-  | BinOp of 'a expr (* left *) * operator (* op *) * 'a expr (* right *) * 'a
-  | UnaryOp of unaryop (* op *) * 'a expr (* operand *) * 'a
-  | IfExp of 'a expr (* test *) * 'a expr (* body *) * 'a expr (* orelse *) * 'a
-  | Compare of 'a expr (* left *) * cmpop list (* ops *) * 'a expr list (* comparators *) * 'a
-  | Call of 'a expr (* func *) * 'a expr list (* args *) * 'a
-  | Num of number (* n *) * 'a
-  | Str of string (* s *) * 'a
-  | Bool of bool * 'a (* N.B. The Python formal specification does not treat Bools
-                         as a type of expression. We are intentionally deviating
+and expr =
+    | BoolOp of boolop (* op *) * annotated_expr list (* values *)
+  | BinOp of annotated_expr (* left *) * operator (* op *) * annotated_expr (* right *)
+  | UnaryOp of unaryop (* op *) * annotated_expr (* operand *)
+  | IfExp of annotated_expr (* test *) * annotated_expr (* body *) * annotated_expr (* orelse *)
+  | Compare of annotated_expr (* left *) * cmpop list (* ops *) * annotated_expr list (* comparators *)
+  | Call of annotated_expr (* func *) * annotated_expr list (* args *)
+  | Num of number (* n *)
+  | Str of string (* s *)
+  | Bool of bool (* N.B. The Python formal specification does not treat Bools
+                         as a type of annotated_expression. We are intentionally deviating
                          from this behavior here *)
-  | Attribute of 'a expr (* value *) * identifier (* attr *) * 'a
-  | Subscript of 'a expr (* value *) * 'a slice (* slice *) * 'a
-  | Name of identifier (* id *) * 'a
-  | List of 'a expr list (* elts *) * 'a
-  | Tuple of 'a expr list (* elts *) * 'a
-  | Builtin of builtin * 'a
-  | NoneExpr of 'a
+  | Attribute of annotated_expr (* value *) * identifier (* attr *)
+  | Subscript of annotated_expr (* value *) * slice (* slice *)
+  | Name of identifier (* id *)
+  | List of annotated_expr list (* elts *)
+  | Tuple of annotated_expr list (* elts *)
+  | Builtin of builtin
+  | NoneExpr
 [@@deriving eq, ord, show]
 
-and 'a slice =
-    | Slice of 'a expr option (* lower *) * 'a expr option (* upper *) * 'a expr option (* step *)
-  | Index of 'a expr (* value *)
+and slice =
+    | Slice of annotated_expr option (* lower *) * annotated_expr option (* upper *) * annotated_expr option (* step *)
+  | Index of annotated_expr (* value *)
 [@@deriving eq, ord, show]
 
 and boolop = And | Or
@@ -64,5 +70,5 @@ and unaryop = Not | UAdd | USub
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
 [@@deriving eq, ord, show]
 
-and 'a excepthandler = ExceptHandler of 'a expr option (* type *) * 'a expr option (* name *) * 'a stmt list (* body *) * 'a
+and excepthandler = ExceptHandler of annotated_expr option (* type *) * annotated_expr option (* name *) * annotated_stmt list (* body *)
 [@@deriving eq, ord, show]

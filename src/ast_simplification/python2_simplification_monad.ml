@@ -8,16 +8,14 @@ type annot = Python2_ast.Pos.t;;
 module Simplification_monad:
 sig
   type 'a t
-  type statement = annot Python2_simplified_ast.stmt
-  type expression = annot Python2_simplified_ast.expr
 
   val return: 'a -> 'a t
   val bind: 'a t -> ('a -> 'b t) -> 'b t
-  val emit: statement t list -> unit t
-  val listen: 'a t -> ('a * statement list) t
+  val emit: annotated_stmt t list -> unit t
+  val listen: 'a t -> ('a * annotated_stmt list) t
   val sequence: ('a t) list -> ('a list) t
 
-  val run: name_context -> annot -> 'a t -> 'a * statement list
+  val run: name_context -> annot -> 'a t -> 'a * annotated_stmt list
 
   val local_annot: annot -> 'a t -> 'a t
   val fresh_name: unit -> string t
@@ -25,36 +23,33 @@ sig
   val empty: unit t
 
   (* Smart Constructors *)
-  val s_Assign: identifier -> expression -> statement t
-  val s_Return: expression -> statement t
-  val s_While: identifier -> statement list -> statement t
-  val s_If: expression -> statement list -> statement list -> statement t
-  val s_Raise: expression -> statement t
-  val s_TryExcept: statement list -> identifier -> statement list -> statement t
-  val s_Pass: statement t
-  val s_Break: statement t
-  val s_Continue: statement t
-  val s_Expr: expression -> statement t
+  val s_Assign: identifier -> annotated_expr -> annotated_stmt t
+  val s_Return: annotated_expr -> annotated_stmt t
+  val s_While: identifier -> annotated_stmt list -> annotated_stmt t
+  val s_If: annotated_expr -> annotated_stmt list -> annotated_stmt list -> annotated_stmt t
+  val s_Raise: annotated_expr -> annotated_stmt t
+  val s_TryExcept: annotated_stmt list -> identifier -> annotated_stmt list -> annotated_stmt t
+  val s_Pass: annotated_stmt t
+  val s_Break: annotated_stmt t
+  val s_Continue: annotated_stmt t
+  val s_Expr: annotated_expr -> annotated_stmt t
 
-  val s_UnaryOp: unaryop -> expression -> expression t
-  val s_Binop: expression -> binop -> expression -> expression t
-  val s_Call: expression -> expression list -> expression t
-  val s_Attribute: expression -> string -> expression t
-  val s_List: expression list  -> expression t
-  val s_Tuple: expression list  -> expression t
-  val s_Num: number -> expression t
-  val s_Str: string -> expression t
-  val s_Bool: bool -> expression t
-  val s_Name: identifier -> expression t
-  val s_Builtin: builtin -> expression t
-  val s_FunctionVal: identifier list -> statement list -> expression t
+  val s_UnaryOp: unaryop -> annotated_expr -> annotated_expr t
+  val s_Binop: annotated_expr -> binop -> annotated_expr -> annotated_expr t
+  val s_Call: annotated_expr -> annotated_expr list -> annotated_expr t
+  val s_Attribute: annotated_expr -> string -> annotated_expr t
+  val s_List: annotated_expr list  -> annotated_expr t
+  val s_Tuple: annotated_expr list  -> annotated_expr t
+  val s_Num: number -> annotated_expr t
+  val s_Str: string -> annotated_expr t
+  val s_Bool: bool -> annotated_expr t
+  val s_Name: identifier -> annotated_expr t
+  val s_Builtin: builtin -> annotated_expr t
+  val s_FunctionVal: identifier list -> annotated_stmt list -> annotated_expr t
 end =
 struct
-  type statement = annot Python2_simplified_ast.stmt;;
-  type expression = annot Python2_simplified_ast.expr;;
-
   (* TODO: Change to not use a list for performance reasons *)
-  type 'a t = name_context -> annot -> 'a * statement list;;
+  type 'a t = name_context -> annot -> 'a * annotated_stmt list;;
 
   let return x = fun _ _ -> (x, []);;
 
@@ -104,91 +99,91 @@ struct
   (* Smart Constructors *)
   let s_Assign arg1 arg2 =
     fun _ annot ->
-      Assign(arg1, arg2, annot), []
+      annotate annot @@ Assign(arg1, arg2), []
 
   let s_Return arg1 =
     fun _ annot ->
-      Return(arg1, annot), []
+      annotate annot @@ Return(arg1), []
 
   let s_While arg1 arg2 =
     fun _ annot ->
-      While(arg1, arg2, annot), []
+      annotate annot @@ While(arg1, arg2), []
 
   let s_If arg1 arg2 arg3 =
     fun _ annot ->
-      If(arg1, arg2, arg3, annot), []
+      annotate annot @@ If(arg1, arg2, arg3), []
 
   let s_Raise arg1 =
     fun _ annot ->
-      Raise(arg1, annot), []
+      annotate annot @@ Raise(arg1), []
 
   let s_TryExcept arg1 arg2 arg3 =
     fun _ annot ->
-      TryExcept(arg1, arg2, arg3, annot), []
+      annotate annot @@ TryExcept(arg1, arg2, arg3), []
 
   let s_Pass =
     fun _ annot ->
-      Pass(annot), []
+      annotate annot @@ Pass, []
 
   let s_Break =
     fun _ annot ->
-      Break(annot), []
+      annotate annot @@ Break, []
 
   let s_Continue =
     fun _ annot ->
-      Continue(annot), []
+      annotate annot @@ Continue, []
 
   let s_Expr arg1 =
     fun _ annot ->
-      Expr(arg1, annot), []
+      annotate annot @@ Expr(arg1), []
 
   let s_UnaryOp arg1 arg2 =
     fun _ annot ->
-      UnaryOp(arg1, arg2, annot), []
+      annotate annot @@ UnaryOp(arg1, arg2), []
 
   let s_Binop arg1 arg2 arg3 =
     fun _ annot ->
-      Binop(arg1, arg2, arg3, annot), []
+      annotate annot @@ Binop(arg1, arg2, arg3), []
 
   let s_Call arg1 arg2 =
     fun _ annot ->
-      Call(arg1, arg2, annot), []
+      annotate annot @@ Call(arg1, arg2), []
 
   let s_Attribute arg1 arg2 =
     fun _ annot ->
-      Attribute(arg1, arg2, annot), []
+      annotate annot @@ Attribute(arg1, arg2), []
 
   let s_List arg1 =
     fun _ annot ->
-      List(arg1, annot), []
+      annotate annot @@ List(arg1), []
 
   let s_Tuple arg1 =
     fun _ annot ->
-      Tuple(arg1, annot), []
+      annotate annot @@ Tuple(arg1), []
 
   let s_Num arg1 =
     fun _ annot ->
-      Num(arg1, annot), []
+      annotate annot @@ Num(arg1), []
 
   let s_Str arg1 =
     fun _ annot ->
-      Str(arg1, annot), []
+      annotate annot @@ Str(arg1), []
 
   let s_Bool arg1 =
     fun _ annot ->
-      Bool(arg1, annot), []
+      annotate annot @@ Bool(arg1), []
 
   let s_Name arg1 =
     fun _ annot ->
-      Name(arg1, annot), []
+      annotate annot @@ Name(arg1), []
 
   let s_Builtin arg1 =
     fun _ annot ->
-      Builtin(arg1, annot), []
+      annotate annot @@ Builtin(arg1), []
 
   let s_FunctionVal arg1 arg2 =
     fun _ annot ->
-      FunctionVal(arg1, arg2, annot), []
+      annotate annot @@ FunctionVal(arg1, arg2), []
 end
 
 type 'a m = 'a Simplification_monad.t;;
