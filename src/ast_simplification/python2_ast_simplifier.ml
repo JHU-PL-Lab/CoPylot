@@ -1,5 +1,5 @@
-(* open Batteries;;
-open Jhupllib;;
+open Batteries;;
+(* open Jhupllib;; *)
 open Python2_ast_types;;
 open Unique_name_ctx;;
 module Augmented = Python2_augmented_ast;;
@@ -7,34 +7,38 @@ module Simplified = Python2_simplified_ast;;
 open Python2_simplification_utils;;
 exception Invalid_assignment of string;;
 
+open Python2_simplification_monad;;
+open Simplification_monad;;
+
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
-   ;; *)
-let simplify_modl _ _ = failwith "NYI"
-(*
-let rec simplify_modl (ctx : name_context) (m : 'a Augmented.modl)
-  : 'a Simplified.modl =
-  match m with
-  | Augmented.Module (body, annot) ->
-    Simplified.Module(map_and_concat (simplify_stmt ctx) body, annot) *)
-(*
-and simplify_stmt ctx
-    (s : 'a Augmented.stmt)
-  : 'a Simplified.stmt list =
-  let gen_unique_name = gen_unique_name ctx in
-  let simplify_stmt = simplify_stmt ctx in
-  let simplify_expr = simplify_expr ctx in
-  match s with
-  | Augmented.FunctionDef (func_name, args, body, annot)->
-    let body = add_return body annot in
-    let simplified_body = map_and_concat simplify_stmt body in
-    [Simplified.Assign(func_name,
-                       Simplified.FunctionVal(
-                         args,
-                         simplified_body,
-                         annot),
-                       annot)]
+;;
 
+let rec simplify_modl (ctx : name_context) (m : Augmented.annotated_modl)
+  : Simplified.annotated_modl =
+  let Augmented.Module(body) = m.body in
+  let _, simplified_body = run ctx m.annot @@ simplify_stmt_list body in
+  annotate m.annot @@
+  Simplified.Module(simplified_body)
+
+and simplify_stmt_list (stmts : Augmented.annotated_stmt list) : unit m =
+  let accumulate m s = bind m (fun () -> simplify_stmt s) in
+  List.fold_left accumulate empty stmts
+
+and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
+  local_annot s.annot @@
+  let annotate = annotate s.annot in
+  match s.body with
+  | Augmented.FunctionDef (func_name, args, body)->
+    let body = add_return body s.annot in
+    let%bind _, simplified_body = listen @@ simplify_stmt_list body in
+    emit
+    [Simplified.Assign(func_name,
+                       annotate @@ Simplified.FunctionVal(
+                         args,
+                         simplified_body))]
+  | _ -> failwith "NYI"
+      (*
   | Augmented.Return (value, annot) ->
     begin
       match Option.map simplify_expr value with
@@ -494,7 +498,8 @@ and simplify_stmt ctx
 
   | Augmented.Continue (annot) ->
     [Simplified.Continue(annot)]
-
+    *)
+      (*
 (* Given a concrete expr, returns a list of statements, corresponding to
    the assignments necessary to compute it, and the name of the final
    variable that was bound *)
