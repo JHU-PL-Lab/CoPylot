@@ -62,6 +62,7 @@ Library "ast_simplification"
     Python2_ast_renamer,
     Python2_augmented_ast,
     Python2_ast_augmentor,
+    Python2_simplification_monad,
     Python2_simplified_ast,
     Python2_ast_simplifier,
     Python2_normalized_ast,
