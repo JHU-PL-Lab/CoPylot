@@ -27,7 +27,7 @@ and simplify_stmt_list (stmts : Augmented.annotated_stmt list) : unit m =
 
 and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
   local_annot s.annot @@
-  let annotate = annotate s.annot in
+  let annotate : 'a -> 'a annotation = annotate s.annot in
   match s.body with
   | Augmented.FunctionDef (func_name, args, body)->
     let body = add_return body s.annot in
@@ -442,29 +442,28 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
         annot
       ) in
     map_and_concat simplify_stmt [bind_next_val; try_except]
+*)
 
-  | Augmented.While (test, body, _, annot) ->
-    let test_bindings, test_result = simplify_expr test in
-    let test_name = gen_unique_name annot in
-    let full_test_bindings =
-      test_bindings @
-      [
-        Simplified.Assign(test_name,
-                          Simplified.Call(
-                            Simplified.Builtin(Builtin_bool, annot),
-                            [test_result],
-                            annot),
-                          annot)
-      ]
+  | Augmented.While (test, body, _) ->
+    let%bind test_result, test_bindings = listen @@ simplify_expr test in
+    let%bind test_name = fresh_name () in
+    let%bind _, assignment = listen @@ emit
+        [
+          Simplified.Assign(test_name,
+                            annotate @@ Simplified.Call(
+                              annotate @@ Simplified.Builtin(Builtin_bool),
+                              [annotate @@ Simplified.Name(test_result)]))
+        ]
     in
-    full_test_bindings @
-    (* We maintain an invariant that the test statement of a while loop is
-       always an actual boolean value. Ensure this by calling bool(). *)
-    [ Simplified.While(test_name,
-                       (* Re-bind the test variable after each loop *)
-                       map_and_concat simplify_stmt body @ full_test_bindings,
-                       annot)]
+    let full_test_bindings = test_bindings @ assignment in
 
+    let%bind _, simplified_body = listen @@ simplify_stmt_list body in
+    let%bind _ = emit_stmts full_test_bindings in
+    emit @@
+    [
+      Simplified.While(test_name, simplified_body @ full_test_bindings)
+    ]
+      (*
   | Augmented.If (test, body, orelse, annot) ->
     let test_bindings, test_result = simplify_expr test in
     test_bindings @

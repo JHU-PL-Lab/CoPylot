@@ -17,6 +17,7 @@ sig
   val return: 'a -> 'a t
   val bind: 'a t -> ('a -> 'b t) -> 'b t
   val emit: Lang.directive list -> unit t
+  val emit_stmts: Lang.statement list -> unit t
   val listen: 'a t -> ('a * Lang.statement list) t
   val sequence: ('a t) list -> ('a list) t
 
@@ -62,6 +63,11 @@ struct
   let emit directives =
     fun _ annot ->
       let stmts = List.map (Lang.annotate annot) directives in
+      (), stmts
+  ;;
+
+  let emit_stmts stmts =
+    fun _ _ ->
       (), stmts
   ;;
 
