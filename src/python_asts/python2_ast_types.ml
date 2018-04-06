@@ -41,5 +41,7 @@ type builtin =
   | Builtin_AttributeError
   | Builtin_TypeError
   | Builtin_StopIteration
+  | Builtin_None
+  | Builtin_NotImplemented
 [@@deriving eq, ord, show, to_yojson]
 ;;

@@ -33,19 +33,25 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     let body = add_return body s.annot in
     let%bind _, simplified_body = listen @@ simplify_stmt_list body in
     emit
-    [Simplified.Assign(func_name,
-                       annotate @@ Simplified.FunctionVal(
-                         args,
-                         simplified_body))]
-  | _ -> failwith "NYI"
-      (*
-  | Augmented.Return (value, annot) ->
+      [Simplified.Assign(func_name,
+                         annotate @@ Simplified.FunctionVal(
+                           args,
+                           simplified_body))]
+  | Augmented.Return (value) ->
     begin
-      match Option.map simplify_expr value with
-      | None -> [Simplified.Return(Simplified.Name("*None", annot), annot)]
-      | Some(b, v) -> b @ [Simplified.Return(v, annot)]
+      match value with
+      | None ->
+        emit
+          [
+            Simplified.Return(annotate @@ Simplified.Builtin(Builtin_None))
+          ]
+      | Some(e) ->
+        let%bind id = simplify_expr e in
+        emit
+          [Simplified.Return(annotate @@ Simplified.Name(id))]
     end
 
+      (*
   | Augmented.Assign (targets, value, annot) ->
     (* Assignments are very complicated, with different behavior depending
        on the lvalue.
@@ -359,7 +365,8 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
                       annot)
     in
     binds @ simplify_stmt tryexcept @ simplify_stmt final_assign
-
+*)
+      (*
   | Augmented.For (target, seq, body, _, annot) ->
     (* For loops are always over some iterable. According to the docs,
        they loop until they are told to stop, or their iterator stops
@@ -499,16 +506,16 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
   | Augmented.Continue (annot) ->
     [Simplified.Continue(annot)]
     *)
-      (*
+  | _ -> failwith "NYI"
+
 (* Given a concrete expr, returns a list of statements, corresponding to
    the assignments necessary to compute it, and the name of the final
    variable that was bound *)
-and simplify_expr
-    (ctx : name_context)
-    (e : 'a Augmented.expr)
-  : 'a Simplified.stmt list * 'a Simplified.expr =
-  let gen_unique_name = gen_unique_name ctx in
-  let simplify_expr = simplify_expr ctx in
+and simplify_expr (e : Augmented.annotated_expr) : identifier m =
+  local_annot e.annot @@
+  let annotate = annotate e.annot in
+  ignore @@ annotate; failwith "NYI"
+    (*
   match e with
   (* BoolOps are a tricky case because of short-circuiting. We need to
      make sure that when we evaluate "a and False and b", b is never
@@ -680,10 +687,10 @@ and simplify_expr
             let rest_of_bindings, rest_of_comparison =
               simplify_expr @@
               Augmented.IfExp(comparison_name,
-                             Augmented.Compare(Augmented.Name(right_id, annot),
-                                              rest, List.tl comparators, annot),
-                             comparison_name,
-                             annot)
+                              Augmented.Compare(Augmented.Name(right_id, annot),
+                                                rest, List.tl comparators, annot),
+                              comparison_name,
+                              annot)
             in
             bindings @ [cmp_assign] @ rest_of_bindings, rest_of_comparison
         end
