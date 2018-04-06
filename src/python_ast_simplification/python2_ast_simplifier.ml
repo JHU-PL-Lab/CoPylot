@@ -7,7 +7,7 @@ module Simplified = Python2_simplified_ast;;
 open Python2_simplification_utils;;
 exception Invalid_assignment of string;;
 
-open Python2_simplification_monad;;
+open Python_simplification_monad;;
 open Simplification_monad;;
 
 let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =

@@ -54,22 +54,15 @@ Library "utils"
     ppx_deriving.std,
     CoPylot.parser
 
-Library "ast_simplification"
+Library "python_asts"
   FindlibParent: CoPylot
-  Path: src/ast_simplification
+  Path: src/python_asts
   Modules:
     Python2_ast_types,
-    Python2_ast_renamer,
     Python2_augmented_ast,
-    Python2_ast_augmentor,
     Python2_simplified_ast,
-    Python2_simplification_monad,
-    Python2_simplification_utils,
-    Python2_ast_simplifier,
     Python2_normalized_ast,
-    Python2_ast_normalizer,
-    Python2_normalized_ast_pretty,
-    Python2_ast_pipeline
+    Python2_normalized_ast_pretty
   BuildDepends:
     batteries,
     jhupllib,
@@ -90,7 +83,7 @@ Library "lamia_language"
     jhupllib,
     ppx_deriving.std,
     ppx_deriving_yojson,
-    CoPylot.ast_simplification
+    CoPylot.python_asts
 
 Library "lybie_language"
   FindlibParent: CoPylot
@@ -109,6 +102,7 @@ Library "conversion_monads"
   Path: src/conversion_monads
   Modules:
     Generic_conversion_monad,
+    Python_simplification_monad,
     Lamia_conversion_monad,
     Lybie_conversion_monad
   BuildDepends:
@@ -116,8 +110,29 @@ Library "conversion_monads"
     jhupllib,
     ppx_deriving.std,
     ppx_deriving_yojson,
+    CoPylot.python_asts,
     CoPylot.lamia_language,
     CoPylot.lybie_language
+
+Library "python_ast_simplification"
+  FindlibParent: CoPylot
+  Path: src/python_ast_simplification
+  Modules:
+    Python2_ast_renamer,
+    Python2_ast_augmentor,
+    Python2_simplification_utils,
+    Python2_ast_simplifier,
+    Python2_ast_normalizer,
+    Python2_ast_pipeline
+  BuildDepends:
+    batteries,
+    jhupllib,
+    ppx_deriving.std,
+    ppx_deriving_yojson,
+    CoPylot.parser,
+    CoPylot.utils,
+    CoPylot.python_asts,
+    CoPylot.conversion_monads
 
 Library "lybie_conversion"
   FindlibParent: CoPylot
@@ -134,7 +149,7 @@ Library "lybie_conversion"
     jhupllib,
     ppx_deriving.std,
     ppx_deriving_yojson,
-    CoPylot.ast_simplification,
+    CoPylot.python_ast_simplification,
     CoPylot.lamia_language,
     CoPylot.conversion_monads
 
@@ -240,7 +255,7 @@ Executable "analysis_python_toploop"
     batteries,
     jhupllib,
     CoPylot.utils,
-    CoPylot.ast_simplification,
+    CoPylot.python_ast_simplification,
     CoPylot.lybie_conversion,
     CoPylot.lybie_expansion,
     CoPylot.analysis
@@ -257,7 +272,7 @@ Executable "test"
     pds-reachability,
     ppx_deriving.std,
     CoPylot.parser,
-    CoPylot.ast_simplification,
+    CoPylot.python_ast_simplification,
     CoPylot.lamia_language,
     CoPylot.lamia_parser,
     CoPylot.lamia_interpreter,
