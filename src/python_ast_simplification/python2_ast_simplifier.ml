@@ -463,48 +463,55 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     [
       Simplified.While(test_name, simplified_body @ full_test_bindings)
     ]
-      (*
-  | Augmented.If (test, body, orelse, annot) ->
-    let test_bindings, test_result = simplify_expr test in
-    test_bindings @
-    [Simplified.If(Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
-                                   [test_result],
-                                   annot),
-                   map_and_concat simplify_stmt body,
-                   map_and_concat simplify_stmt orelse,
-                   annot)]
+  | Augmented.If (test, body, orelse) ->
+    let%bind test_result = simplify_expr test in
+    let%bind _, simplified_body = listen @@ simplify_stmt_list body in
+    let%bind _, simplified_orelse = listen @@ simplify_stmt_list orelse in
+    emit
+      [
+        Simplified.If(
+          annotate @@ Simplified.Call(
+            annotate @@ Simplified.Builtin(Builtin_bool),
+            [annotate @@ Simplified.Name(test_result)]),
+          simplified_body,
+          simplified_orelse)
+      ]
 
-  | Augmented.Raise (typ, annot) ->
-    let typ_bindings, typ_result =
+  | Augmented.Raise (typ) ->
+    let%bind typ_result =
       match typ with
       | None -> failwith "Raise must have exactly one argument"
       | Some(e) -> simplify_expr e
     in
-    typ_bindings @
-    [Simplified.Raise(typ_result, annot)]
+    emit
+      [
+        Simplified.Raise(annotate @@ Simplified.Name(typ_result))
+      ]
 
-  | Augmented.TryExcept (body, handlers, _, annot) ->
-    let exn_id = gen_unique_name annot in
-    [Simplified.TryExcept (
-        map_and_concat simplify_stmt body,
-        exn_id,
-        simplify_excepthandlers ctx exn_id handlers annot,
-        annot)]
+  | Augmented.TryExcept (body, handlers, orelse) ->
+    let%bind _, simplified_body = listen @@ simplify_stmt_list body in
+    let%bind exn_id = fresh_name () in
+    let%bind _, simplified_handlers = listen @@ simplify_excepthandlers exn_id handlers in
+    let%bind _, simplified_orelse = listen @@ simplify_stmt_list orelse in
+    ignore simplified_orelse; (* TODO: FIXME *)
+    emit
+      [
+        Simplified.TryExcept(simplified_body, exn_id, simplified_handlers)
+      ]
 
-  | Augmented.Expr (e, annot) ->
-    let bindings, result = simplify_expr e in
-    bindings @
-    [Simplified.Expr(result, annot)]
 
-  | Augmented.Pass (annot) ->
-    [Simplified.Pass (annot)]
+  | Augmented.Expr (e) ->
+    let%bind _ = simplify_expr e in
+    return ()
 
-  | Augmented.Break (annot) ->
-    [Simplified.Break (annot)]
+  | Augmented.Pass->
+    emit [Simplified.Pass]
 
-  | Augmented.Continue (annot) ->
-    [Simplified.Continue(annot)]
-    *)
+  | Augmented.Break->
+    emit [Simplified.Break]
+
+  | Augmented.Continue ->
+    emit [Simplified.Continue]
   | _ -> failwith "NYI"
 
 (* Given a concrete expr, returns a list of statements, corresponding to
@@ -821,8 +828,11 @@ and simplify_cmpop o =
   | Augmented.NotIn
   | Augmented.Is
   | Augmented.IsNot -> failwith "No corresponding comparison function"
+*)
 
-and simplify_excepthandlers ctx exn_id handlers annot =
+and simplify_excepthandlers exn_id handlers : unit m =
+  ignore exn_id; ignore handlers; failwith "NYI"
+    (*
   match handlers with
   | [] ->
     [Simplified.Raise(Simplified.Name(exn_id, annot), annot)]
