@@ -444,7 +444,7 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     map_and_concat simplify_stmt [bind_next_val; try_except]
 *)
 
-  | Augmented.While (test, body, _) ->
+  | Augmented.While (test, body, orelse) ->
     let%bind test_result, test_bindings = listen @@ simplify_expr test in
     let%bind test_name = fresh_name () in
     let%bind _, assignment = listen @@ emit
@@ -458,10 +458,11 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     let full_test_bindings = test_bindings @ assignment in
 
     let%bind _, simplified_body = listen @@ simplify_stmt_list body in
+    let%bind _, simplified_orelse = listen @@ simplify_stmt_list orelse in
     let%bind _ = emit_stmts full_test_bindings in
     emit @@
     [
-      Simplified.While(test_name, simplified_body @ full_test_bindings)
+      Simplified.While(test_name, simplified_body @ full_test_bindings, simplified_orelse)
     ]
   | Augmented.If (test, body, orelse) ->
     let%bind test_result = simplify_expr test in
@@ -493,10 +494,9 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     let%bind exn_id = fresh_name () in
     let%bind _, simplified_handlers = listen @@ simplify_excepthandlers exn_id handlers in
     let%bind _, simplified_orelse = listen @@ simplify_stmt_list orelse in
-    ignore simplified_orelse; (* TODO: FIXME *)
     emit
       [
-        Simplified.TryExcept(simplified_body, exn_id, simplified_handlers)
+        Simplified.TryExcept(simplified_body, exn_id, simplified_handlers, simplified_orelse)
       ]
 
 

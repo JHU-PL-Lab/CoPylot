@@ -21,14 +21,14 @@ and stmt =
    that there is no more work to be done during normalization. This lets us
    ensure that we can append all necessary computation of the test value to the
    body of the while during simplification. *)
-  | While of identifier (* test *) * annotated_stmt list (* body *)
+  | While of identifier (* test *) * annotated_stmt list (* body *) * annotated_stmt list (* orelse *)
   (* We maintain the same invariant for if statements as for while loops *)
   | If of annotated_expr (* test *) * annotated_stmt list (* body *) * annotated_stmt list (* orelse *)
   (* Raise is very complicated, with different behaviors based on the
        number of arguments it recieves. For simplicity we require that
        it take exactly one argument, which is the value to be raised. *)
   | Raise of annotated_expr (* value *)
-  | TryExcept of annotated_stmt list (* body *) * identifier (* exn name *) * annotated_stmt list (* handlers *)
+  | TryExcept of annotated_stmt list (* body *) * identifier (* exn name *) * annotated_stmt list (* handlers *) * annotated_stmt list (* orelse *)
   | Pass
   | Break
   | Continue

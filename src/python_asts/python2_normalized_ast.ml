@@ -16,10 +16,10 @@ and modl =
 and stmt =
     | Assign of identifier (* target *) * annotated_expr (* value *)
   | Return of identifier (* value *)
-  | While of identifier (* test *) * annotated_stmt list (* body *)
+  | While of identifier (* test *) * annotated_stmt list (* body *) * annotated_stmt list (* orelse *)
   | If of identifier (* test *) * annotated_stmt list (* body *) * annotated_stmt list (* orelse *)
   | Raise of identifier (* value *)
-  | TryExcept of annotated_stmt list (* body *) * identifier (* exn name *) * annotated_stmt list (* handler *)
+  | TryExcept of annotated_stmt list (* body *) * identifier (* exn name *) * annotated_stmt list (* handler *) * annotated_stmt list (* orelse *)
   | Pass
   | Break
   | Continue

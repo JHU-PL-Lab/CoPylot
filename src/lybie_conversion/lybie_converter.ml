@@ -45,7 +45,7 @@ and convert_stmt
         Lybie_ast.Return(lookup_result);
       ]
 
-  | While (test, body) ->
+  | While (test, body, _) ->
     let%bind value_loc, value_stmts =
       listen @@
       let%bind test_loc = lookup test in
@@ -125,7 +125,7 @@ and convert_stmt
         Lybie_ast.Raise(lookup_result);
       ]
 
-  | TryExcept (body, exn_name, handler) ->
+  | TryExcept (body, exn_name, handler, _) ->
     let%bind exn_memloc = fresh_memory_var () in
     let%bind _, new_body = listen @@ convert_stmt_list body in
     let%bind _, new_handler =

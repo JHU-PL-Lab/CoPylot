@@ -66,10 +66,11 @@ and normalize_stmt ctx
     in
     value_bindings @ [assign]
 
-  | Simplified.While (test, body) ->
+  | Simplified.While (test, body, orelse) ->
     [annotate annot @@
      Normalized.While(test,
-                      map_and_concat normalize_stmt body)]
+                      map_and_concat normalize_stmt body,
+                      map_and_concat normalize_stmt orelse)]
 
   | Simplified.If (test, body, orelse) ->
     let test_bindings, test_result = normalize_expr test in
@@ -84,11 +85,12 @@ and normalize_stmt ctx
     value_binding @
     [ annotate annot @@ Normalized.Raise(value_result)]
 
-  | Simplified.TryExcept (body, exn_name, handler) ->
+  | Simplified.TryExcept (body, exn_name, handler, orelse) ->
     [annotate annot @@
      Normalized.TryExcept (map_and_concat normalize_stmt body,
                            exn_name,
-                           map_and_concat normalize_stmt handler)]
+                           map_and_concat normalize_stmt handler,
+                           map_and_concat normalize_stmt orelse)]
 
   | Simplified.Pass ->
     [ annotate annot @@ Normalized.Pass]
