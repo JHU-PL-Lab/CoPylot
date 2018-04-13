@@ -145,13 +145,17 @@ directive:
   | RAISE memory_variable
     { Raise($2) }
   | TRY block EXCEPT memory_variable block
-    { Try_except ($2,$4,$5) }
+    { Try_except ($2,$4,$5,Block([])) }
+  | TRY block EXCEPT memory_variable block ELSE block
+    { Try_except ($2,$4,$5,$7) }
   | LET value_variable EQUAL IF value_variable THEN block ELSE block
     { Let_conditional_value($2,$5,$7,$9) }
   | LET memory_variable EQUAL IF value_variable THEN block ELSE block
     { Let_conditional_memory($2,$5,$7,$9) }
   | WHILE memory_variable block
-    { While($2,$3) }
+    { While($2,$3,Block([])) }
+  | WHILE memory_variable block ELSE block
+    { While($2,$3,$5) }
 
 %inline
 value_variable:

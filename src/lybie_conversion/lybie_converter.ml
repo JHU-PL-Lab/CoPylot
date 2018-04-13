@@ -45,7 +45,7 @@ and convert_stmt
         Lybie_ast.Return(lookup_result);
       ]
 
-  | While (test, body, _) ->
+  | While (test, body, orelse) ->
     let%bind value_loc, value_stmts =
       listen @@
       let%bind test_loc = lookup test in
@@ -71,6 +71,7 @@ and convert_stmt
       let%bind _ = convert_stmt_list body in
       emit value_bindings
     in
+    let%bind _, orelse_body = listen @@ convert_stmt_list orelse in
     emit @@
     [
       Let_alloc(value_loc);
@@ -78,7 +79,8 @@ and convert_stmt
     value_bindings @
     [
       Lybie_ast.While(value_loc,
-                      Block(while_body));
+                      Block(while_body),
+                      Block(orelse_body));
     ]
 
   | If (test, body, orelse) ->
@@ -125,7 +127,7 @@ and convert_stmt
         Lybie_ast.Raise(lookup_result);
       ]
 
-  | TryExcept (body, exn_name, handler, _) ->
+  | TryExcept (body, exn_name, handler, orelse) ->
     let%bind exn_memloc = fresh_memory_var () in
     let%bind _, new_body = listen @@ convert_stmt_list body in
     let%bind _, new_handler =
@@ -133,11 +135,13 @@ and convert_stmt
       let%bind _ = assign_python_variable exn_name exn_memloc in
       convert_stmt_list handler
     in
+    let%bind _, new_orelse = listen @@ convert_stmt_list orelse in
     emit
       [
         Try_except(Block(new_body),
                    exn_memloc,
-                   Block(new_handler))
+                   Block(new_handler),
+                   Block(new_orelse))
       ]
 
   | Pass ->

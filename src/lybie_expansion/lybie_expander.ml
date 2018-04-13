@@ -63,14 +63,14 @@ and expand_macros_directive
     Lamia.If_result_memory y
   | Lybie.Raise y ->
     Lamia.Raise y
-  | Lybie.Try_except (body,y,handler) ->
-    Lamia.Try_except (expand_macros_block ctx body, y, expand_macros_block ctx handler)
+  | Lybie.Try_except (body,y,handler,orelse) ->
+    Lamia.Try_except (expand_macros_block ctx body, y, expand_macros_block ctx handler, expand_macros_block ctx orelse)
   | Lybie.Let_conditional_value (x1,x2,body,orelse) ->
     Lamia.Let_conditional_value (x1, x2, expand_macros_block ctx body, expand_macros_block ctx orelse)
   | Lybie.Let_conditional_memory (y1,y2,body,orelse) ->
     Lamia.Let_conditional_memory (y1, y2, expand_macros_block ctx body, expand_macros_block ctx orelse)
-  | Lybie.While (test, body) ->
-    Lamia.While (test, expand_macros_block ctx body)
+  | Lybie.While (test, body, orelse) ->
+    Lamia.While (test, expand_macros_block ctx body, expand_macros_block ctx orelse)
   | Lybie.Macro _ ->
     failwith "Called expand_macros_directive with a Macro"
 

@@ -51,14 +51,14 @@ and add_uids_directive ctx d =
     If_result_memory(arg1)
   | Raise(arg1) ->
     Raise(arg1)
-  | Try_except(body, arg1, handler) ->
-    Try_except(add_uids_block ctx body, arg1, add_uids_block ctx handler)
+  | Try_except(body, arg1, handler, orelse) ->
+    Try_except(add_uids_block ctx body, arg1, add_uids_block ctx handler, add_uids_block ctx orelse)
   | Let_conditional_value(arg1, arg2, body, orelse) ->
     Let_conditional_value(arg1, arg2, add_uids_block ctx body, add_uids_block ctx orelse)
   | Let_conditional_memory(arg1, arg2, body, orelse) ->
     Let_conditional_memory(arg1, arg2, add_uids_block ctx body, add_uids_block ctx orelse)
-  | While(arg, body) ->
-    While(arg, add_uids_block ctx body)
+  | While(arg, body, orelse) ->
+    While(arg, add_uids_block ctx body, add_uids_block ctx orelse)
 
 and add_uids_expression ctx e =
   match e with

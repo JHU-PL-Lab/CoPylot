@@ -31,10 +31,10 @@ and 'a directive =
   | If_result_value of value_variable
   | If_result_memory of memory_variable
   | Raise of memory_variable
-  | Try_except of 'a block * memory_variable * 'a block
+  | Try_except of 'a block * memory_variable * 'a block * 'a block
   | Let_conditional_value of value_variable * value_variable * 'a block * 'a block
   | Let_conditional_memory of memory_variable * value_variable * 'a block * 'a block
-  | While of memory_variable * 'a block
+  | While of memory_variable * 'a block * 'a block
 [@@deriving eq, ord, show]
 
 and 'a statement =

@@ -50,7 +50,7 @@ and convert_directive =
     Lamia_evaluation_ast.If_result_memory(y)
   | Lamia_ast.Raise(y) ->
     Lamia_evaluation_ast.Raise(y)
-  | Lamia_ast.Try_except(b1,y,b2) ->
+  | Lamia_ast.Try_except(b1,y,b2,_) ->
     Lamia_evaluation_ast.Try_except(convert_block b1,y,convert_block b2)
   | Lamia_ast.Let_conditional_value(x1,x2,b1,b2) ->
     Lamia_evaluation_ast.Let_conditional_value(
@@ -58,7 +58,7 @@ and convert_directive =
   | Lamia_ast.Let_conditional_memory(y,x,b1,b2) ->
     Lamia_evaluation_ast.Let_conditional_memory(
       y,x,convert_block b1,convert_block b2)
-  | Lamia_ast.While(y,b) ->
+  | Lamia_ast.While(y,b,_) ->
     Lamia_evaluation_ast.While(y,convert_block b)
 
 and convert_statement =

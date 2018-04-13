@@ -107,12 +107,14 @@ and pp_directive indent fmt d =
   | Raise(y) ->
     fprintf fmt "raise %a"
       pp_memory_var y
-  | Try_except(body, y, handler) ->
-    fprintf fmt "try {\n%a\n%s} except %a {\n%a\n%s}"
+  | Try_except(body, y, handler, orelse) ->
+    fprintf fmt "try {\n%a\n%s} except %a {\n%a\n%s} else {\n%a\n%s}"
       (pp_block (increase_indent indent)) body
       indent
       pp_memory_var y
       (pp_block (increase_indent indent)) handler
+      indent
+      (pp_block (increase_indent indent)) orelse
       indent
 
   | Let_conditional_value(x1, x2, body, orelse) ->
@@ -131,10 +133,12 @@ and pp_directive indent fmt d =
       indent
       (pp_block (increase_indent indent)) orelse
       indent
-  | While(y, body) ->
-    fprintf fmt "while %a {\n%a\n%s}"
+  | While(y, body, orelse) ->
+    fprintf fmt "while %a {\n%a\n%s} else {\n%a\n%s}"
       pp_memory_var y
       (pp_block (increase_indent indent)) body
+      indent
+      (pp_block (increase_indent indent)) orelse
       indent
 
 and pp_expr indent fmt e =

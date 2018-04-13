@@ -208,7 +208,7 @@ let get_call target =
     emit @@
     compute_test_directives @
     [
-      While(test_loc, Block(while_body @ compute_test));
+      While(test_loc, Block(while_body @ compute_test), Block([]));
     ]
   in
   return tmp_value
