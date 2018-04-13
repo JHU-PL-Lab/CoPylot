@@ -303,15 +303,15 @@ let rec eval_step_directive (d : directive)
   | Raise _ ->
     raise @@ Utils.Invariant_failure
       "Raise directive should've been captured by surrounding block processing"
-  | Try_except(Block ss1,y,Block ss2) ->
+  | Try_except(Block ss1,y,Block ss2, Block ss3) ->
     begin
       match ss1 with
-      | [] -> return []
+      | [] -> return ss3
       | (Statement(Raise y'))::_ ->
         return @@ (Statement(Let_alias_memory(y,y')))::ss2
       | _ ->
         let%bind ss1' = eval_step_statement_list ss1 in
-        return [ Statement(Try_except(Block ss1',y,Block ss2)) ]
+        return [ Statement(Try_except(Block ss1',y,Block ss2,Block ss3)) ]
     end
   | Let_conditional_value(xlet,xcond,bthen,belse) ->
     let%bind v = get_value xcond in
@@ -333,15 +333,15 @@ let rec eval_step_directive (d : directive)
         force_error @@
         Printf.sprintf "Non-boolean %s in conditional" (show_value v)
     end
-  | While(y,Block ss) ->
+  | While(y,Block ss1,Block ss2) ->
     let%bind m = get_memory_address y in
     let%bind v = get_heap_value m in
     begin
       match v with
       | Boolean_value true ->
-        return @@ ss @ [Statement(While(y, Block ss))]
+        return @@ ss1 @ [Statement(While(y, Block ss1, Block ss2))]
       | Boolean_value false ->
-        return []
+        return ss2
       | _ ->
         force_error @@
         Printf.sprintf "Non-boolean %s as while condition" (show_value v)

@@ -238,15 +238,16 @@ and freshen_directive (directive : directive) : directive m =
   | Raise y ->
     let%bind y' = get_memory_variable_freshening y in
     return @@ Raise y'
-  | Try_except(b1,y,b2) ->
-    let%bind b1' = freshen_block b1 in
+  | Try_except(b1,y,b2,b3) ->
+    let%bind b1' = isolate_variable_freshening_scope @@ freshen_block b1 in
+    let%bind b3' = isolate_variable_freshening_scope @@ freshen_block b3 in
     let%bind y',b2' =
       isolate_variable_freshening_scope @@
       let%bind y'' = make_memory_variable_freshening y in
       let%bind b2'' = freshen_block b2 in
       return @@ (y'',b2'')
     in
-    return @@ Try_except(b1',y',b2')
+    return @@ Try_except(b1',y',b2',b3')
   | Let_conditional_value(xlet,xcond,b1,b2) ->
     let%bind xcond' = get_value_variable_freshening xcond in
     let%bind b1' = isolate_variable_freshening_scope @@ freshen_block b1 in
@@ -259,12 +260,15 @@ and freshen_directive (directive : directive) : directive m =
     let%bind b2' = isolate_variable_freshening_scope @@ freshen_block b2 in
     let%bind ylet' = make_memory_variable_freshening ylet in
     return @@ Let_conditional_memory(ylet',xcond',b1',b2')
-  | While(ycond,block) ->
+  | While(ycond,block,block2) ->
     let%bind ycond' = get_memory_variable_freshening ycond in
     let%bind block' =
       isolate_variable_freshening_scope @@ freshen_block block
     in
-    return @@ While(ycond',block')
+    let%bind block2' =
+      isolate_variable_freshening_scope @@ freshen_block block2
+    in
+    return @@ While(ycond',block',block2')
 
 and freshen_statement (statement : statement) : statement m =
   match statement with
