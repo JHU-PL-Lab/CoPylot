@@ -86,15 +86,24 @@ let get_starting_state analysis line =
       else
         let in_subordinate =
           match d with
-          | While(_, Block(body)) ->
-            find_first_valid body
-          | Try_except(Block(body), _, Block(orelse))
+          | While(_, Block(body), Block(orelse))
           | Let_conditional_value(_, _, Block(body), Block(orelse))
           | Let_conditional_memory(_, _, Block(body), Block(orelse)) ->
             begin
               match find_first_valid body with
-              | None -> find_first_valid orelse
               | Some(s) -> Some(s)
+              | None -> find_first_valid orelse
+            end
+          | Try_except(Block(body), _, Block(handler), Block(orelse)) ->
+            begin
+              match find_first_valid body with
+              | Some(s) -> Some(s)
+              | None ->
+                begin
+                  match find_first_valid handler with
+                  | Some(s) -> Some(s)
+                  | None -> find_first_valid orelse
+                end
             end
           | _ -> None
         in

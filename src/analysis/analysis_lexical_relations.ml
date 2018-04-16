@@ -34,16 +34,17 @@ let construct_left_triangle_map (prog : block) =
       let new_map = Stmt_map.add stmt prev_stmt map in
       let recursed_map =
         match d with
-        | Let_expression (_, Function_expression(_, body))
-        | While (_, body) ->
+        | Let_expression (_, Function_expression(_, body)) ->
           add_block new_map body
-
-        | Try_except (body, _, orelse)
+        | While (_, body, orelse)
         | Let_conditional_value (_, _, body, orelse)
         | Let_conditional_memory (_, _, body, orelse) ->
           let body_map = add_block new_map body in
           add_block body_map orelse
-
+        | Try_except (body, _, handlers, orelse) ->
+          let body_map = add_block new_map body in
+          let body_map' = add_block body_map handlers in
+          add_block body_map' orelse
         | _ -> new_map
       in
       recursed_map, Some(stmt)
@@ -65,16 +66,18 @@ let construct_down_triangle_map (prog : block) =
       let add_block = add_block (Some stmt) in
       let recursed_map =
         match d with
-        | Let_expression (_, Function_expression(_, body))
-        | While (_, body) ->
+        | Let_expression (_, Function_expression(_, body)) ->
           add_block new_map body
 
-        | Try_except (body, _, orelse)
+        | While (_, body, orelse)
         | Let_conditional_value (_, _, body, orelse)
         | Let_conditional_memory (_, _, body, orelse) ->
           let body_map = add_block new_map body in
           add_block body_map orelse
-
+        | Try_except (body, _, handlers, orelse) ->
+          let body_map = add_block new_map body in
+          let body_map' = add_block body_map handlers in
+          add_block body_map' orelse
         | _ -> new_map
       in
       recursed_map, prev_stmt
@@ -98,15 +101,18 @@ let construct_double_left_triangle_map (prog : block) =
       let new_map = Stmt_map.add stmt prev_stmt map in
       let recursed_map =
         match d with
-        | Let_expression (_, Function_expression(_, body))
-        | While (_, body) ->
+        | Let_expression (_, Function_expression(_, body)) ->
           add_block new_map body
 
-        | Try_except (body, _, orelse)
+        | While (_, body, orelse)
         | Let_conditional_value (_, _, body, orelse)
         | Let_conditional_memory (_, _, body, orelse) ->
           let body_map = add_block new_map body in
           add_block body_map orelse
+        | Try_except (body, _, handlers, orelse) ->
+          let body_map = add_block new_map body in
+          let body_map' = add_block body_map handlers in
+          add_block body_map' orelse
 
         | _ -> new_map
       in

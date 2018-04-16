@@ -54,14 +54,17 @@ let add_edge relations analysis edge =
     (* While loop *)
     begin
       let%orzero Stmt(s) = v2 in
-      let%orzero Statement(u, While(y, Block(body))) = s in
+      let%orzero Statement(u, While(y, Block(body), Block(orelse))) = s in
       let yvals, new_pds = lookup_memory v2 y analysis.pds in
       update_pds new_pds @@
       let%bind yval = pick_enum yvals in
       if equal_value yval @@ Boolean_value(true) then
         return @@ Edge(v2, Stmt(List.hd body))
       else if equal_value yval @@ Boolean_value(false) then
-        return @@ Edge(v2, Advance(s))
+        if List.is_empty orelse then
+          return @@ Edge(v2, Advance(s))
+        else
+          return @@ Edge(v2, Stmt(List.hd orelse))
       else
         raise @@ Jhupllib.Utils.Invariant_failure ("While loop got non-boolean lamia value at line " ^ string_of_int u)
     end
@@ -132,7 +135,7 @@ let add_edge relations analysis edge =
     (* Try block *)
     begin
       let%orzero Stmt(Statement(_, d)) = v2 in
-      let%orzero Try_except(Block(body), _, _) = d in
+      let%orzero Try_except(Block(body), _, _, _) = d in
       return @@ Edge(v2, Stmt(List.hd body))
     end
     ;
@@ -155,8 +158,15 @@ let add_edge relations analysis edge =
       let%orzero Advance(s) = v2 in
       let%orzero None = Stmt_map.find s relations.left in
       let%orzero Some(block_start) = Stmt_map.find s relations.down in
-      let%orzero Statement(_, While _) = block_start in
-      return @@ Edge(v2, Stmt(block_start))
+      let%orzero Statement(_, While(_, Block(body), Block(orelse))) = block_start in
+      if List.mem s body then
+        return @@ Edge(v2, Stmt(block_start))
+      else if List.mem s orelse then
+        return @@ Edge(v2, Advance(block_start))
+      else
+        (* Lexically impossible, so if this happens it's probably a failure of
+           our triangle map construction *)
+        failwith "Analysis_construct_cfg: Advance (while): Statement not in body or orelse"
     end
     ;
     (* Advance (try) *)
@@ -164,8 +174,14 @@ let add_edge relations analysis edge =
       let%orzero Advance(s) = v2 in
       let%orzero None = Stmt_map.find s relations.left in
       let%orzero Some(block_start) = Stmt_map.find s relations.down in
-      let%orzero Statement(_, Try_except _) = block_start in
-      return @@ Edge(v2, Advance(block_start))
+      let%orzero Statement(_, Try_except (Block(body), _, _, Block(orelse))) = block_start in
+      if List.mem s body then
+        if List.is_empty orelse then
+          return @@ Edge(v2, Advance(block_start))
+        else
+          return @@ Edge(v2, Stmt(List.hd orelse))
+      else
+        return @@ Edge(v2, Advance(block_start))
     end
     ;
     (* Advance (EOF) *)
@@ -231,13 +247,13 @@ let add_edge relations analysis edge =
       let%orzero Some(block_start) = Stmt_map.find s relations.down in
       let Statement(_, d) = block_start in
       match d with
-      | Try_except (Block(body), _, Block(handler)) ->
+      | Try_except (Block(body), _, Block(handler), _) ->
         let%orzero Some(block_first) = Stmt_map.find s relations.double_left in
         if equal_statement block_first (List.hd body) then
           (* We're inside the body of a try_except; move to the handler *)
           return @@ Edge(v2, Stmt(List.hd handler))
         else
-          (* We entered this block from a raise; we're in the exn handler already *)
+          (* We're inside the handler or the else block; continue raising *)
           return @@ Edge(v2, Raise(block_start))
       | _ ->
         return @@ Edge(v2, Raise(block_start))

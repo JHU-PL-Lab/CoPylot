@@ -193,14 +193,14 @@ let per_cfg_edge_function rmr src dst state =
       (* Try/Except top x *)
       begin
         let%orzero Program_state (Stmt (s)) = o1 in
-        let%orzero Statement(_, Try_except (_,_,_)) = s in
+        let%orzero Statement(_, Try_except _) = s in
         let%orzero Program_state (Stmt _) = o0 in
         return ([Pop_dynamic_targeted(Tdp_peek_x None)], Static_terminus(o1))
       end;
       (* Try/Except top y *)
       begin
         let%orzero Program_state (Stmt (s)) = o1 in
-        let%orzero Statement(_, Try_except (_,_,_)) = s in
+        let%orzero Statement(_, Try_except _) = s in
         let%orzero Program_state (Stmt _) = o0 in
         return ([Pop_dynamic_targeted(Tdp_peek_y None)], Static_terminus(o1))
       end;

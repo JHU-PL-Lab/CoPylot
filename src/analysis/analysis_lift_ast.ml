@@ -51,14 +51,14 @@ and lift_directive tbl d =
     Abstract.If_result_memory(lift_memory_var y)
   | Lamia.Raise(y) ->
     Abstract.Raise(lift_memory_var y)
-  | Lamia.Try_except(body, y, handler,_) ->
-    Abstract.Try_except(lift_block tbl body, lift_memory_var y, lift_block tbl handler)
+  | Lamia.Try_except(body, y, handler, orelse) ->
+    Abstract.Try_except(lift_block tbl body, lift_memory_var y, lift_block tbl handler, lift_block tbl orelse)
   | Lamia.Let_conditional_value(x1, x2, body, orelse) ->
     Abstract.Let_conditional_value(lift_value_var x1, lift_value_var x2, lift_block tbl body, lift_block tbl orelse)
   | Lamia.Let_conditional_memory(y, x, body, orelse) ->
     Abstract.Let_conditional_memory(lift_memory_var y, lift_value_var x, lift_block tbl body, lift_block tbl orelse)
-  | Lamia.While(y, body,_) ->
-    Abstract.While(lift_memory_var y, lift_block tbl body)
+  | Lamia.While(y, body, orelse) ->
+    Abstract.While(lift_memory_var y, lift_block tbl body, lift_block tbl orelse)
 
 and lift_value_expression tbl e =
   match e with
