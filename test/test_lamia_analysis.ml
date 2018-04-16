@@ -167,8 +167,10 @@ let if_tests =
 let while_tests =
   [
     gen_lamia_test "while_result_test" "let x = True; let &y = alloc; store &y x; @2:while &y {let x = False; let x1 = 3; @3:store &y x;};@1:let x2 = get &y;;" "x2" [Boolean_value true; Boolean_value false;];
-    gen_lamia_test "while_scope_test1" "let x = True; let &y = alloc; store &y x; let &z = alloc; @2:while &y {let x = False; let x1 = 3; store &z x1; @3:store &y x;};@1:let x2 = get &y;;" "&z" [Integer_value (Int_exact 3)];
-    gen_lamia_test "while_scope_test2" "let x = True; let &y = alloc; store &y x; let &z = alloc; let x1 = 3; @2:while &y {let x = False; store &z x1; @3:store &y x;};@1:let x2 = get &y;;" "&z" [Integer_value (Int_exact 3)];
+    gen_lamia_test "while_no_else_test" "let x = True; let &y = alloc; store &y x; let &z = alloc; @2:while &y {let x = False; let x1 = 3; @3:store &y x; store &z x1;};@1:let x2 = get &y;;" "&z" [Integer_value (Int_exact 3);];
+    gen_lamia_test "while_else_test" "let x = True; let &y = alloc; store &y x; let &z = alloc; @2:while &y {let x = False; let x1 = 3; @3:store &y x; store &z x1;} else {let x2 = 5; store &z x2;};@1:let x2 = get &y;;" "&z" [Integer_value (Int_exact 5);];
+    gen_lamia_test "while_scope_test1" "let x = True; let &y = alloc; store &y x; let &z = alloc; @2:while &y {let x = False; let x1 = 3; store &z x1; @3:store &y x;};@1:let x2 = get &y;;" "&z" [Integer_value (Int_exact 3);];
+    gen_lamia_test "while_scope_test2" "let x = True; let &y = alloc; store &y x; let &z = alloc; let x1 = 3; @2:while &y {let x = False; store &z x1; @3:store &y x;};@1:let x2 = get &y;;" "&z" [Integer_value (Int_exact 3);];
   ]
 ;;
 
@@ -191,6 +193,7 @@ let function_call_tests =
 let try_tests =
   [
     gen_lamia_test "basic_try_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x;} except &z {let x = -1; store &y x;};;" "&y" [Integer_value (Int_exact 1)];
+    gen_lamia_test "basic_try_else_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x;} except &z {let x = -1; store &y x;} else { let x = 0; store &y x;};;" "&y" [Integer_value (Int_exact 0)];
     gen_lamia_test "basic_raise_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x; raise &y; } except &z {let x = -1; store &y x;};;" "&y" [Integer_value (Int_exact (-1))];
     gen_lamia_test "raise_value_test" "let x = 0; let &y = alloc; store &y x; try {let x = 1; store &y x; raise &y; } except &z {let x = -1; store &y x;};;" "&z" [];
   ]
