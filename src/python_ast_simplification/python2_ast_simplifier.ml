@@ -366,8 +366,8 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     in
     binds @ simplify_stmt tryexcept @ simplify_stmt final_assign
 *)
-      (*
-  | Augmented.For (target, seq, body, _, annot) ->
+
+  | Augmented.For (target, seq, body, orelse) ->
     (* For loops are always over some iterable. According to the docs,
        they loop until they are told to stop, or their iterator stops
        returning objects.
@@ -380,69 +380,65 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
        then simplifying the resulting code. Specifically, we turn
 
        for i in seq:
-       <body>
+         <body>
+       else:
+         <else>
 
        into
 
-       next_val = seq.__iter__().next
+       iter_val = seq.__iter__()
        try:
-       while True:
-        i = next_val()
-        <body>
+         while True:
+           i = next_val.__next__()
+           <body>
        except StopIteration:
-       pass
+         <else>
 
     *)
-    let next_val = gen_unique_name annot in
-    let bind_next_val = (* next_val = seq.__iter__().next_val *)
+    let annotate_stmt = Python2_ast_types.annotate s.annot in
+    let annotate = Python2_ast_types.annotate s.annot in
+    let%bind iter_val = fresh_name () in
+    let bind_iter_val = (* iter_val = seq.__iter__() *)
+      annotate_stmt @@
       Augmented.Assign(
-        [Augmented.Name(next_val, annot)],
-        Augmented.Attribute(
-          Augmented.Call(
-            Augmented.Attribute(
+        [annotate @@ Augmented.Name(iter_val)],
+          annotate @@ Augmented.Call(
+            annotate @@ Augmented.Attribute(
               seq,
-              "__iter__",
-              annot
+              "__iter__"
             ),
-            [],
-            annot
-          ),
-          "next",
-          annot
-        ),
-        annot
-      ) in
-    let assign_target = (* i = next_val() *)
+            []))
+    in
+    let assign_target = (* i = iter_val.__next__() *)
+      annotate_stmt @@
       Augmented.Assign(
         [target],
-        Augmented.Call(
-          Augmented.Name(next_val, annot),
-          [],
-          annot
-        ),
-        annot
-      ) in
-    let while_loop = (* while True: i = next_val(); <body> *)
+        annotate @@ Augmented.Call(
+          annotate @@ Augmented.Attribute(
+            annotate @@ Augmented.Name(iter_val),
+            "__next__"
+          ),
+          []))
+    in
+    let while_loop = (* while True: i = next_val.__next__(); <body> *)
+      annotate_stmt @@
       Augmented.While(
-        Augmented.Bool(true, annot),
+        annotate @@ Augmented.Bool(true),
         [assign_target] @ body,
-        [],
-        annot
-      ) in
-    let try_except = (* try: <while>; except StopIteration: pass *)
+        [])
+    in
+    let try_except = (* try: <while>; except StopIteration: <else> *)
+      annotate_stmt @@
       Augmented.TryExcept(
         [while_loop],
         [Augmented.ExceptHandler(
-            Some(Augmented.Builtin(Builtin_StopIteration, annot)),
+            Some(annotate @@ Augmented.Builtin(Builtin_StopIteration)),
             None,
-            [Augmented.Pass(annot)],
-            annot
+            orelse
           )],
-        [],
-        annot
-      ) in
-    map_and_concat simplify_stmt [bind_next_val; try_except]
-*)
+        [])
+    in
+    simplify_stmt_list [bind_iter_val; try_except]
 
   | Augmented.While (test, body, orelse) ->
     let%bind test_result, test_bindings = listen @@ simplify_expr test in
