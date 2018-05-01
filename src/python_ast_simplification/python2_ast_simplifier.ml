@@ -27,7 +27,7 @@ and simplify_stmt_list (stmts : Augmented.annotated_stmt list) : unit m =
 
 and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
   local_annot s.annot @@
-  let annotate : 'a -> 'a annotation = annotate s.annot in
+  let annotate body = annotate s.annot body in
   match s.body with
   | Augmented.FunctionDef (func_name, args, body)->
     let body = add_return body s.annot in
@@ -51,225 +51,203 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
           [Simplified.Return(annotate @@ Simplified.Name(id))]
     end
 
-      (*
-  | Augmented.Assign (targets, value, annot) ->
+  | Augmented.Assign (targets, value) ->
     (* Assignments are very complicated, with different behavior depending
-       on the lvalue.
+       on the form of the target.
 
        targets is a list, which will have multiple entries if we used
        the syntax x = y = ... = 2.
 
        value is the expression we are assigning from. This is only ever
        evaluated once, no matter what we're assigning to. *)
-    let value_bindings, value_name =
-      let bindings, result = simplify_expr value in
-      (* Don't generate an intermediate variable if we're only assigning to one
-         thing. Helps cut down the size of the generated code *)
-      if List.length targets = 1 then
-        bindings, result
-      else
-        let value_id = gen_unique_name annot in
-        bindings @ [Simplified.Assign(value_id, result, annot)],
-        Simplified.Name(value_id, annot)
+
+    let%bind value_id = simplify_expr value in
+    let value_name = annotate @@ Simplified.Name(value_id) in
+
+    let simplify_assignment (target : Augmented.annotated_expr) : unit m =
+      match target.body with
+      | Augmented.Name (id) ->
+        emit [Simplified.Assign(id, value_name)]
+
+      | Augmented.Attribute (obj, id) ->
+        let%bind obj_result = simplify_expr obj in
+        emit
+          [
+            Simplified.Expr(
+              annotate @@ Simplified.Call(
+                annotate @@ Simplified.Attribute(
+                  annotate @@ Simplified.Name(obj_result),
+                  "__setattr__"),
+                [
+                  annotate @@ Simplified.Str(id);
+                  value_name;
+                ]))
+          ]
+
+      | Augmented.Subscript (lst, slice) ->
+        let%bind lst_result = simplify_expr lst in
+        let%bind slice_result = simplify_slice slice in
+        emit
+          [
+            Simplified.Expr(
+              annotate @@ Simplified.Call(
+                annotate @@ Simplified.Attribute(
+                  annotate @@ Simplified.Name(lst_result),
+                  "__setitem__"),
+                [
+                  annotate @@ Simplified.Name(slice_result);
+                  value_name;
+                ]))
+          ]
+
+      (* To assign to a list or tuple, we iterate through value
+         (which must therefore be iterable), and assign the elements
+         of our lhs in order. If the number of elements doesn't match,
+         we raise a ValueError and do not assign any of the values.
+
+         We turn "i,j,k = list" into
+
+         iter_val = list.__iter__()
+         try:
+           tmp_i = iter_val.__next__()
+           tmp_j = iter_val.__next__()
+           tmp_k = iter_val.__next__()
+
+           try: # Make sure there aren't too many variables
+             iter_val().__next__ # Should raise a StopIteration exception
+             raise ValueError, "too many elements to unpack"
+           except StopIteration:
+             pass
+
+         except StopIteration:
+           raise ValueError, "Too few elements to unpack"
+
+         # We have the right number of elements, so start assigning
+         # This potentially involves recursion
+         i = tmp_i
+         j = tmp_j
+         k = tmp_k
+      *)
+      | Augmented.List (elts)
+      | Augmented.Tuple (elts) ->
+        let%bind iter_val = fresh_name () in
+        let%bind assign_iter_val = (* iter_val = seq.__iter__().next *)
+          simplify_stmt @@
+          annotate @@ Augmented.Assign(
+            [annotate @@ Augmented.Name(iter_val)],
+            annotate @@ Augmented.Call(
+              annotate @@ Augmented.Attribute(
+                annotate @@ Augmented.Name(value_id),
+                "__iter__"),
+              []))
+        in
+        (* list of the names tmp_i, tmp_j, etc *)
+        let%bind tmp_names =
+          sequence @@ List.map (fun _ -> fresh_name ()) elts
+        in
+        let tmp_assignments =
+          List.map
+            (fun tmp_name ->
+               annotate @@ Augmented.Assign( (* tmp_i = iter_val() *)
+                 [annotate @@ Augmented.Name(tmp_name)],
+                 annotate @@ Augmented.Call(
+                   annotate @@ Augmented.Name(iter_val),
+                   []))
+            )
+            tmp_names
+        in
+
+        let%bind exn_name = fresh_name () in
+        let subordinate_try_except =
+          annotate @@ Augmented.TryExcept(
+            [
+              (* Should raise StopIteration *)
+              annotate @@ Augmented.Expr(
+                annotate @@ Augmented.Call(
+                  annotate @@ Augmented.Attribute(
+                    annotate @@ Augmented.Name(value_id),
+                    "__iter__"),
+                  []))
+              ;
+
+              annotate @@ Augmented.Raise(
+                Some(
+                  annotate @@ Augmented.Call(
+                    annotate @@ Augmented.Builtin(Builtin_ValueError),
+                    [annotate @@ Augmented.Str("too many values to unpack")]
+                  ))
+              )
+              ;
+            ],
+            [
+              Augmented.ExceptHandler(
+                Some(annotate @@ Augmented.Builtin(Builtin_StopIteration)),
+                None,
+                [ annotate @@ Augmented.Pass ])
+            ],
+            [])
+        in
+
+        let overall_try_except =
+          annotate @@ Augmented.TryExcept(
+            tmp_assignments @ [subordinate_try_except],
+            [
+              Augmented.ExceptHandler(
+                Some(annotate @@ Augmented.Builtin(Builtin_StopIteration)),
+                None,
+                [
+                  annotate @@ Augmented.Raise(
+                    Some(annotate @@ Augmented.Call(
+                        annotate @@ Augmented.Builtin(Builtin_ValueError),
+                        [annotate @@ Augmented.Str(
+                            (* TODO: In Python this has the actual number of
+                               elts that it successfully unpacked *)
+                            "too few values to unpack")])));
+                ])
+            ],
+            [])
+        in
+        let%bind _ = simplify_stmt overall_try_except in
+        (* Now we just have to assign the values. Since the values
+           might still be complex (e.g. tuples), we have to do this
+           recursively. *)
+        let recursive_assignments =
+          List.map2
+            (fun
+              (tuple_elt : Augmented.annotated_expr)
+              (tmp_name : identifier) ->
+              annotate @@ Augmented.Assign(
+                [tuple_elt],
+                annotate @@ Augmented.Name(tmp_name))
+            )
+            elts tmp_names
+        in
+        simplify_stmt_list recursive_assignments
+
+      | Augmented.BoolOp _
+      | Augmented.BinOp _
+      | Augmented.UnaryOp _
+        -> raise @@ Invalid_assignment "can't assign to operator"
+      | Augmented.IfExp _
+        -> raise @@ Invalid_assignment "can't assign to conditional expression"
+      | Augmented.Compare _
+        -> raise @@ Invalid_assignment "can't assign to comparison"
+      | Augmented.Call _
+        -> raise @@ Invalid_assignment "can't assign to function call"
+      | Augmented.Num _
+      | Augmented.Str _
+      | Augmented.Bool _
+        -> raise @@ Invalid_assignment "can't assign to literal"
+      | Augmented.NoneExpr
+        -> raise @@ Invalid_assignment "cannot assign to None"
+      | Augmented.Builtin _
+        -> raise @@ Invalid_assignment "Can't assign to builtin. How did you even do that?"
+        (* End of simplify_assignment *)
     in
 
-    let simplify_assignment =
-      (fun e ->
-         match e with
-         | Augmented.Name (id, _) ->
-           [Simplified.Assign(id,
-                              value_name,
-                              annot)]
-
-         | Augmented.Attribute (obj, id, _) ->
-           let obj_bindings, obj_result = simplify_expr obj in
-           obj_bindings @
-           [Simplified.Expr(
-               Simplified.Call(
-                 Simplified.Attribute(
-                   obj_result,
-                   "__setattr__",
-                   annot),
-                 [
-                   Simplified.Str(id, annot);
-                   value_name;
-                 ],
-                 annot),
-               annot)]
-
-         | Augmented.Subscript (lst, slice, _) ->
-           let lst_bindings, lst_result = simplify_expr lst in
-           let slice_bindings, slice_result = simplify_slice ctx slice annot in
-           lst_bindings @ slice_bindings @
-           [Simplified.Expr(
-               Simplified.Call(
-                 Simplified.Attribute(
-                   lst_result,
-                   "__setitem__",
-                   annot),
-                 [
-                   slice_result;
-                   value_name;
-                 ],
-                 annot),
-               annot)]
-
-         (* To assign to a list or tuple, we iterate through value
-            (which must therefore be iterable), and assign the elements
-            of our lhs in order. If the number of elements doesn't match,
-            we raise a ValueError and do not assign any of the values.
-
-            We turn "i,j,k = list" into
-
-            next_val = list.__iter__().next
-            try:
-              tmp_i = next_val()
-              tmp_j = next_val()
-              tmp_k = next_val()
-
-              try: # Make sure there aren't too many variables
-                next_val() # Should raise a StopIteration exception
-                raise ValueError, "too many elements to unpack"
-              except StopIteration:
-                pass
-
-            except StopIteration:
-              raise ValueError, "Too few elements to unpack"
-
-            # We have the right number of elements, so start assigning
-            # This potentially involves recursion
-            i = tmp_i
-            j = tmp_j
-            k = tmp_k
-         *)
-         | Augmented.List (elts, _)
-         | Augmented.Tuple (elts, _) ->
-           let next_val = gen_unique_name annot in
-           let bind_next_val = (* next_val = seq.__iter__().next *)
-             Simplified.Assign(
-               next_val,
-               Simplified.Attribute(
-                 Simplified.Call(
-                   Simplified.Attribute(
-                     value_name,
-                     "__iter__",
-                     annot),
-                   [],
-                   annot),
-                 "next",
-                 annot),
-               annot) in
-           let tmp_bindings =
-             List.fold_left
-               (fun
-                 (prev : identifier list * 'a Augmented.stmt list)
-                 (_ : 'a Augmented.expr) ->
-                 let tmp_name = gen_unique_name annot in
-                 let next_assignment =
-                   [
-                     Augmented.Assign( (* tmp_i = next_val() *)
-                       [Augmented.Name(tmp_name, annot)],
-                       Augmented.Call(Augmented.Name(next_val, annot),
-                                     [],
-                                     annot),
-                       annot);
-                   ]
-                 in
-                 (fst prev) @ [tmp_name], (snd prev) @ next_assignment)
-               ([], []) elts in
-           let subordinate_try_except =
-             Augmented.TryExcept(
-               [
-                 Augmented.Expr(
-                   Augmented.Call(
-                     Augmented.Name(next_val, annot),
-                     [],
-                     annot),
-                   annot);
-
-                 Augmented.Raise(
-                   Some(Augmented.Call(
-                       Augmented.Builtin(Builtin_ValueError, annot),
-                       [Augmented.Str(
-                           "too many values to unpack",
-                           annot)],
-                       annot)),
-                   annot);
-               ],
-
-               [Augmented.ExceptHandler(
-                   Some(Augmented.Builtin(Builtin_StopIteration, annot)),
-                   None,
-                   [ Augmented.Pass(annot) ],
-                   annot)],
-               [],
-               annot) in
-
-           let overall_try_except =
-             Augmented.TryExcept(
-               (snd tmp_bindings) @ [subordinate_try_except],
-               [Augmented.ExceptHandler(
-                   Some(Augmented.Builtin(Builtin_StopIteration, annot)),
-                   None,
-                   [
-                     Augmented.Raise(
-                       Some(Augmented.Call(
-                           Augmented.Builtin(Builtin_ValueError, annot),
-                           [Augmented.Str(
-                               (* TODO: In Python this has the actual number of
-                                  elts that it successfully unpacked *)
-                               "too few values to unpack",
-                               annot)],
-                           annot)),
-                       annot);
-                   ],
-                   annot)],
-               [],
-               annot) in
-           let try_bindings = simplify_stmt overall_try_except in
-           let verification = bind_next_val::try_bindings in
-           (* Now we just have to assign the values. Since the values
-              might still be complex (e.g. tuples), we have to do this
-              recursively. *)
-           let assignment_list =
-             List.map2
-               (fun
-                 (tuple_elt : 'a Augmented.expr)
-                 (tmp_name : identifier) ->
-                 Augmented.Assign(
-                   [tuple_elt],
-                   Augmented.Name(tmp_name, annot),
-                   annot)
-               )
-               elts (fst tmp_bindings)
-           in
-           verification @
-           map_and_concat simplify_stmt assignment_list
-
-         | Augmented.BoolOp _
-         | Augmented.BinOp _
-         | Augmented.UnaryOp _
-           -> raise @@ Invalid_assignment "can't assign to operator"
-         | Augmented.IfExp _
-           -> raise @@ Invalid_assignment "can't assign to conditional expression"
-         | Augmented.Compare _
-           -> raise @@ Invalid_assignment "can't assign to comparison"
-         | Augmented.Call _
-           -> raise @@ Invalid_assignment "can't assign to function call"
-         | Augmented.Num _
-         | Augmented.Str _
-         | Augmented.Bool _
-           -> raise @@ Invalid_assignment "can't assign to literal"
-         | Augmented.NoneExpr _
-           -> raise @@ Invalid_assignment "cannot assign to None"
-         | Augmented.Builtin _
-           -> raise @@ Invalid_assignment "Can't assign to builtin. How did you even do that?"
-
-      )
-      (* End of simplify_assignment *)
-    in
-    value_bindings @ (map_and_concat simplify_assignment targets)
-
+    let%bind _ = sequence @@ List.map simplify_assignment targets in
+    empty
+(*
   | Augmented.AugAssign (target, op, value, annot) ->
     (* a += b "simplifies" to
        tmp1 = a
@@ -311,8 +289,8 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
             Simplified.Assign (slice_name, slice_result, annot);
           ],
           Augmented.Subscript(Augmented.Name(tmp1, annot),
-                             Augmented.Index(Augmented.Name(tmp2, annot)),
-                             annot)
+                              Augmented.Index(Augmented.Name(tmp2, annot)),
+                              annot)
 
         | Augmented.List _
         | Augmented.Tuple _
@@ -360,12 +338,12 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     in
     let final_assign =
       Augmented.Assign([newtarget],
-                      Augmented.Call(Augmented.Name(tmp2, annot),
-                                    [value], annot),
-                      annot)
+                       Augmented.Call(Augmented.Name(tmp2, annot),
+                                      [value], annot),
+                       annot)
     in
     binds @ simplify_stmt tryexcept @ simplify_stmt final_assign
-*)
+                                      *)
 
   | Augmented.For (target, seq, body, orelse) ->
     (* For loops are always over some iterable. According to the docs,
@@ -395,22 +373,20 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
          <else>
 
     *)
-    let annotate_stmt = Python2_ast_types.annotate s.annot in
-    let annotate = Python2_ast_types.annotate s.annot in
     let%bind iter_val = fresh_name () in
     let bind_iter_val = (* iter_val = seq.__iter__() *)
-      annotate_stmt @@
+      annotate @@
       Augmented.Assign(
         [annotate @@ Augmented.Name(iter_val)],
-          annotate @@ Augmented.Call(
-            annotate @@ Augmented.Attribute(
-              seq,
-              "__iter__"
-            ),
-            []))
+        annotate @@ Augmented.Call(
+          annotate @@ Augmented.Attribute(
+            seq,
+            "__iter__"
+          ),
+          []))
     in
     let assign_target = (* i = iter_val.__next__() *)
-      annotate_stmt @@
+      annotate @@
       Augmented.Assign(
         [target],
         annotate @@ Augmented.Call(
@@ -421,14 +397,14 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
           []))
     in
     let while_loop = (* while True: i = next_val.__next__(); <body> *)
-      annotate_stmt @@
+      annotate @@
       Augmented.While(
         annotate @@ Augmented.Bool(true),
         [assign_target] @ body,
         [])
     in
     let try_except = (* try: <while>; except StopIteration: <else> *)
-      annotate_stmt @@
+      annotate @@
       Augmented.TryExcept(
         [while_loop],
         [Augmented.ExceptHandler(
@@ -460,6 +436,7 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     [
       Simplified.While(test_name, simplified_body @ full_test_bindings, simplified_orelse)
     ]
+
   | Augmented.If (test, body, orelse) ->
     let%bind test_result = simplify_expr test in
     let%bind _, simplified_body = listen @@ simplify_stmt_list body in
@@ -515,7 +492,7 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
    variable that was bound *)
 and simplify_expr (e : Augmented.annotated_expr) : identifier m =
   local_annot e.annot @@
-  let annotate = annotate e.annot in
+  let annotate body = annotate e.annot body in
   ignore @@ annotate; failwith "NYI"
     (*
   match e with
@@ -757,16 +734,15 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
   | Augmented.Builtin (b, annot) ->
     [],
     Simplified.Builtin(b, annot)
-
+*)
 (* Turn a slice operator into a call to the slice() function, with
    the same arguments. E.g. 1:2:3 becomes slice(1,2,3), and
    1:2 becomes slice (1,2,None) *)
-and simplify_slice ctx
-    (s : 'a Augmented.slice)
-    annot
-  : 'a Simplified.stmt list * 'a Simplified.expr =
-  (* Turn a "None" option into the python "None" object, and turn a
-     "Some" option into the simplified version of its contents *)
+and simplify_slice  (s : Augmented.slice) : identifier m =
+  ignore s; failwith "NYI"
+(* Turn a "None" option into the python "None" object, and turn a
+   "Some" option into the simplified version of its contents *)
+  (*
   let exp_opt_to_slice_arg e =
     match e with
     | None ->
@@ -793,7 +769,8 @@ and simplify_slice ctx
     )
   | Augmented.Index (value) ->
     simplify_expr ctx value
-
+*)
+(*
 and simplify_operator o =
   match o with
   | Augmented.Add  ->  "__add__"
