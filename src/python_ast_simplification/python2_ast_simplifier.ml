@@ -128,10 +128,10 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
          j = tmp_j
          k = tmp_k
       *)
-      | Augmented.List (elts)
-      | Augmented.Tuple (elts) ->
+      | Augmented.List targets
+      | Augmented.Tuple targets ->
         let%bind iter_val = fresh_name () in
-        let%bind assign_iter_val = (* iter_val = seq.__iter__().next *)
+        let%bind _ = (* iter_val = seq.__iter__().next *)
           simplify_stmt @@
           annotate @@ Augmented.Assign(
             [annotate @@ Augmented.Name(iter_val)],
@@ -143,7 +143,7 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
         in
         (* list of the names tmp_i, tmp_j, etc *)
         let%bind tmp_names =
-          sequence @@ List.map (fun _ -> fresh_name ()) elts
+          sequence @@ List.map (fun _ -> fresh_name ()) targets
         in
         let tmp_assignments =
           List.map
@@ -151,13 +151,14 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
                annotate @@ Augmented.Assign( (* tmp_i = iter_val() *)
                  [annotate @@ Augmented.Name(tmp_name)],
                  annotate @@ Augmented.Call(
-                   annotate @@ Augmented.Name(iter_val),
+                   annotate @@ Augmented.Attribute(
+                     annotate @@ Augmented.Name(iter_val),
+                     "__next__"),
                    []))
             )
             tmp_names
         in
 
-        let%bind exn_name = fresh_name () in
         let subordinate_try_except =
           annotate @@ Augmented.TryExcept(
             [
@@ -165,11 +166,10 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
               annotate @@ Augmented.Expr(
                 annotate @@ Augmented.Call(
                   annotate @@ Augmented.Attribute(
-                    annotate @@ Augmented.Name(value_id),
-                    "__iter__"),
+                    annotate @@ Augmented.Name(iter_val),
+                    "__next__"),
                   []))
               ;
-
               annotate @@ Augmented.Raise(
                 Some(
                   annotate @@ Augmented.Call(
@@ -214,13 +214,13 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
         let recursive_assignments =
           List.map2
             (fun
-              (tuple_elt : Augmented.annotated_expr)
+              (target : Augmented.annotated_expr)
               (tmp_name : identifier) ->
               annotate @@ Augmented.Assign(
-                [tuple_elt],
+                [target],
                 annotate @@ Augmented.Name(tmp_name))
             )
-            elts tmp_names
+            targets tmp_names
         in
         simplify_stmt_list recursive_assignments
 
