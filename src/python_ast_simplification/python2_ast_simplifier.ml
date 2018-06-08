@@ -477,10 +477,10 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     let%bind _ = simplify_expr e in
     return ()
 
-  | Augmented.Pass->
+  | Augmented.Pass ->
     emit [Simplified.Pass]
 
-  | Augmented.Break->
+  | Augmented.Break ->
     emit [Simplified.Break]
 
   | Augmented.Continue ->
@@ -493,9 +493,8 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
 and simplify_expr (e : Augmented.annotated_expr) : identifier m =
   local_annot e.annot @@
   let annotate body = annotate e.annot body in
-  ignore @@ annotate; failwith "NYI"
-    (*
-  match e with
+  match e.body with
+
   (* BoolOps are a tricky case because of short-circuiting. We need to
      make sure that when we evaluate "a and False and b", b is never
      evaluated, etc.
@@ -510,43 +509,32 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
      To avoid duplicate code, we construct a concrete IfExp to represent
      the above code, then recursively simplify that.
   *)
-  | Augmented.BoolOp (op, operands, annot) ->
+  | Augmented.BoolOp (op, operands) ->
     begin
       match operands with
       | [] -> failwith "No arguments to BoolOp"
       | hd::[] -> simplify_expr hd
       | hd::tl ->
-        let test_bindings, test_result = simplify_expr hd in
-        let test_name = gen_unique_name annot in
-        let test_bindings = test_bindings @ [
-            Simplified.Assign(test_name, test_result, annot)
-          ]
-        in
-
-        let if_exp =
+        let%bind test_result = simplify_expr hd in
+        let if_exp = annotate @@
           begin
             match op with
             | Augmented.And ->
               Augmented.IfExp(
-                Augmented.Name(test_name, annot),
-                Augmented.BoolOp (op, tl, annot),
-                Augmented.Name(test_name, annot),
-                annot)
+                annotate @@ Augmented.Name(test_result),
+                annotate @@ Augmented.BoolOp (op, tl),
+                annotate @@ Augmented.Name(test_result))
             | Augmented.Or ->
               Augmented.IfExp(
-                Augmented.Name(test_name, annot),
-                Augmented.Name(test_name, annot),
-                Augmented.BoolOp (op, tl, annot),
-                annot)
+                annotate @@ Augmented.Name(test_result),
+                annotate @@ Augmented.Name(test_result),
+                annotate @@ Augmented.BoolOp (op, tl))
           end
         in
-        let bindings, result =
-          simplify_expr if_exp
-        in
-        test_bindings @ bindings, result
+        simplify_expr if_exp
 
     end
-
+      (*
   | Augmented.BinOp (left, op, right, annot) ->
     let left_bindings, left_result = simplify_expr left in
     let right_bindings, right_result = simplify_expr right in
@@ -558,7 +546,6 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
         annot),
       [right_result],
       annot)
-
   | Augmented.UnaryOp (op, operand, annot) ->
     let op_bindings, op_result = simplify_expr operand in
     op_bindings,
@@ -735,6 +722,8 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
     [],
     Simplified.Builtin(b, annot)
 *)
+  | _ -> failwith "NYI"
+
 (* Turn a slice operator into a call to the slice() function, with
    the same arguments. E.g. 1:2:3 becomes slice(1,2,3), and
    1:2 becomes slice (1,2,None) *)
