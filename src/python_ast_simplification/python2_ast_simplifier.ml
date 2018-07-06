@@ -1,7 +1,6 @@
 open Batteries;;
 (* open Jhupllib;; *)
 open Python2_ast_types;;
-open Unique_name_ctx;;
 module Augmented = Python2_augmented_ast;;
 module Simplified = Python2_simplified_ast;;
 open Python2_simplification_utils;;
@@ -14,7 +13,7 @@ let map_and_concat (func : 'a -> 'b list) (lst : 'a list) =
   List.concat (List.map func lst)
 ;;
 
-let rec simplify_modl (ctx : name_context) (m : Augmented.annotated_modl)
+let rec simplify_modl (ctx : Unique_name_ctx.name_context) (m : Augmented.annotated_modl)
   : Simplified.annotated_modl =
   let Augmented.Module(body) = m.body in
   let _, simplified_body = run ctx m.annot @@ simplify_stmt_list body in
@@ -22,8 +21,8 @@ let rec simplify_modl (ctx : name_context) (m : Augmented.annotated_modl)
   Simplified.Module(simplified_body)
 
 and simplify_stmt_list (stmts : Augmented.annotated_stmt list) : unit m =
-  let accumulate m s = bind m (fun () -> simplify_stmt s) in
-  List.fold_left accumulate empty stmts
+  let%bind _ = sequence @@ List.map simplify_stmt stmts in
+  return ()
 
 and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
   local_annot s.annot @@
@@ -41,14 +40,16 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     begin
       match value with
       | None ->
+        let%bind id = fresh_name () in
         emit
           [
-            Simplified.Return(annotate @@ Simplified.Builtin(Builtin_None))
+            Simplified.Assign(id, annotate @@ Simplified.Builtin(Builtin_None));
+            Simplified.Return(id)
           ]
       | Some(e) ->
         let%bind id = simplify_expr e in
         emit
-          [Simplified.Return(annotate @@ Simplified.Name(id))]
+          [Simplified.Return(id)]
     end
 
   | Augmented.Assign (targets, value) ->
@@ -71,34 +72,28 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
 
       | Augmented.Attribute (obj, id) ->
         let%bind obj_result = simplify_expr obj in
-        emit
-          [
-            Simplified.Expr(
-              annotate @@ Simplified.Call(
-                annotate @@ Simplified.Attribute(
-                  annotate @@ Simplified.Name(obj_result),
-                  "__setattr__"),
-                [
-                  annotate @@ Simplified.Str(id);
-                  value_name;
-                ]))
-          ]
+        let%bind attr_result = gen_assignment @@ annotate @@
+          Simplified.Attribute(
+            obj_result,
+            "__setattr__")
+        in
+        let%bind _ = gen_assignment @@ annotate @@
+          Simplified.Call(attr_result, [id; value_id])
+        in
+        return ()
 
       | Augmented.Subscript (lst, slice) ->
         let%bind lst_result = simplify_expr lst in
         let%bind slice_result = simplify_slice slice in
-        emit
-          [
-            Simplified.Expr(
-              annotate @@ Simplified.Call(
-                annotate @@ Simplified.Attribute(
-                  annotate @@ Simplified.Name(lst_result),
-                  "__setitem__"),
-                [
-                  annotate @@ Simplified.Name(slice_result);
-                  value_name;
-                ]))
-          ]
+        let%bind attr_result = gen_assignment @@ annotate @@
+          Simplified.Attribute(
+            lst_result,
+            "__setitem__")
+        in
+        let%bind _ = gen_assignment @@ annotate @@
+          Simplified.Call(attr_result, [slice_result; value_id])
+        in
+        return ()
 
       (* To assign to a list or tuple, we iterate through value
          (which must therefore be iterable), and assign the elements
@@ -419,12 +414,12 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
   | Augmented.While (test, body, orelse) ->
     let%bind test_result, test_bindings = listen @@ simplify_expr test in
     let%bind test_name = fresh_name () in
-    let%bind _, assignment = listen @@ emit
+    let%bind _, assignment = listen @@
+      let%bind bool_name = gen_assignment @@ annotate @@ Simplified.Builtin(Builtin_bool) in
+      emit
         [
           Simplified.Assign(test_name,
-                            annotate @@ Simplified.Call(
-                              annotate @@ Simplified.Builtin(Builtin_bool),
-                              [annotate @@ Simplified.Name(test_result)]))
+                            annotate @@ Simplified.Call(bool_name, [test_result]))
         ]
     in
     let full_test_bindings = test_bindings @ assignment in
@@ -441,12 +436,15 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     let%bind test_result = simplify_expr test in
     let%bind _, simplified_body = listen @@ simplify_stmt_list body in
     let%bind _, simplified_orelse = listen @@ simplify_stmt_list orelse in
+    let%bind test_name = fresh_name () in
+    let%bind bool_name = gen_assignment @@ annotate @@ Simplified.Builtin(Builtin_bool) in
     emit
       [
+        Simplified.Assign(test_name,
+                          annotate @@ Simplified.Call(bool_name, [test_result]));
+
         Simplified.If(
-          annotate @@ Simplified.Call(
-            annotate @@ Simplified.Builtin(Builtin_bool),
-            [annotate @@ Simplified.Name(test_result)]),
+          test_name,
           simplified_body,
           simplified_orelse)
       ]
@@ -459,7 +457,7 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     in
     emit
       [
-        Simplified.Raise(annotate @@ Simplified.Name(typ_result))
+        Simplified.Raise(typ_result)
       ]
 
   | Augmented.TryExcept (body, handlers, orelse) ->
@@ -493,11 +491,6 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
 and simplify_expr (e : Augmented.annotated_expr) : identifier m =
   local_annot e.annot @@
   let annotate body = annotate e.annot body in
-  let gen_assignment e =
-    let%bind id = fresh_name () in
-    let%bind _ = emit [Simplified.Assign(id, e)] in
-    return id
-  in
   match e.body with
 
   (* BoolOps are a tricky case because of short-circuiting. We need to
@@ -554,26 +547,29 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
 *)
   | Augmented.UnaryOp (op, operand) ->
     let%bind op_result = simplify_expr operand in
-    gen_assignment @@ annotate @@
     begin
       match op with
       | Augmented.Not ->
-        Simplified.UnaryOp(Simplified.Not,
-                           annotate @@ Simplified.Call(
-                             annotate @@ Simplified.Builtin(Builtin_bool),
-                             [annotate @@ Simplified.Name(op_result)]))
+        let%bind bool_name = simplify_expr @@
+          annotate @@ Augmented.Call(annotate @@ Augmented.Builtin(Builtin_bool),
+                                     [annotate @@ Augmented.Name(op_result)])
+        in
+        gen_assignment @@ annotate @@
+        Simplified.UnaryOp(Simplified.Not, bool_name)
+
       | Augmented.UAdd ->
-        Simplified.Call(
-          annotate @@ Simplified.Attribute(
-            annotate @@ Simplified.Name(op_result),
-            "__pos__"),
-          [])
+        let%bind attr_name = gen_assignment @@ annotate @@
+          Simplified.Attribute(op_result, "__pos__")
+        in
+        gen_assignment @@ annotate @@
+        Simplified.Call(attr_name, [])
+
       | Augmented.USub ->
-        Simplified.Call(
-          annotate @@ Simplified.Attribute(
-            annotate @@ Simplified.Name(op_result),
-            "__neg__"),
-          [])
+        let%bind attr_name = gen_assignment @@ annotate @@
+          Simplified.Attribute(op_result, "__neg__")
+        in
+        gen_assignment @@ annotate @@
+        Simplified.Call(attr_name, [])
     end
 
   | Augmented.IfExp (test, body, orelse) ->
@@ -582,7 +578,7 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
        beforehand. But in order to be on the right-hand-side of an assignment,
        the expression must be no more complicated than a compound_expr. In
        particular, the expression can't be an assignment.
-
+simplification
        So to evaluate "x = y if test else z", we first create an if _statement_
        and then use the results of that.
        if test:
@@ -595,11 +591,13 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
     let%bind body_result, body_bindings = listen @@ simplify_expr body in
     let%bind orelse_result, orelse_bindings = listen @@ simplify_expr orelse in
     let%bind result_name = fresh_name () in
+    let%bind bool_name = gen_assignment @@ annotate @@ Simplified.Builtin(Builtin_bool) in
+    let%bind test_name = gen_assignment @@ annotate @@
+      Simplified.Call(bool_name, [test_result])
+    in
     let%bind _ =  emit
         [
-          Simplified.If(annotate @@
-                        Simplified.Call(annotate @@ Simplified.Builtin(Builtin_bool),
-                                        [annotate @@ Simplified.Name(test_result)]),
+          Simplified.If(test_name,
                         body_bindings @
                         [annotate @@ Simplified.Assign(result_name,
                                                        annotate @@ Simplified.Name(body_result))],
@@ -664,8 +662,7 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
     let%bind func_result = simplify_expr func in
     let%bind arg_results = simplify_list simplify_expr args in
     gen_assignment @@ annotate @@
-    Simplified.Call (annotate @@ Simplified.Name(func_result),
-                     List.map (fun x -> annotate @@ Simplified.Name(x)) arg_results)
+    Simplified.Call (func_result, arg_results)
       (*
   | Augmented.Num (n, annot) ->
     [],
@@ -719,13 +716,13 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
     [],
     Simplified.Builtin(b, annot)
 *)
-| _ -> failwith "NYI"
+  | _ -> failwith "NYI"
 
 (* Turn a slice operator into a call to the slice() function, with
    the same arguments. E.g. 1:2:3 becomes slice(1,2,3), and
    1:2 becomes slice (1,2,None) *)
 and simplify_slice  (s : Augmented.slice) : identifier m =
-                                            ignore s; failwith "NYI"
+  ignore s; failwith "NYI"
 (* Turn a "None" option into the python "None" object, and turn a
    "Some" option into the simplified version of its contents *)
   (*
@@ -790,7 +787,7 @@ and simplify_cmpop o =
 *)
 
 and simplify_excepthandlers exn_id handlers : unit m =
-                                              ignore exn_id; ignore handlers; failwith "NYI"
+  ignore exn_id; ignore handlers; failwith "NYI"
     (*
   match handlers with
   | [] ->
