@@ -103,6 +103,7 @@ Library "conversion_monads"
   Modules:
     Generic_conversion_monad,
     Python_simplification_monad,
+    Python_normalization_monad,
     Lamia_conversion_monad,
     Lybie_conversion_monad
   BuildDepends:
