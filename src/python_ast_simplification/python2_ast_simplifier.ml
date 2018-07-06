@@ -40,11 +40,13 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
     begin
       match value with
       | None ->
-        let%bind id = fresh_name () in
+        let%bind value_name =
+          gen_assignment @@ annotate @@
+          Simplified.Builtin(Builtin_None)
+        in
         emit
           [
-            Simplified.Assign(id, annotate @@ Simplified.Builtin(Builtin_None));
-            Simplified.Return(id)
+            Simplified.Return(value_name)
           ]
       | Some(e) ->
         let%bind id = simplify_expr e in
@@ -578,7 +580,7 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
        beforehand. But in order to be on the right-hand-side of an assignment,
        the expression must be no more complicated than a compound_expr. In
        particular, the expression can't be an assignment.
-simplification
+       simplification
        So to evaluate "x = y if test else z", we first create an if _statement_
        and then use the results of that.
        if test:
