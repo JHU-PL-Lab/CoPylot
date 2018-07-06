@@ -665,59 +665,57 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
     let%bind arg_results = simplify_list simplify_expr args in
     gen_assignment @@ annotate @@
     Simplified.Call (func_result, arg_results)
-      (*
-  | Augmented.Num (n, annot) ->
-    [],
-    Simplified.Num(n, annot)
 
-  | Augmented.Str (s, annot) ->
-    [],
-    Simplified.Str(s, annot)
+  | Augmented.Num (n) ->
+    gen_assignment @@ annotate @@
+    Simplified.Num(n)
 
-  | Augmented.Bool (b, annot) ->
-    [],
-    Simplified.Bool(b, annot)
+  | Augmented.Str (s) ->
+    gen_assignment @@ annotate @@
+    Simplified.Str(s)
 
-  | Augmented.Attribute (obj, attr, annot) ->
-    let obj_bindings, obj_result = simplify_expr obj in
-    obj_bindings,
-    Simplified.Attribute (obj_result, attr, annot)
+  | Augmented.Bool (b) ->
+    gen_assignment @@ annotate @@
+    Simplified.Bool(b)
+
+  | Augmented.Attribute (obj, attr) ->
+    let%bind obj_result = simplify_expr obj in
+    gen_assignment @@ annotate @@
+    Simplified.Attribute (obj_result, attr)
 
   (* Turn subscripts into calls to __getitem__() *)
-  | Augmented.Subscript (value, slice, annot) ->
-    let value_bindings, value_result = simplify_expr value in
-    let slice_bindings, slice_result = simplify_slice ctx slice annot in
-    value_bindings @ slice_bindings,
-    Simplified.Call(
+  | Augmented.Subscript (value, slice) ->
+    let%bind value_result = simplify_expr value in
+    let%bind slice_result = simplify_slice slice in
+    let%bind attr_name =
+      gen_assignment @@ annotate @@
       Simplified.Attribute(
         value_result,
-        "__getitem__",
-        annot),
-      [slice_result],
-      annot)
+        "__getitem__")
+    in
+    gen_assignment @@ annotate @@
+    Simplified.Call(attr_name, [slice_result])
 
-  | Augmented.Name (id, annot) -> (* Throw out context *)
-    [],
-    Simplified.Name(id, annot)
+  | Augmented.Name (id) -> return id
 
-  | Augmented.List (elts, annot) ->
-    let elt_bindings, elt_results = simplify_list simplify_expr elts in
-    elt_bindings,
-    Simplified.List(elt_results, annot)
+  | Augmented.List (elts) ->
+    let%bind elt_ids = sequence @@ List.map simplify_expr elts in
+    gen_assignment @@ annotate @@
+    Simplified.List(elt_ids)
 
-  | Augmented.Tuple (elts, annot) ->
-    let elt_bindings, elt_results = simplify_list simplify_expr elts in
-    elt_bindings,
-    Simplified.Tuple(elt_results, annot)
+  | Augmented.Tuple (elts) ->
+    let%bind elt_ids = sequence @@ List.map simplify_expr elts in
+    gen_assignment @@ annotate @@
+    Simplified.Tuple(elt_ids)
 
-  | Augmented.NoneExpr (annot) ->
-    [],
-    Simplified.Name("*None", annot);
+  | Augmented.NoneExpr ->
+    gen_assignment @@ annotate @@
+    Simplified.Builtin(Builtin_None)
 
-  | Augmented.Builtin (b, annot) ->
-    [],
-    Simplified.Builtin(b, annot)
-*)
+  | Augmented.Builtin (b) ->
+    gen_assignment @@ annotate @@
+    Simplified.Builtin(b)
+
   | _ -> failwith "NYI"
 
 (* Turn a slice operator into a call to the slice() function, with
