@@ -493,6 +493,11 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
 and simplify_expr (e : Augmented.annotated_expr) : identifier m =
   local_annot e.annot @@
   let annotate body = annotate e.annot body in
+  let gen_assignment e =
+    let%bind id = fresh_name () in
+    let%bind _ = emit [Simplified.Assign(id, e)] in
+    return id
+  in
   match e.body with
 
   (* BoolOps are a tricky case because of short-circuiting. We need to
@@ -546,39 +551,33 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
         annot),
       [right_result],
       annot)
-  | Augmented.UnaryOp (op, operand, annot) ->
-    let op_bindings, op_result = simplify_expr operand in
-    op_bindings,
+*)
+  | Augmented.UnaryOp (op, operand) ->
+    let%bind op_result = simplify_expr operand in
+    gen_assignment @@ annotate @@
     begin
       match op with
       | Augmented.Not ->
         Simplified.UnaryOp(Simplified.Not,
-                           Simplified.Call(
-                             Simplified.Builtin(Builtin_bool, annot),
-                             [op_result],
-                             annot),
-                           annot)
-
+                           annotate @@ Simplified.Call(
+                             annotate @@ Simplified.Builtin(Builtin_bool),
+                             [annotate @@ Simplified.Name(op_result)]))
       | Augmented.UAdd ->
         Simplified.Call(
-          Simplified.Attribute(
-            op_result,
-            "__pos__",
-            annot),
-          [],
-          annot)
-
-      | Augmented.USub -> Simplified.Call(
-          Simplified.Attribute(
-            op_result,
-            "__neg__",
-            annot),
-          [],
-          annot)
+          annotate @@ Simplified.Attribute(
+            annotate @@ Simplified.Name(op_result),
+            "__pos__"),
+          [])
+      | Augmented.USub ->
+        Simplified.Call(
+          annotate @@ Simplified.Attribute(
+            annotate @@ Simplified.Name(op_result),
+            "__neg__"),
+          [])
     end
 
-  | Augmented.IfExp (test, body, orelse, annot) ->
-    (* Python allows expressions like x = 1 if test else 0. Of course,
+  | Augmented.IfExp (test, body, orelse) ->
+    (* Python allows expressions like 'x = 1 if test else 0'. Of course,
        only the relevant branch is executed, so we can't simply evaluate both
        beforehand. But in order to be on the right-hand-side of an assignment,
        the expression must be no more complicated than a compound_expr. In
@@ -592,26 +591,25 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
          # evaluate and bind tmp = z
        x = tmp *)
 
-    let test_bindings, test_result = simplify_expr test in
-    let body_bindings, body_result = simplify_expr body in
-    let orelse_bindings, orelse_result = simplify_expr orelse in
-    let result_name = gen_unique_name annot in
-    let all_bindings =
-      test_bindings @
-      [
-        Simplified.If(Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
-                                      [test_result],
-                                      annot),
-                      body_bindings @
-                      [Simplified.Assign(result_name, body_result, annot)],
-                      orelse_bindings @
-                      [Simplified.Assign(result_name, orelse_result, annot)],
-                      annot)
-      ]
+    let%bind test_result = simplify_expr test in
+    let%bind body_result, body_bindings = listen @@ simplify_expr body in
+    let%bind orelse_result, orelse_bindings = listen @@ simplify_expr orelse in
+    let%bind result_name = fresh_name () in
+    let%bind _ =  emit
+        [
+          Simplified.If(annotate @@
+                        Simplified.Call(annotate @@ Simplified.Builtin(Builtin_bool),
+                                        [annotate @@ Simplified.Name(test_result)]),
+                        body_bindings @
+                        [annotate @@ Simplified.Assign(result_name,
+                                                       annotate @@ Simplified.Name(body_result))],
+                        orelse_bindings @
+                        [annotate @@ Simplified.Assign(result_name,
+                                                       annotate @@ Simplified.Name(orelse_result))])
+        ]
     in
-    all_bindings,
-    Simplified.Name(result_name, annot)
-
+    return result_name
+      (*
   | Augmented.Compare (left, ops, comparators, annot) ->
     (* "x < y < z" is equivalent to "x < y and y < z", except y is only
        evaluated once. We treat compare in almost exactly the same way
