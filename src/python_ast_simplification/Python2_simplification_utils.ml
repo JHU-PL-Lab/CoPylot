@@ -1,5 +1,6 @@
 open Batteries;;
 open Python2_ast_types;;
+open Python_simplification_monad;;
 module Augmented = Python2_augmented_ast;;
 module Simplified = Python2_simplified_ast;;
 
@@ -31,13 +32,5 @@ let add_return (stmts : Augmented.annotated_stmt list) annot =
 ;;
 
 let simplify_list simp_func lst =
-  let simplified_list = List.map simp_func lst in
-  let extract
-      (tup1 : 'a list * 'b )
-      (tup2 : 'a list * 'b list)
-    : 'a list * 'b list =
-    (fst tup1 @ fst tup2, (snd tup1)::(snd tup2)) in
-  let bindings, results =
-    List.fold_right extract simplified_list ([], []) in
-  bindings, results
+  Simplification_monad.sequence @@ List.map simp_func lst
 ;;

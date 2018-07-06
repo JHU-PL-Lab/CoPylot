@@ -659,15 +659,14 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
             bindings @ [cmp_assign] @ rest_of_bindings, rest_of_comparison
         end
     end
-
-  | Augmented.Call (func, args, annot) ->
-    let func_bindings, func_result = simplify_expr func in
-    let arg_bindings, arg_results = simplify_list simplify_expr args in
-    func_bindings @ arg_bindings,
-    Simplified.Call (func_result,
-                     arg_results,
-                     annot)
-
+*)
+  | Augmented.Call (func, args) ->
+    let%bind func_result = simplify_expr func in
+    let%bind arg_results = simplify_list simplify_expr args in
+    gen_assignment @@ annotate @@
+    Simplified.Call (annotate @@ Simplified.Name(func_result),
+                     List.map (fun x -> annotate @@ Simplified.Name(x)) arg_results)
+      (*
   | Augmented.Num (n, annot) ->
     [],
     Simplified.Num(n, annot)
@@ -720,13 +719,13 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
     [],
     Simplified.Builtin(b, annot)
 *)
-  | _ -> failwith "NYI"
+| _ -> failwith "NYI"
 
 (* Turn a slice operator into a call to the slice() function, with
    the same arguments. E.g. 1:2:3 becomes slice(1,2,3), and
    1:2 becomes slice (1,2,None) *)
 and simplify_slice  (s : Augmented.slice) : identifier m =
-  ignore s; failwith "NYI"
+                                            ignore s; failwith "NYI"
 (* Turn a "None" option into the python "None" object, and turn a
    "Some" option into the simplified version of its contents *)
   (*
@@ -791,7 +790,7 @@ and simplify_cmpop o =
 *)
 
 and simplify_excepthandlers exn_id handlers : unit m =
-  ignore exn_id; ignore handlers; failwith "NYI"
+                                              ignore exn_id; ignore handlers; failwith "NYI"
     (*
   match handlers with
   | [] ->
