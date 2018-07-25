@@ -25,6 +25,7 @@ sig
 
   val local_annot: annot -> 'a t -> 'a t
   val fresh_name: unit -> string t
+  val get_annot: unit -> annot t
 
   val empty: unit t
 end =
@@ -79,6 +80,11 @@ struct
   let fresh_name () =
     fun ctx annot ->
       gen_unique_name ctx annot, []
+  ;;
+
+  let get_annot () =
+    fun _ annot ->
+      annot, []
   ;;
 
   let empty = return ();;

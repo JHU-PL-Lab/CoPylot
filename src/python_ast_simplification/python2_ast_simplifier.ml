@@ -72,15 +72,18 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
       | Augmented.Name (id) ->
         emit [Simplified.Assign(id, value_name)]
 
-      | Augmented.Attribute (obj, id) ->
+      | Augmented.Attribute (obj, attr) ->
         let%bind obj_result = simplify_expr obj in
+        let%bind attr_name = gen_assignment @@ annotate @@
+          Simplified.Str(attr) (* Implictly cast identifer to string *)
+        in
         let%bind attr_result = gen_assignment @@ annotate @@
           Simplified.Attribute(
             obj_result,
             "__setattr__")
         in
         let%bind _ = gen_assignment @@ annotate @@
-          Simplified.Call(attr_result, [id; value_id])
+          Simplified.Call(attr_result, [attr_name; value_id])
         in
         return ()
 
@@ -534,19 +537,12 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
         simplify_expr if_exp
 
     end
-      (*
-  | Augmented.BinOp (left, op, right, annot) ->
-    let left_bindings, left_result = simplify_expr left in
-    let right_bindings, right_result = simplify_expr right in
-    left_bindings @ right_bindings,
-    Simplified.Call(
-      Simplified.Attribute(
-        left_result,
-        simplify_operator op,
-        annot),
-      [right_result],
-      annot)
-*)
+
+  | Augmented.BinOp (left, op, right) ->
+    let%bind left_result = simplify_expr left in
+    let%bind right_result = simplify_expr right in
+    ignore @@ op; ignore @@ left_result; ignore @@ right_result; failwith "NYI"
+
   | Augmented.UnaryOp (op, operand) ->
     let%bind op_result = simplify_expr operand in
     begin
