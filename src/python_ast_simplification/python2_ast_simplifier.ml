@@ -1,5 +1,5 @@
 open Batteries;;
-(* open Jhupllib;; *)
+open Jhupllib;;
 open Python2_ast_types;;
 module Augmented = Python2_augmented_ast;;
 module Simplified = Python2_simplified_ast;;
@@ -307,9 +307,9 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
                          [annotate @@ Augmented.Str("Unsupported operands for binop")])))
     in
     simplify_stmt @@ annotate @@
-      Augmented.If(is_notimplemented,
-                   [raise_exn],
-                   [final_assignment])
+    Augmented.If(is_notimplemented,
+                 [raise_exn],
+                 [final_assignment])
 
   | Augmented.For (target, seq, body, orelse) ->
     (* For loops are always over some iterable. According to the docs,
@@ -611,8 +611,8 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
         ]
     in
     return result_name
-      (*
-  | Augmented.Compare (left, ops, comparators, annot) ->
+
+  | Augmented.Compare (left, ops, comparators) ->
     (* "x < y < z" is equivalent to "x < y and y < z", except y is only
        evaluated once. We treat compare in almost exactly the same way
        as we treat boolean operators.
@@ -627,41 +627,33 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
        tmp4 = tmp3(tmp2)
        if tmp4 then (tmp2 < z < ...) else tmp4
     *)
-    begin
-      match ops with
-      | [] -> failwith "No right operand given to compare"
-      | op::rest ->
-        let left_bindings, left_result = simplify_expr left in
-        let right_bindings, right_result = simplify_expr (List.hd comparators) in
-        begin
-          match rest with
-          | [] ->
-            (* Don't generate a temporary variable if this is the last one *)
-            left_bindings @ right_bindings,
-            generate_comparison left_result op right_result annot
-          | _ ->
-            let right_id = gen_unique_name annot in
-            let assign = Simplified.Assign(right_id, right_result, annot) in
-            let bindings = left_bindings @ right_bindings @ [assign] in
-            let comparison =
-              generate_comparison left_result op (Simplified.Name(right_id, annot)) annot
-            in
 
-            let comparison_id = gen_unique_name annot in
-            let cmp_assign = Simplified.Assign(comparison_id, comparison, annot) in
-            let comparison_name = Augmented.Name(comparison_id, annot) in
-            let rest_of_bindings, rest_of_comparison =
-              simplify_expr @@
-              Augmented.IfExp(comparison_name,
-                              Augmented.Compare(Augmented.Name(right_id, annot),
-                                                rest, List.tl comparators, annot),
-                              comparison_name,
-                              annot)
-            in
-            bindings @ [cmp_assign] @ rest_of_bindings, rest_of_comparison
-        end
-    end
-*)
+    (* Sanity check *)
+    if List.is_empty ops then failwith "No right operand given to compare";
+    if List.length ops <> List.length comparators then
+      failwith "Wrong number of operands for comparion operators";
+
+    let op = List.hd ops in
+    let right = List.hd comparators in
+
+    let%bind left_result = simplify_expr left in
+    let%bind right_result = simplify_expr right in
+    let%bind cmp_result = generate_comparison left_result op right_result in
+
+    if List.is_empty @@ List.tl ops then
+      (* No need to recurse *)
+      return cmp_result
+    else (* Build an IfExp and recurse *)
+      let smaller_compare = annotate @@
+        Augmented.Compare(annotate @@ Augmented.Name(right_result),
+                          List.tl ops,
+                          List.tl comparators)
+      in
+      simplify_expr @@ annotate @@
+      Augmented.IfExp(annotate @@ Augmented.Name(cmp_result),
+                      smaller_compare,
+                      annotate @@ Augmented.Name(cmp_result))
+
   | Augmented.Call (func, args) ->
     let%bind func_result = simplify_expr func in
     let%bind arg_results = simplify_list simplify_expr args in
@@ -718,8 +710,6 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
     gen_assignment @@ annotate @@
     Simplified.Builtin(b)
 
-  | _ -> failwith "NYI"
-
 (* Turn a slice operator into a call to the slice() function, with
    the same arguments. E.g. 1:2:3 becomes slice(1,2,3), and
    1:2 becomes slice (1,2,None) *)
@@ -741,7 +731,7 @@ and simplify_slice  (s : Augmented.slice) : identifier m =
     let upper_bindings, upper_result = exp_opt_to_slice_arg upper in
     let step_bindings, step_result = exp_opt_to_slice_arg step in
     let args_list =
-      [
+      [let%bind result =
         lower_result;
         upper_result;
         step_result;
@@ -838,23 +828,29 @@ and simplify_excepthandlers exn_id handlers : unit m =
         simplify_excepthandlers ctx exn_id rest annot,
         annot
       )]
-
-and generate_comparison lhs op rhs annot =
+*)
+and generate_comparison
+    (lhs : identifier)
+    op
+    (rhs : identifier)
+  : identifier m =
+  let%bind annot = get_annot () in
+  let annotate x = annotate annot x in
   match op with
   | Augmented.Is ->
-    Simplified.Binop(lhs, Simplified.Is, rhs, annot)
+    gen_assignment @@ annotate @@
+    Simplified.Binop(lhs, Simplified.Is, rhs)
   | Augmented.IsNot ->
-    Simplified.UnaryOp(Simplified.Not,
-                       Simplified.Call(
-                         Simplified.Builtin(Builtin_bool, annot),
-                         [Simplified.Binop(lhs, Simplified.Is, rhs, annot)],
-                         annot),
-                       annot)
+    let%bind is_result = gen_assignment @@ annotate @@
+      Simplified.Binop(lhs, Simplified.Is, rhs)
+    in
+    gen_assignment @@ annotate @@
+    Simplified.UnaryOp(Simplified.Not, is_result)
   | Augmented.NotIn -> raise @@ Utils.Not_yet_implemented "NotIn simplification"
   | _ ->
     (* FIXME: comparison operators are actually a lot more complicated *)
     let cmp_func = simplify_cmpop op in
-    Simplified.Call(
-      Simplified.Attribute(lhs, cmp_func, annot),
-      [rhs],
-      annot) *)
+    simplify_expr @@ annotate @@
+    Augmented.Call(
+      annotate @@ Augmented.Attribute(annotate @@ Augmented.Name(lhs), cmp_func),
+      [annotate @@ Augmented.Name(rhs)])
