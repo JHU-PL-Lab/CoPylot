@@ -541,7 +541,48 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
   | Augmented.BinOp (left, op, right) ->
     let%bind left_result = simplify_expr left in
     let%bind right_result = simplify_expr right in
-    ignore @@ op; ignore @@ left_result; ignore @@ right_result; failwith "NYI"
+
+    let%bind result = fresh_name () in (* x0 *)
+    let gen_try = gen_augmented_try_for_binop result in
+
+    (* Look for e.g. __add__ *)
+    let%bind first_try =
+      gen_try left_result right_result (simplify_operator op)
+    in
+    let%bind () = simplify_stmt first_try in
+
+    (* Look for e.g. __radd__ *)
+    let%bind second_try =
+      gen_try right_result left_result (simplify_roperator op)
+    in
+    let%bind is_notimplemented = check_if_notimplemented result in
+    let%bind is_same_type = check_if_same_type left_result right_result in
+
+    let run_second_try = annotate @@
+      Augmented.If(
+        annotate @@ Augmented.BoolOp(Augmented.And, [is_notimplemented; is_same_type]),
+        [second_try],
+        []
+      )
+    in
+    let%bind () = simplify_stmt run_second_try in
+
+    (* Raise error if we haven't found anything *)
+    let%bind is_notimplemented = check_if_notimplemented result in
+    let raise_exn = annotate @@
+      Augmented.Raise(Some(
+          annotate @@
+          Augmented.Call(annotate @@ Augmented.Builtin(Builtin_TypeError),
+                         [annotate @@ Augmented.Str("Unsupported operands for binop")])))
+    in
+    let%bind () = simplify_stmt @@ annotate @@
+      Augmented.If(is_notimplemented,
+                   [raise_exn],
+                   [])
+    in
+
+    (* That's it! Return the variable which will hold the result if it exists *)
+    return result
 
   | Augmented.UnaryOp (op, operand) ->
     let%bind op_result = simplify_expr operand in
@@ -749,7 +790,7 @@ and simplify_slice  (s : Augmented.slice) : identifier m =
   | Augmented.Index (value) ->
     simplify_expr ctx value
 *)
-(*
+
 and simplify_operator o =
   match o with
   | Augmented.Add  ->  "__add__"
@@ -759,7 +800,7 @@ and simplify_operator o =
   | Augmented.Mod  ->  "__mod__"
   | Augmented.Pow  ->  "__pow__"
 
-and simplify_augoperator o =
+and simplify_ioperator o =
   match o with
   | Augmented.Add  ->  "__iadd__"
   | Augmented.Sub  ->  "__isub__"
@@ -767,6 +808,15 @@ and simplify_augoperator o =
   | Augmented.Div  ->  "__idiv__"
   | Augmented.Mod  ->  "__imod__"
   | Augmented.Pow  ->  "__ipow__"
+
+and simplify_roperator o =
+  match o with
+  | Augmented.Add  ->  "__radd__"
+  | Augmented.Sub  ->  "__rsub__"
+  | Augmented.Mult ->  "__rmul__"
+  | Augmented.Div  ->  "__rdiv__"
+  | Augmented.Mod  ->  "__rmod__"
+  | Augmented.Pow  ->  "__rpow__"
 
 and simplify_cmpop o =
   match o with
@@ -780,7 +830,6 @@ and simplify_cmpop o =
   | Augmented.NotIn
   | Augmented.Is
   | Augmented.IsNot -> failwith "No corresponding comparison function"
-*)
 
 and simplify_excepthandlers exn_id handlers : unit m =
   ignore exn_id; ignore handlers; failwith "NYI"

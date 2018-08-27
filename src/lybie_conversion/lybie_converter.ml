@@ -302,6 +302,7 @@ and convert_expr
       match b with
       | Builtin_slice          -> return builtin_slice
       | Builtin_bool           -> return builtin_bool
+      | Builtin_type           -> failwith "Lamia builtin_type not yet implemented"
       | Builtin_AttributeError -> return builtin_AttributeError
       | Builtin_ValueError     -> return builtin_ValueError
       | Builtin_TypeError      -> return builtin_TypeError

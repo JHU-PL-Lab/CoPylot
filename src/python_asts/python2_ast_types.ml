@@ -35,7 +35,7 @@ type number =
 type builtin =
   | Builtin_bool
   | Builtin_slice
-  (* | Builtin_type *)
+  | Builtin_type
   (* | Builtin_method *)
   | Builtin_ValueError
   | Builtin_AttributeError

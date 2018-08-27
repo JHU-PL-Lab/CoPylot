@@ -47,12 +47,11 @@ let gen_assignment e =
    try statements which have similar forms -- see the "Binary Operation" part of
    the simplification spec for details *)
 let gen_augmented_try_for_binop
-    (simplify_expr) (* The simplify_expr func to allow for mutual recursion *)
     (result : identifier) (* The variable we assign the result/NotImplemented value to *)
     (obj : identifier) (* Variable we search for opFunc *)
-    (opFunc : identifier) (* Name of the builtin function to do the binop *)
     (arg : identifier) (* Name of the other parameter which we pass to the opFunc *)
-  : unit m =
+    (opFunc : string) (* Name of the builtin function to do the binop *)
+  : Augmented.annotated_stmt m =
   let%bind annot = get_annot () in
   let annotate body = annotate annot body in
 
@@ -91,5 +90,35 @@ let gen_augmented_try_for_binop
     )
   in
 
-  simplify_expr final_try
+  return final_try
+;;
+
+let check_if_notimplemented (x0 : identifier) : Augmented.annotated_expr m =
+  let%bind annot = get_annot () in
+  let annotate = annotate annot in
+  let is_notimplemented = annotate @@
+    Augmented.Compare(annotate @@ Augmented.Name(x0),
+                      [Augmented.Is],
+                      [annotate @@ Augmented.Builtin(Builtin_NotImplemented)]
+                     )
+  in
+  return is_notimplemented
+;;
+
+let check_if_same_type (x1 : identifier) (x2 : identifier)
+  : Augmented.annotated_expr m =
+  let%bind annot = get_annot () in
+  let annotate = annotate annot in
+  let is_same_type = annotate @@
+    Augmented.Compare(
+      annotate @@ Augmented.Call(
+        annotate @@ Augmented.Builtin(Builtin_type),
+        [annotate @@ Augmented.Name(x1)]),
+      [Augmented.Is],
+      [annotate @@ Augmented.Call(
+          annotate @@ Augmented.Builtin(Builtin_type),
+          [annotate @@ Augmented.Name(x2)])]
+    )
+  in
+  return is_same_type
 ;;
