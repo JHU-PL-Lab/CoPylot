@@ -4,7 +4,6 @@ open Python2_ast_types;;
 module Augmented = Python2_augmented_ast;;
 module Simplified = Python2_simplified_ast;;
 open Python2_simplification_utils;;
-exception Invalid_assignment of string;;
 
 open Python_simplification_monad;;
 open Simplification_monad;;
@@ -247,103 +246,70 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
 
     let%bind _ = sequence @@ List.map simplify_assignment targets in
     empty
-(*
-  | Augmented.AugAssign (target, op, value, annot) ->
-    (* a += b "simplifies" to
-       tmp1 = a
-       try:
-         tmp2 = tmp1.__iadd__
-       except AttributeError:
-         tmp2 = tmp1.__add__
-       a = tmp2(b)
 
-       except we have to do a little more work depending on the form of a.
+  | Augmented.AugAssign (target, op, value) ->
+    let%bind simplified_value = simplify_expr value in
+    let%bind result = fresh_name () in (* x0 *)
 
-       If a has the form obj.mem, we replace it with "tmp1 = obj; tmp1.mem += 2".
-       This ensures that obj is only evaluated once, as required.
-
-       Similarly, if a looks like list[slice], we evaluate the list and slice
-       beforehand.
-    *)
-    let tmp1 = gen_unique_name annot in
-    let tmp2 = gen_unique_name annot in
-    let binds, newtarget =
-      begin
-        match target with
-        | Augmented.Name _ ->
-          [], target
-
-        | Augmented.Attribute (obj, id, annot) ->
-          let obj_binds, obj_result = simplify_expr obj in
-          obj_binds @
-          [Simplified.Assign (tmp1, obj_result, annot)],
-          Augmented.Attribute (Augmented.Name(tmp1, annot), id, annot)
-
-        | Augmented.Subscript (lst, slice, annot) ->
-          let lst_binds, lst_result = simplify_expr lst in
-          let slice_binds, slice_result = simplify_slice ctx slice annot in
-          let slice_name = gen_unique_name annot in
-          lst_binds @ slice_binds @
-          [
-            Simplified.Assign (tmp1, lst_result, annot);
-            Simplified.Assign (slice_name, slice_result, annot);
-          ],
-          Augmented.Subscript(Augmented.Name(tmp1, annot),
-                              Augmented.Index(Augmented.Name(tmp2, annot)),
-                              annot)
-
-        | Augmented.List _
-        | Augmented.Tuple _
-          -> raise @@ Invalid_assignment "illegal expression for augmented assignment"
-        | Augmented.BoolOp _
-        | Augmented.BinOp _
-        | Augmented.UnaryOp _
-          -> raise @@ Invalid_assignment "can't assign to operator"
-        | Augmented.IfExp _
-          -> raise @@ Invalid_assignment "can't assign to conditional expression"
-        | Augmented.Compare _
-          -> raise @@ Invalid_assignment "can't assign to comparison"
-        | Augmented.Call _
-          -> raise @@ Invalid_assignment "can't assign to function call"
-        | Augmented.Num _
-        | Augmented.Str _
-        | Augmented.Bool _
-          -> raise @@ Invalid_assignment "can't assign to literal"
-        | Augmented.NoneExpr _
-          -> raise @@ Invalid_assignment "cannot assign to None"
-        | Augmented.Builtin _
-          -> raise @@ Invalid_assignment "Can't assign to builtin. How did you even do that?"
-      end in
-    let tryexcept =
-      Augmented.TryExcept(
-        [
-          Augmented.Assign(
-            [Augmented.Name(tmp2, annot)],
-            Augmented.Attribute(newtarget, simplify_augoperator op, annot),
-            annot);
-        ],
-        [
-          Augmented.ExceptHandler(
-            Some(Augmented.Builtin(Builtin_AttributeError, annot)), None,
-            [
-              Augmented.Assign(
-                [Augmented.Name(tmp2, annot)],
-                Augmented.Attribute(newtarget, simplify_operator op, annot),
-                annot)
-            ],
-            annot);
-        ],
-        [],
-        annot);
+    (* Depending on the form of target, we will do different things during setup
+       and at the end. *)
+    let%bind (simplified_target : identifier),
+             (final_assignment : Augmented.annotated_stmt) =
+      get_setup_and_final_assignment_for_augmented_assignment
+        target result simplify_expr simplify_slice
     in
-    let final_assign =
-      Augmented.Assign([newtarget],
-                       Augmented.Call(Augmented.Name(tmp2, annot),
-                                      [value], annot),
-                       annot)
+
+    let%bind result = fresh_name () in (* x0 *)
+    let gen_try = gen_augmented_try_for_binop result in
+
+    (* Look for e.g. __iadd__ *)
+    let%bind first_try =
+      gen_try simplified_target simplified_value (simplify_ioperator op)
     in
-    binds @ simplify_stmt tryexcept @ simplify_stmt final_assign
-                                      *)
+    let%bind () = simplify_stmt first_try in
+
+    (* Look for e.g. __add__ *)
+    let%bind is_notimplemented = check_if_notimplemented result in
+    let%bind second_try =
+      gen_try simplified_target simplified_value (simplify_operator op)
+    in
+    let run_second_try = annotate @@
+      Augmented.If(
+        is_notimplemented,
+        [second_try],
+        []
+      )
+    in
+    let%bind () = simplify_stmt run_second_try in
+
+    (* Look for e.g. __radd__ *)
+    let%bind is_notimplemented = check_if_notimplemented result in
+    let%bind is_same_type = check_if_same_type simplified_target simplified_value in
+    let%bind third_try =
+      gen_try simplified_value simplified_target (simplify_roperator op)
+    in
+
+    let run_third_try = annotate @@
+      Augmented.If(
+        annotate @@ Augmented.BoolOp(Augmented.And, [is_notimplemented; is_same_type]),
+        [third_try],
+        []
+      )
+    in
+    let%bind () = simplify_stmt run_third_try in
+
+    (* Raise error if we haven't found anything *)
+    let%bind is_notimplemented = check_if_notimplemented result in
+    let raise_exn = annotate @@
+      Augmented.Raise(Some(
+          annotate @@
+          Augmented.Call(annotate @@ Augmented.Builtin(Builtin_TypeError),
+                         [annotate @@ Augmented.Str("Unsupported operands for binop")])))
+    in
+    simplify_stmt @@ annotate @@
+      Augmented.If(is_notimplemented,
+                   [raise_exn],
+                   [final_assignment])
 
   | Augmented.For (target, seq, body, orelse) ->
     (* For loops are always over some iterable. According to the docs,
@@ -488,7 +454,6 @@ and simplify_stmt (s : Augmented.annotated_stmt) : unit m =
 
   | Augmented.Continue ->
     emit [Simplified.Continue]
-  | _ -> failwith "NYI"
 
 (* Given a concrete expr, returns a list of statements, corresponding to
    the assignments necessary to compute it, and the name of the final
