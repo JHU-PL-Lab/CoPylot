@@ -714,37 +714,35 @@ and simplify_expr (e : Augmented.annotated_expr) : identifier m =
    the same arguments. E.g. 1:2:3 becomes slice(1,2,3), and
    1:2 becomes slice (1,2,None) *)
 and simplify_slice  (s : Augmented.slice) : identifier m =
-  ignore s; failwith "NYI"
-(* Turn a "None" option into the python "None" object, and turn a
-   "Some" option into the simplified version of its contents *)
-  (*
-  let exp_opt_to_slice_arg e =
+  (* Turn a "None" option into the python "None" object, and turn a
+     "Some" option into the simplified version of its contents *)
+  let%bind annot = get_annot () in
+  let annotate = annotate annot in
+  let simplify_opt e =
     match e with
     | None ->
-      [], Simplified.Name("*None", annot)
+      gen_assignment @@ annotate @@ Simplified.Builtin(Builtin_None)
     | Some(x) ->
-      simplify_expr ctx x
+      simplify_expr x
   in
   match s with
   | Augmented.Slice (lower, upper, step) ->
-    let lower_bindings, lower_result = exp_opt_to_slice_arg lower in
-    let upper_bindings, upper_result = exp_opt_to_slice_arg upper in
-    let step_bindings, step_result = exp_opt_to_slice_arg step in
+    let%bind lower_result = simplify_opt lower in
+    let%bind upper_result = simplify_opt upper in
+    let%bind step_result = simplify_opt step in
     let args_list =
-      [let%bind result =
+      [
         lower_result;
         upper_result;
         step_result;
-      ] in
-    lower_bindings @ upper_bindings @ step_bindings,
-    Simplified.Call(
-      Simplified.Builtin(Builtin_slice, annot),
-      args_list,
-      annot
-    )
+      ]
+    in
+    let%bind slice_name = gen_assignment @@ annotate @@
+      Simplified.Builtin(Builtin_slice)
+    in
+    gen_assignment @@ annotate @@ Simplified.Call(slice_name, args_list)
   | Augmented.Index (value) ->
-    simplify_expr ctx value
-*)
+    simplify_expr value
 
 and simplify_operator o =
   match o with
