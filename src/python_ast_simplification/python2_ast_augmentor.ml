@@ -133,8 +133,14 @@ and augment_args (args : annot Base.arguments) : identifier list =
 
 and augment_handler = function
   | Base.ExceptHandler(typ, name, body, _) ->
+    let id =
+      match name with
+      | None -> None
+      | Some(Base.Name(n, _, _)) -> Some(n)
+      | _ -> failwith "Second argument to except must be an identifier if it exists"
+    in
     Augmented.ExceptHandler(Option.map augment_expr typ,
-                            Option.map augment_expr name,
+                            id,
                             List.map augment_stmt body)
 
 and augment_slice = function

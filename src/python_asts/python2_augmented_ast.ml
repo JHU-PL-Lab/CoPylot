@@ -73,5 +73,5 @@ and unaryop = Not | UAdd | USub
 and cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
 [@@deriving eq, ord, show]
 
-and excepthandler = ExceptHandler of annotated_expr option (* type *) * annotated_expr option (* name *) * annotated_stmt list (* body *)
+and excepthandler = ExceptHandler of annotated_expr option (* type *) * identifier option (* name *) * annotated_stmt list (* body *)
 [@@deriving eq, ord, show]

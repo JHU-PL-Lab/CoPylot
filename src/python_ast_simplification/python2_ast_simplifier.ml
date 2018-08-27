@@ -785,48 +785,47 @@ and simplify_cmpop o =
   | Augmented.IsNot -> failwith "No corresponding comparison function"
 
 and simplify_excepthandlers exn_id handlers : unit m =
-  ignore exn_id; ignore handlers; failwith "NYI"
-    (*
+  let%bind annot = get_annot () in
+  let annotate x = annotate annot x in
+
   match handlers with
   | [] ->
-    [Simplified.Raise(Simplified.Name(exn_id, annot), annot)]
+    emit [Simplified.Raise(exn_id)]
 
-  | Augmented.ExceptHandler (typ, name, body, annot)::rest ->
-    let typ_bindings, typ_result =
+  | Augmented.ExceptHandler (typ, name, body)::rest ->
+    let%bind use_this_handler =
       match typ with
-      | None -> [], Simplified.Bool(true, annot)
+      | None -> gen_assignment @@ annotate @@ Simplified.Bool(true)
       | Some(t) ->
-        simplify_expr ctx @@
-        Augmented.Compare(
+        simplify_expr @@
+        annotate @@ Augmented.Compare(
           (* We use exn.__class__ instead of type(exn) to avoid having to think
              about the type function. They behave the same since exceptions are
              always new_style. *)
-          Augmented.Attribute(
-            Augmented.Name(exn_id, annot),
-            "__class__",
-            annot),
+          annotate @@ Augmented.Attribute(
+            annotate @@ Augmented.Name(exn_id),
+            "__class__"),
           [Augmented.Is],
-          [t],
-          annot)
+          [t])
     in
-    let name_bind =
+    let bind_exn_if_necessary =
       match name with
       | None -> []
-      | Some(Augmented.Name(id,_)) ->
-        [Simplified.Assign(id, Simplified.Name(exn_id, annot), annot)]
-      | _ -> failwith "Second argument to exception handler must be an identifier"
+      | Some(x1) ->
+        [annotate @@ Simplified.Assign(x1, annotate @@ Simplified.Name(exn_id))]
     in
-    typ_bindings @
-    [
-      Simplified.If(
-        Simplified.Call(Simplified.Builtin(Builtin_bool, annot),
-                        [typ_result],
-                        annot),
-        name_bind @ map_and_concat (simplify_stmt ctx) body,
-        simplify_excepthandlers ctx exn_id rest annot,
-        annot
-      )]
-*)
+    let%bind call_bool = simplify_expr @@ annotate @@
+      Augmented.Call(annotate @@ Augmented.Builtin(Builtin_bool),
+                     [annotate @@ Augmented.Name(use_this_handler)])
+    in
+    let%bind (), simplified_body = listen @@ simplify_stmt_list body in
+    let%bind (), simplified_remainder = listen @@ simplify_excepthandlers exn_id rest in
+    emit [
+      Simplified.If(call_bool,
+                    bind_exn_if_necessary @ simplified_body,
+                    simplified_remainder)
+    ]
+
 and generate_comparison
     (lhs : identifier)
     op
